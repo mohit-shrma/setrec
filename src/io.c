@@ -63,11 +63,24 @@ void loadData(Data *data, Params *params) {
         for (j = 0; j < setSz; j++) {
           item = atoi(strtok(line, " "));
           dUserSet->uSets[i][j] = item;
+          dUserSet->itemSetsSize[item] += 1;
         }
 
       }
     }
     
+    //create item to set mapping i.e., itemSets
+    for (i = 0; i < nUserItems; i++) {
+      //allocate space for storing set indices for item
+      dUserSet->itemSets[dUserSet->items[i]] = (int*) malloc(sizeof(int)*itemSetsSize[dUserSet->itemSetsSize[item]]);
+    }
+    
+    for (i = 0; i < numSets; i++) {
+      for (j = 0; j < dUserSet->uSetsSize[i]; j++) {
+        //TODO: use kv pair to keep track of index to put item
+        dUserSet->itemSets[dUserSet->uSets[i][j]] [putInd] = i; 
+      }
+    }
 
   }
 
