@@ -1,15 +1,6 @@
 #ifndef _DATASTRUCT_H
 #define _DATASTRUCT_H
 
-#include <map>
-
-using namespace std;
-
-//map of all items to their id
-map<int, string> idArtist;
-map<string, int> artistId;
-
-
 typedef struct {
   
   //indices of set to which item belongs
@@ -24,23 +15,52 @@ void ItemSets_init(ItemSets *self, int sz);
 void ItemSets_free(ItemSets *self);
 
 typedef struct {
-  char *userId;
+  
+  int userId;
  
   //number of labeled sets in user history
   int numSets;
-
-  //array of user sets
+  
+  //array of user sets in history
   int **uSets;
+  
+  //size of sets in user history
+  int *uSetsSize;
 
   //array of set labels 
   float *labels;
 
-  //map of items to user sets arr
-  map<int, ItemSets> itemSets; 
+
+  //items preferred by user
+  int *items;
+  int nUserItems;
+
+  //TODO: creation item to sets mapping
+  //map of items to user sets  indices
+  //will be null for items which dont occur 
+  //itemSets[i1] = [1,3,5] #uSets[1], uSets[3], uSets[5]
+  int** itemSets;
+  
+  //size of individual item sets in above arr
+  int *itemSetsSize;
+
 } UserSets;
 
-void UserSets_init(UserSets *self, char *userId, int numSets);
-void UserSets_free(UserSets *self);
+void UserSets_init(UserSets *self, int user, int numSets, int nItems,
+    int nUserItems);
+void UserSets_free(UserSets *self, int nItems);
+
+typedef struct {
+  
+  int nUsers;
+  int nItems;
+  
+  UserSets *userSets;
+
+} Data;
+
+void Data_init(Data *self, int nUsers, int nItems);
+void Data_free(Data *self);
 
 #endif
 
