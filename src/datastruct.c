@@ -78,3 +78,43 @@ void Data_free(Data *self) {
   free(self);
 }
 
+
+void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU, 
+    float regI) {
+  
+  int i;
+  
+  self->nUsers = nUsers;
+  self->nItems = nItems;
+  self->facDim = facDim;
+  self->regU   = regU;
+  self->regI   = regI;
+
+  self->uFac = (float**) malloc(sizeof(float*)*nUsers);
+  for (i = 0; i < nUsers; i++) {
+    self->uFac[i] = (float*) malloc(sizeof(float)*facDim);
+    memset(self->uFac[i], 0, sizeof(float)*facDim);
+  }
+
+  self->iFac = (float**) malloc(sizeof(float*)*nItems);
+  for (i = 0; i < nItems; i++) {
+    self->iFac[i] = (float*) malloc(sizeof(float)*facDim);
+    memset(self->iFac[i], 0, sizeof(float)*facDim);
+  }
+}
+
+void Model_free(Model *self) {
+  int i;
+  
+  for (i = 0; i < self->nUsers; i++) {
+    free(self->uFac[i]);
+  }
+  free(self->uFac);
+
+  for (i = 0; i < self->nItems; i++) {
+    free(self->iFac[i]);
+  }
+  free(self->iFac);
+
+}
+

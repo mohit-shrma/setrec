@@ -13,19 +13,6 @@ typedef struct {
 
 typedef struct {
   
-  //indices of set to which item belongs
-  int* setInd;
-  
-  //number of sets to which item belongs
-  int numSets; 
-
-} ItemSets;
-
-void ItemSets_init(ItemSets *self, int sz);
-void ItemSets_free(ItemSets *self);
-
-typedef struct {
-  
   int userId;
  
   //number of labeled sets in user history
@@ -70,6 +57,24 @@ typedef struct {
 
 void Data_init(Data *self, int nUsers, int nItems);
 void Data_free(Data *self);
+
+
+typedef struct {
+  int nUsers;
+  int nItems;
+  
+  float **uFac;
+  float **iFac;
+  
+  float regU;
+  float regI;
+
+  int facDim;
+} Model;
+
+void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU,
+    float regI);
+void Model_free(Model *self);
 
 #endif
 
