@@ -45,7 +45,6 @@ typedef struct {
   int *items;
   int nUserItems;
 
-  //TODO: creation item to sets mapping
   //map of items to user sets  indices
   //will be null for items which dont occur 
   //itemSets[i1] = [1,3,5] #uSets[1], uSets[3], uSets[5]
@@ -58,14 +57,14 @@ typedef struct {
 
 void UserSets_init(UserSets *self, int user, int numSets, int nItems,
     int nUserItems);
-void UserSets_free(UserSets *self, int nItems);
+void UserSets_free(UserSets *self);
 
 typedef struct {
   
   int nUsers;
   int nItems;
   
-  UserSets *userSets;
+  UserSets **userSets;
 
 } Data;
 

@@ -20,12 +20,18 @@ void parse_cmd_line(int argc, char **argv) {
   //load data
   data = (Data *) malloc(sizeof(Data));
   Data_init(data, params->nUsers, params->nItems);
+  
+  //printf("\nloading data...");
+  loadData(data, params);
+
+  //printf("\ndisplaying data...");
+  writeData(data);
 
   //run model
   
+  Data_free(data);  
   free(params);
 }
-
 
 
 int main(int argc, char *argv[]) {
