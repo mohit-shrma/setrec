@@ -1,5 +1,35 @@
 #include "io.h"
 
+
+void writeData(Data *data) {
+  
+  int i, j, k;
+  UserSets *dUserSet;
+    
+  for (i = 0; i < data->nUsers; i++) {
+    dUserSet = &(data->userSets[i]);
+    //print: userId numSets nItems uniqItems 
+    printf("\n%d %d %d  ", dUserSet->userId, dUserSet->numSets, 
+        dUserSet->nUserItems); 
+    for(j = 0; j < dUserSet->nUserItems; j++) {
+      printf("%d ", dUserSet->items[j]);
+    }
+    printf("\n");
+    
+    //print: label numItem itemsInSet
+    for (j = 0; j < dUserSet->numSets; j++) {
+      printf("%f %d ", dUserSet->labels[j], dUserSet->uSetsSize[j]);
+      for (k = 0; k < dUserSet->uSetsSize[j]; k++) {
+        printf(" %d ", dUserSet->uSets[j][k]);
+      }
+      printf("\n");
+    }
+
+  }
+
+}
+
+
 //assuming data is already allocated
 void loadData(Data *data, Params *params) {
   
@@ -13,9 +43,12 @@ void loadData(Data *data, Params *params) {
   float label;
   int i, j;
   UserSets *dUserSet; 
+  
+  int *itemSetInd;
 
+  Data_init(data, params->nUsers, params->nItems); 
 
-  Data_init(data, param->nUsers, params->nItems); 
+  itemSetInd = (int*) malloc(sizeof(int)*params->nItems);
 
   //open file
   fp = fopen(params->user_set_file, "r");
@@ -34,8 +67,8 @@ void loadData(Data *data, Params *params) {
     nUserItems = atoi(strtok(NULL, " "));
     
 
-    //TODO: for user
-    dUserSet = data->userSets[user];
+    //initialize  user sets
+    dUserSet = &(data->userSets[user]);
     UserSets_init(dUserSet, user, numSets, params->nItems, nUserItems);
     
     //read uniq artists for the current user
@@ -68,17 +101,20 @@ void loadData(Data *data, Params *params) {
 
       }
     }
-    
+     
     //create item to set mapping i.e., itemSets
     for (i = 0; i < nUserItems; i++) {
       //allocate space for storing set indices for item
-      dUserSet->itemSets[dUserSet->items[i]] = (int*) malloc(sizeof(int)*itemSetsSize[dUserSet->itemSetsSize[item]]);
+      item = dUserSet->items[i]; 
+      dUserSet->itemSets[item] = (int*) malloc(sizeof(int)*dUserSet->itemSetsSize[item]);
     }
     
+    memset(itemSetInd, 0, sizeof(int)*params->nItems);
+
     for (i = 0; i < numSets; i++) {
       for (j = 0; j < dUserSet->uSetsSize[i]; j++) {
-        //TODO: use kv pair to keep track of index to put item
-        dUserSet->itemSets[dUserSet->uSets[i][j]] [putInd] = i; 
+        item = dUserSet->uSets[i][j];
+        dUserSet->itemSets[item] [itemSetInd[item]++] = i;
       }
     }
 
@@ -88,6 +124,7 @@ void loadData(Data *data, Params *params) {
   if (line) {
     free(line);
   }
+  free(itemSetInd);
 }
 
 

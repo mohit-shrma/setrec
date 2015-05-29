@@ -1,6 +1,16 @@
 #ifndef _DATASTRUCT_H
 #define _DATASTRUCT_H
 
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct {
+  char *user_set_file;
+  int nUsers;
+  int nItems;
+} Params;
+
+
 typedef struct {
   
   //indices of set to which item belongs

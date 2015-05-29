@@ -3,14 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
-typedef struct {
-
-  char *user_set_file;
-  int nUsers;
-  int nItems;
-} Params;
-
+#include "datastruct.h"
+#include "io.h"
 
 void parse_cmd_line(int argc, char **argv);
 

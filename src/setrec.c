@@ -4,6 +4,7 @@
 void parse_cmd_line(int argc, char **argv) {
   
   Params *params;
+  Data *data = NULL;
   params = (Params *) malloc(sizeof(Params));
   memset(params, 0, sizeof(Params));
  
@@ -17,8 +18,12 @@ void parse_cmd_line(int argc, char **argv) {
   }
 
   //load data
-  
+  data = (Data *) malloc(sizeof(Data));
+  Data_init(data, params->nUsers, params->nItems);
+
   //run model
+  
+  free(params);
 }
 
 

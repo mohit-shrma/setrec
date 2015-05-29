@@ -18,7 +18,7 @@ void UserSets_init(UserSets *self, int user, int numSets, int nItems,
   self->uSetsSize = (int*) malloc(sizeof(int) * numSets);
   memset(self->uSetsSize, 0, sizeof(int)*numSets);
 
-  self->itemsets = (int **) malloc(sizeof(int*)*nItems);
+  self->itemSets = (int **) malloc(sizeof(int*)*nItems);
   memset(self->itemSets, 0, sizeof(int*)*nItems);
 
   self->itemSetsSize = (int *) malloc(sizeof(int)*nItems);
@@ -64,7 +64,7 @@ void Data_free(Data *self) {
   UserSets *userSets;
 
   for (i = 0; i < self->nUsers; i++) {
-    UserSets_free(self->userSets[i], self->nItems);
+    UserSets_free(&(self->userSets[i]), self->nItems);
   }
   
   free(self->userSets);
