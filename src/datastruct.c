@@ -49,7 +49,7 @@ void UserSets_free(UserSets * const self) {
   free(self->labels);
   free(self->items);
   free(self->itemSetsSize);
-  
+  free(self); 
 }
 
 
@@ -73,22 +73,22 @@ void Data_free(Data *self) {
   for (i = 0; i < self->nUsers; i++) {
     UserSets_free(self->userSets[i]);
   }
-  free(self->userSets);
   
   free(self);
 }
 
 
 void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU, 
-    float regI) {
+    float regI, float learnRate) {
   
   int i;
   
-  self->nUsers = nUsers;
-  self->nItems = nItems;
-  self->facDim = facDim;
-  self->regU   = regU;
-  self->regI   = regI;
+  self->nUsers    = nUsers;
+  self->nItems    = nItems;
+  self->facDim    = facDim;
+  self->regU      = regU;
+  self->regI      = regI;
+  self->learnRate = learnRate;
 
   self->uFac = (float**) malloc(sizeof(float*)*nUsers);
   for (i = 0; i < nUsers; i++) {
@@ -101,6 +101,14 @@ void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU,
     self->iFac[i] = (float*) malloc(sizeof(float)*facDim);
     memset(self->iFac[i], 0, sizeof(float)*facDim);
   }
+
+  //TODO: can store only half of matrix not needed full
+  sim = (float**) malloc(sizeof(float*)*nItems);
+  for (i = 0; i < nItems; i++) {
+    sim[i] = (float*) malloc(sizeof(float)*nItems);
+    memset(sim[i], 0, sizeof(float)*nItems);
+  }
+
 }
 
 void Model_free(Model *self) {
@@ -116,5 +124,11 @@ void Model_free(Model *self) {
   }
   free(self->iFac);
 
+  for (i = 0; i < self->nItems; i++) {
+    free(sim[i]);
+  }
+  free(sim);
+
+  free(self);
 }
 

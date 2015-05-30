@@ -8,6 +8,10 @@ typedef struct {
   char *user_set_file;
   int nUsers;
   int nItems;
+  int facDim;
+  float regU;
+  float regI;
+  float learnRate;
 } Params;
 
 
@@ -63,17 +67,25 @@ typedef struct {
   int nUsers;
   int nItems;
   
+  //user and item latent factors
   float **uFac;
   float **iFac;
   
+  //user and item regularization
   float regU;
   float regI;
 
+  //size of latent factors
   int facDim;
+
+  //similarity matrix
+  float **sim;
+
+  float learnRate;
 } Model;
 
 void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU,
-    float regI);
+    float regI, float learnRate);
 void Model_free(Model *self);
 
 #endif
