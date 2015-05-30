@@ -102,14 +102,9 @@ void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU,
     memset(self->iFac[i], 0, sizeof(float)*facDim);
   }
 
-  //TODO: can store only half of matrix not needed full
-  sim = (float**) malloc(sizeof(float*)*nItems);
-  for (i = 0; i < nItems; i++) {
-    sim[i] = (float*) malloc(sizeof(float)*nItems);
-    memset(sim[i], 0, sizeof(float)*nItems);
-  }
 
 }
+
 
 void Model_free(Model *self) {
   int i;
@@ -124,10 +119,6 @@ void Model_free(Model *self) {
   }
   free(self->iFac);
 
-  for (i = 0; i < self->nItems; i++) {
-    free(sim[i]);
-  }
-  free(sim);
 
   free(self);
 }

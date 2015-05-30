@@ -15,6 +15,11 @@ void parse_cmd_line(int argc, char **argv) {
     params->user_set_file   = argv[1];
     params->nUsers          = atoi(argv[2]);
     params->nItems          = atoi(argv[3]);
+    params->facDim          = atoi(argv[4]);
+    params->regU            = atof(argv[5]);
+    params->regI            = atof(argv[6]);
+    params->learnRate       = atof(argv[7]);
+    params->useSim          = atoi(argv[8]); 
   }
 
   //load data

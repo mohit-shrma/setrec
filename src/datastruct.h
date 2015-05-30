@@ -12,6 +12,9 @@ typedef struct {
   float regU;
   float regI;
   float learnRate;
+  bool useSim;
+  int maxIter;
+  int seed;
 } Params;
 
 
@@ -33,6 +36,7 @@ typedef struct {
 
 
   //items preferred by user
+  //TODO: make sure these items are in sorted order
   int *items;
   int nUserItems;
 
@@ -78,14 +82,10 @@ typedef struct {
   //size of latent factors
   int facDim;
 
-  //similarity matrix
-  float **sim;
-
   float learnRate;
 } Model;
 
-void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU,
-    float regI, float learnRate);
+void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU, float regI, float learnRate);
 void Model_free(Model *self);
 
 #endif
