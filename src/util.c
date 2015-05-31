@@ -1,3 +1,4 @@
+#include "util.h"
 
 float dotProd(float *u, float *v, int sz) {
   float prod = 0;

@@ -35,7 +35,7 @@ void loadData(Data *data, Params *params) {
   
   FILE *fp = NULL;
   char *line = NULL;
-  int len = 15000;
+  size_t len = 15000;
   char *token = NULL;
   int read;
 

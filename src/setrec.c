@@ -8,7 +8,7 @@ void parse_cmd_line(int argc, char **argv) {
   params = (Params *) malloc(sizeof(Params));
   memset(params, 0, sizeof(Params));
  
-  if (argc < 2) {
+  if (argc < 11) {
     printf("\n Error: need args");
     exit(0);
   } else {
@@ -19,7 +19,9 @@ void parse_cmd_line(int argc, char **argv) {
     params->regU            = atof(argv[5]);
     params->regI            = atof(argv[6]);
     params->learnRate       = atof(argv[7]);
-    params->useSim          = atoi(argv[8]); 
+    params->useSim          = atoi(argv[8]);
+    params->maxIter         = atoi(argv[9]);
+    params->seed            = atoi(argv[10]);
   }
 
   //load data
@@ -30,10 +32,11 @@ void parse_cmd_line(int argc, char **argv) {
   loadData(data, params);
 
   //printf("\ndisplaying data...");
-  writeData(data);
+  //writeData(data);
 
   //run model
-  
+  model(data, params);
+
   Data_free(data);  
   free(params);
 }

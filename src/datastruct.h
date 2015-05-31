@@ -12,7 +12,7 @@ typedef struct {
   float regU;
   float regI;
   float learnRate;
-  bool useSim;
+  int useSim;
   int maxIter;
   int seed;
 } Params;
@@ -56,7 +56,7 @@ void UserSets_init(UserSets *self, int user, int numSets, int nItems,
     int nUserItems);
 void UserSets_free(UserSets *self);
 void UserSets_initWt(UserSets *self);
-
+void UserSets_updWt(UserSets *self, float **sim);
 
 typedef struct {
   
