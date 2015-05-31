@@ -35,7 +35,7 @@ float computeObjective(Data *data, Model *model) {
     iRegErr += dotProd(model->iFac[i], model->iFac[i], model->facDim);
   }
   iRegErr *= model->regI;
-  printf("\nRMSE: %f uRegErr: %f iRegErr: %f", rmse, uRegErr, iRegErr);
+  printf("\nObj: %f RMSE: %f uRegErr: %f iRegErr: %f", (rmse+uRegErr+iRegErr), rmse, uRegErr, iRegErr);
   return (rmse + uRegErr + iRegErr);
 }
 
@@ -79,7 +79,7 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
     }
 
     //objective check
-    if (iter%2 == 0) {
+    if (iter%1000 == 0) {
       computeObjective(data, model);
     }
   }
