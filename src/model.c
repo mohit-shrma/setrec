@@ -1,21 +1,6 @@
 #include "model.h"
 
-
-
-
-
-
-
-
-
-
-
-
-
-void sgdUpdate() {
-}
-
-
+/*
 
 gk_csr_t *createWeightMat(Data *data) {
   int i, j, nnz;
@@ -82,7 +67,7 @@ void initMat(gk_csr_t *W, Data *data) {
   }
   
 }
-
+*/
 
 void updateSim(float **sim, Model *model) {
   int i, j;
@@ -128,8 +113,6 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
   int numItems, item, itemInd;
   float uTv, diff, Wui;
   UserSets *userSet;
-
-  //TODO: initilize model latent factors
 
   for (iter = 0; iter < params->maxIter; iter++) {
     //go over users
@@ -196,15 +179,13 @@ void model(Data *data, Params *params) {
     }
   }
 
-  
-
   //initialize weights based on user sets
   for (i = 0; i < data->nUsers; i++) {
     UserSets_initWt(data->userSets[i]);
   }
   
   //train model 
-  
+  trainModel(model, data, params, sim);
 
   //test model
 
