@@ -6,8 +6,7 @@ void updateSim(float **sim, Model *model) {
   for (i = 0; i < model->nItems; i++) {
     sim[i][i] = 1.0;
     for (j = i+1; j < model->nItems; j++) {
-      sim[j][i] = dotProd(model->iFac[i], model->iFac[j], model->facDim);
-      sim[i][j] = sim[j][i];
+      sim[i][j] = sim[j][i] = dotProd(model->iFac[i], model->iFac[j], model->facDim);
     }
   }
 }
@@ -86,6 +85,22 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
 
 }
 
+//TODO
+float setRating() {
+  int i;
+  return 0.0;
+}
+
+
+//TODO
+float validationErr(Model *model, Data *data) {
+  return 0.0;
+}
+
+//TODO
+float testErr(Model *model Data *data) {
+  return 0.0;
+}
 
 void model(Data *data, Params *params) {
  

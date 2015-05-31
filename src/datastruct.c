@@ -4,11 +4,13 @@
 void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   int nUserItems) {
   
-  int i;
+  int i, j, setInd;
   
-  self->userId = user;
-  self->numSets = numSets;
+  self->userId     = user;
+  self->numSets    = numSets;
   self->nUserItems = nUserItems;
+  self->szValSet   = 1;
+  self->szTestSet  = 1;
 
   self->uSets = (int **) malloc(sizeof(int*)*numSets);
   memset(self->uSets, 0, sizeof(int*)*numSets);
@@ -30,6 +32,43 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   
   self->itemWts = (float*) malloc(sizeof(float)*nUserItems);
   memset(self->itemWts, 0, sizeof(float)*nUserItems);
+
+  //TODO: initialize test and val sets using random
+  self->valSets = (int *) malloc(sizeof(int)*self->szValSet);
+  memset(self->valSets, 0, sizeof(int)*self->szValSet);
+  i = 0;
+  while (i < self->szValSet) {
+    setInd = rand()%numSets;
+    //make sure set is not present already in validation set
+    for (j = 0; j < i; j++) {
+      if (setInd == self->valSets[j]) {
+        continue; 
+      }
+    }
+    self->valSets[i++] = setInd;
+  }
+
+
+  self->testSets = (int *) malloc(sizeof(int)*self->szTestSet);
+  memset(self->testSets, 0, sizeof(int)*self->szTestSet);
+  i = 0;
+  while (i < self->szTestSet) {
+    setInd = rand()%numSets;
+    //make sure set is not present already in test set
+    for (j = 0; j < i; j++) {
+      if (setInd == self->testSets[j]) {
+        continue;
+      }
+    }
+    for (j = 0; j < self->szValSet; j++) {
+      if (setInd == self->valSets[j]) {
+        continue;
+      }
+    }
+    //make sure set is not present in validation set
+    self->testSets[i++] = setInd;
+  }
+
 }
 
 
@@ -46,9 +85,23 @@ void UserSets_initWt(UserSets *self) {
     for (j = 0; j < self->itemSetsSize[item]; j++) {
       //jth set in which item belongs
       setInd = self->itemSets[item][j];
+      
+      //ignore if setInd present in test or validation
+      for (k = 0; k < self->szValSet; k++) {
+        if (setInd == self->valSets[k]) {
+          continue;
+        }
+      }
+
+      for (k = 0; k < self->szTestSet; k++) {
+        if (setInd == self->testSets[k]) {
+          continue;
+        }
+      }
+      
       score += self->labels[setInd]/self->uSetsSize[setInd];
     }
-    score = score/self->itemSetsSize[item];
+    score = score/(self->itemSetsSize[item] - self->szValSet - self->szTestSet);
     self->itemWts[i] = score;
   }
 
@@ -68,6 +121,21 @@ void UserSets_updWt(UserSets *self, float **sim) {
     for (j = 0; j < self->itemSetsSize[item]; j++) {
       //jth set in which item belongs
       setInd = self->itemSets[item][j];
+      
+      //ignore if setInd present in test or validation
+      for (k = 0; k < self->szValSet; k++) {
+        if (setInd == self->valSets[k]) {
+          continue;
+        }
+      }
+
+      for (k = 0; k < self->szTestSet; k++) {
+        if (setInd == self->testSets[k]) {
+          continue;
+        }
+      }
+  
+      
       simSet = 0;
       for (k = 0; k < self->uSetsSize[setInd]; k++) {
         //aggregate sim with all items in set except the item itself
@@ -77,7 +145,7 @@ void UserSets_updWt(UserSets *self, float **sim) {
       }
       score += (self->labels[setInd]*simSet)/self->uSetsSize[setInd];
     }
-    score = score/self->itemSetsSize[item];
+    score = score/(self->itemSetsSize[item] - self->szValSet - self->szTestSet);
     self->itemWts[i] = score;
   }
 
@@ -104,6 +172,8 @@ void UserSets_free(UserSets * const self) {
   free(self->items);
   free(self->itemSetsSize);
   free(self->itemWts);
+  free(self->testSets);
+  free(self->valSets);
   free(self); 
 }
 
@@ -183,4 +253,9 @@ void Model_free(Model *self) {
 
   free(self);
 }
+
+
+
+
+
 

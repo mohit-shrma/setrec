@@ -34,8 +34,17 @@ typedef struct {
   //array of set labels 
   float *labels;
 
+  //validation set indices and no. of validation sets
+  int *valSets;
+  int szValSet;
+
+  //test set indices and no. of test sets
+  int *testSets;
+  int szTestSet;
+
   //items preferred by user
   //TODO: make sure these items are in sorted order
+  //NOTE: these items may not be in sorted order
   int *items;
   int nUserItems;
 
