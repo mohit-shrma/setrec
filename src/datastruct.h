@@ -34,11 +34,13 @@ typedef struct {
   //array of set labels 
   float *labels;
 
-
   //items preferred by user
   //TODO: make sure these items are in sorted order
   int *items;
   int nUserItems;
+
+  //Wui scores
+  float *itemWts;
 
   //map of items to user sets  indices
   //will be null for items which dont occur 
@@ -53,6 +55,8 @@ typedef struct {
 void UserSets_init(UserSets *self, int user, int numSets, int nItems,
     int nUserItems);
 void UserSets_free(UserSets *self);
+void UserSets_initWt(UserSets *self);
+
 
 typedef struct {
   

@@ -27,6 +27,60 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   
   self->items = (int*) malloc(sizeof(int)*nUserItems);
   memset(self->items, 0, sizeof(int)*nUserItems);
+  
+  self->itemWts = (float*) malloc(sizeof(float)*nUserItems);
+  memset(self->itemWts, 0, sizeof(float)*nUserItems);
+}
+
+
+void UserSets_initWt(UserSets *self) {
+  
+  int i, j, k;
+  int item, setInd;
+  float score;
+
+  for (i = 0; i < self->nUserItems; i++) {
+    item = self->items[i];
+    score = 0;
+    //go over sets of item
+    for (j = 0; j < self->itemSetsSize[item]; j++) {
+      //jth set in which item belongs
+      setInd = self->itemSets[item][j];
+      score += self->labels[setInd]/self->uSetsSize[setInd];
+    }
+    score = score/self->itemSetsSize[item];
+    self->itemWts[i] = score;
+  }
+
+}
+
+
+void UserSets_updWt(UserSets *self, float **sim) {
+  
+  int i, j, k;
+  int item, setInd;
+  float score, simSet;
+
+  for (i = 0; i < self->nUserItems; i++) {
+    item = self->items[i];
+    score = 0;
+    //go over sets of item
+    for (j = 0; j < self->itemSetsSize[item]; j++) {
+      //jth set in which item belongs
+      setInd = self->itemSets[item][j];
+      simSet = 0;
+      for (k = 0; k < self->uSetsSize[setInd]; k++) {
+        //aggregate sim with all items in set except the item itself
+        if (self->uSets[setInd][k] != item) {
+          simSet += sim[item][self->uSets[setInd][k]]; 
+        }
+      }
+      score += (self->labels[setInd]*simSet)/self->uSetsSize[setInd];
+    }
+    score = score/self->itemSetsSize[item];
+    self->itemWts[i] = score;
+  }
+
 }
 
 
@@ -49,6 +103,7 @@ void UserSets_free(UserSets * const self) {
   free(self->labels);
   free(self->items);
   free(self->itemSetsSize);
+  free(self->itemWts);
   free(self); 
 }
 
@@ -81,7 +136,7 @@ void Data_free(Data *self) {
 void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU, 
     float regI, float learnRate) {
   
-  int i;
+  int i, j;
   
   self->nUsers    = nUsers;
   self->nItems    = nItems;
@@ -94,12 +149,18 @@ void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU,
   for (i = 0; i < nUsers; i++) {
     self->uFac[i] = (float*) malloc(sizeof(float)*facDim);
     memset(self->uFac[i], 0, sizeof(float)*facDim);
+    for (j = 0; j < facDim; j++) {
+      self->uFac[i][j] = (float)rand() / (float)(RAND_MAX);
+    }
   }
 
   self->iFac = (float**) malloc(sizeof(float*)*nItems);
   for (i = 0; i < nItems; i++) {
     self->iFac[i] = (float*) malloc(sizeof(float)*facDim);
     memset(self->iFac[i], 0, sizeof(float)*facDim);
+    for (j = 0; j < facDim; j++) {
+      self->iFac[i][j] = (float)rand() / (float)(RAND_MAX);
+    }
   }
 
 

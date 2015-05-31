@@ -84,9 +84,48 @@ void initMat(gk_csr_t *W, Data *data) {
 }
 
 
-void trainModel(Model *model, Data *data, Params *params, gk_csr_t *W) {
+void updateSim(float **sim, Model *model) {
+  int i, j;
+  for (i = 0; i < model->nItems; i++) {
+    sim[i][i] = 1.0;
+    for (j = i+1; j < model->nItems; j++) {
+      sim[i][j] = sim[j][i] = dotProd(model->iFac[i], model->iFac[j], 
+                                        model->facDim);
+    }
+  }
+}
+
+
+float computeObjective(Data *data, Model *model) {
+  
+  int u, i, item;
+  UserSets *userSet;
+  float rmse = 0, diff = 0;
+  float uRegErr = 0, iRegErr = 0;
+
+  for (u = 0 ; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->nUserItems; i++) {
+      item = userSet->items[i];
+      diff = userSet->itemWts[i] - dotProd(model->uFac[u], model->iFac[item], model->facDim);
+      rmse += diff*diff;
+    }
+    uRegErr += dotProd(model->uFac[u], model->uFac[u], model->facDim);
+  }
+  uRegErr *= model->regU;
+
+  for (i = 0; i < data->nItems; i++) {
+    iRegErr += dotProd(model->iFac[i], model->iFac[i], model->facDim);
+  }
+  iRegErr *= model->regI;
+  printf("\nRMSE: %f uRegErr: %f iRegErr: %f", rmse, uRegErr, iRegErr);
+  return (rmse + uRegErr + iRegErr);
+}
+
+
+void trainModel(Model *model, Data *data, Params *params, float **sim) {
   int iter, u, i, j, k;
-  int numItems, item;
+  int numItems, item, itemInd;
   float uTv, diff, Wui;
   UserSets *userSet;
 
@@ -98,22 +137,14 @@ void trainModel(Model *model, Data *data, Params *params, gk_csr_t *W) {
     for (u = 0; u < data->nUsers; u++) {
       
       userSet = data->userSets[u];
-      
+
       //for each user select an item
-      i = userSets->items[rand()%userSet->nUserItems];
-      
+      itemInd = rand() % userSet->nUserItems;
+      i = userSets->items[itemInd]; //item
+      Wui = userSets->itemWts[itemInd]; //user score on item
+
       //update model for u and i
       uTv = dotProd(uFac[u], iFac[i], facDim);
-      
-      for (ii = W->rowptr[u]; ii < W->rowptr[u+1]; ii++) {
-        if (W->rowind[ii] == i) {
-          Wui = W->rowval[ii];
-          break;
-        }
-      }
-      
-      //make sure item is found
-      assert(ii != W->rowptr[u+1]);
       
       //update user and item latent factor
       diff = Wui - uTv;
@@ -124,11 +155,18 @@ void trainModel(Model *model, Data *data, Params *params, gk_csr_t *W) {
 
     }
 
-    //update W: decide here or above in loop
+    if (params->useSim) {
+      //update sim
+      updateSim(sim, model);
+      
+      //update W if using sim: decide here or above in loop
+      UserSets_updWt(userSet, sim);
+    }
 
-    //update sim
-    
     //objective check
+    if (iter%2 == 0) {
+      computeObjective(data, model);
+    }
   }
 
 }
@@ -138,9 +176,11 @@ void model(Data *data, Params *params) {
  
   Model *model = NULL;
   float **sim  = NULL;
-  gk_csr_t *W  = NULL;
 
   int i, j, k;
+
+  //init random with seed
+  srand(params->seed);
 
   //allocate storage for model
   model = (Model *) malloc(sizeof(Model));
@@ -156,14 +196,12 @@ void model(Data *data, Params *params) {
     }
   }
 
-  //init random with seed
-  srand(params->seed);
   
-  //create user weights sparse matrix
-  W = createWeightMat(data);
 
-  //initialize weight matrix based on user sets
-  initMat(W, data);
+  //initialize weights based on user sets
+  for (i = 0; i < data->nUsers; i++) {
+    UserSets_initWt(data->userSets[i]);
+  }
   
   //train model 
   
