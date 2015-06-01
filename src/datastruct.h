@@ -64,22 +64,9 @@ typedef struct {
   int szTestSet;
 
   //items preferred by user
-  //TODO: make sure these items are in sorted order
-  //NOTE: these items may not be in sorted order
-  int *items;
-  int nUserItems; //no. of unique items preferred by user
-  //Wui scores, item scores
-  float *itemWts;
+  int nUserItems; 
 
   ItemWtSets **itemWtSets;
-
-  //map of items to user sets  indices
-  //will be null for items which dont occur 
-  //itemSets[i1] = [1,3,5] #uSets[1], uSets[3], uSets[5]
-  int** itemSets;
-  
-  //size of individual item sets in above arr
-  int *itemSetsSize;
 
   //true for item which occur in only test or validation set
   int *testValItems;

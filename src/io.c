@@ -12,7 +12,7 @@ void writeData(Data *data) {
     printf("%d %d %d ", dUserSet->userId, dUserSet->numSets, 
         dUserSet->nUserItems); 
     for(j = 0; j < dUserSet->nUserItems; j++) {
-      printf("%d ", dUserSet->items[j]);
+      printf("%d ", dUserSet->itemWtSets[j]->item);
     }
     printf("\n");
     
@@ -75,7 +75,6 @@ void loadData(Data *data, Params *params) {
     
     //get user and num sets
     user = atoi(token);
-    
 
     numSets = atoi(strtok(NULL, " "));
     nUserItems = atoi(strtok(NULL, " "));
@@ -90,16 +89,14 @@ void loadData(Data *data, Params *params) {
     //read uniq artists for the current user
     for (i = 0; i < nUserItems; i++) {
       item = atoi(strtok(NULL, " "));
-      dUserSet->items[i] = item;
+      dUserSet->itemWtSets[i]->item = item;
     }
 
-    //sort user items 
+    //TODO:sort user items 
     UserSets_sortItems(dUserSet); 
-    
+
     for (i = 0; i < nUserItems; i++) {
-      dUserSet->itemWtSets[i]->item = dUserSet->items[i];
       dUserSet->itemWtSets[i]->ind = i;
-      dUserSet->itemWtSets[i]->wt = 0;
     }
 
     for (i = 0; i < numSets; i++) {
@@ -128,7 +125,9 @@ void loadData(Data *data, Params *params) {
           item = atoi(strtok(NULL, " "));
           dUserSet->uSets[i][j] = item;
           //inc set count of item under consideration
-          dUserSet->itemSetsSize[item] += 1;
+          itemWtSets = UserSets_search(dUserSet, item);
+          //TODO: make sure init 0 
+          itemWtSets->szItemSets += 1;
         }
 
       }
@@ -137,11 +136,7 @@ void loadData(Data *data, Params *params) {
     //create item to set mapping i.e., itemSets
     for (i = 0; i < nUserItems; i++) {
       //allocate space for storing set indices for item
-      item = dUserSet->items[i]; 
-      dUserSet->itemSets[item] = (int*) malloc(sizeof(int)*(dUserSet->itemSetsSize[item]));
-      dUserSet->itemWtSets[i]->szItemSets = dUserSet->itemSetsSize[item];
-      dUserSet->itemWtSets[i]->itemSets = (int*) malloc(sizeof(int)*(dUserSet->itemSetsSize[item]));
-;
+      dUserSet->itemWtSets[i]->itemSets = (int*) malloc(sizeof(int)*(dUserSet->itemWtSets[i]->szItemSets));
     }
     
     memset(itemSetInd, 0, sizeof(int)*params->nItems);
@@ -152,7 +147,6 @@ void loadData(Data *data, Params *params) {
         //search for itemWtSet corresponding to item
         itemWtSets = UserSets_search(dUserSet, item);
         itemWtSets->itemSets[itemSetInd[item]] = i;
-        dUserSet->itemSets[item] [itemSetInd[item]] = i;
         itemSetInd[item]++;
       }
     }
