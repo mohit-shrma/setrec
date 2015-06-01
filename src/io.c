@@ -126,7 +126,8 @@ void loadData(Data *data, Params *params) {
           dUserSet->uSets[i][j] = item;
           //inc set count of item under consideration
           itemWtSets = UserSets_search(dUserSet, item);
-          //TODO: make sure init 0 
+          //TODO: make sure init 0
+          assert(itemWtSets != NULL);
           itemWtSets->szItemSets += 1;
         }
 

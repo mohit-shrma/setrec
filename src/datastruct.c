@@ -206,7 +206,7 @@ int comp (const void * elem1, const void * elem2) {
 
 
 void UserSets_sortItems(UserSets *self) {
-  qsort(self->itemWtSets, self->nUserItems, sizeof(ItemWtSets), comp);
+  qsort(self->itemWtSets, self->nUserItems, sizeof(ItemWtSets*), comp);
 }
 
 //use binary search to return the ItemWtSets
@@ -226,6 +226,12 @@ ItemWtSets* UserSets_search(UserSets *self, int item) {
     } else{
       ub = mid-1;
     }
+  }
+
+  //TODO: need to verify sorting for above to work
+  for (i = 0; i < self->nUserItems; i++) {
+    if (self->itemWtSets[i]->item == item)
+      return self->itemWtSets[i];
   }
 
   printf("ERR: cant find item");
