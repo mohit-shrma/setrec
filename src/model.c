@@ -23,7 +23,41 @@ float computeObjective(Data *data, Model *model) {
     userSet = data->userSets[u];
     for (i = 0; i < userSet->nUserItems; i++) {
       item = userSet->items[i];
+      if (userSet->testValItems[item]) {
+        continue;
+      }
       diff = userSet->itemWts[i] - dotProd(model->uFac[u], model->iFac[item], model->facDim);
+      rmse += diff*diff;
+    }
+    uRegErr += dotProd(model->uFac[u], model->uFac[u], model->facDim);
+  }
+  uRegErr *= model->regU;
+
+  for (i = 0; i < data->nItems; i++) {
+    iRegErr += dotProd(model->iFac[i], model->iFac[i], model->facDim);
+  }
+  iRegErr *= model->regI;
+  printf("\nObj: %f RMSE: %f uRegErr: %f iRegErr: %f", (rmse+uRegErr+iRegErr), rmse, uRegErr, iRegErr);
+  return (rmse + uRegErr + iRegErr);
+}
+
+
+float computeObjective2(Data *data, Model *model) {
+  
+  int u, i, item;
+  UserSets *userSet;
+  float rmse = 0, diff = 0;
+  float uRegErr = 0, iRegErr = 0;
+
+  for (u = 0 ; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->nUserItems; i++) {
+      item = userSet->itemWtSets[i]->item;
+      //ignore if item not in train
+      if (userSet->testValItems[item]) {
+        continue;
+      }
+      diff = userSet->itemWtSets[i]->wt - dotProd(model->uFac[u], model->iFac[item], model->facDim);
       rmse += diff*diff;
     }
     uRegErr += dotProd(model->uFac[u], model->uFac[u], model->facDim);
@@ -55,6 +89,11 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
       //for each user select an item
       itemInd = rand() % userSet->nUserItems;
       i = userSet->items[itemInd]; //item
+      //ignore if item not in user train
+      if (userSet->testValItems[i]) {
+        continue;
+      }
+
       Wui = userSet->itemWts[itemInd]; //user score on item
 
       //update model for u and i
@@ -78,17 +117,34 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
     }
 
     //objective check
-    if (iter%1000 == 0) {
+    if (iter%2 == 0) {
       computeObjective(data, model);
+      //computeObjective2(data, model);
     }
   }
 
 }
 
+
 //TODO
-float setRating() {
-  int i;
-  return 0.0;
+float userTestErr(UserSets *userSet) {
+  int i, j, item;
+  int testSetInd;
+  float setScore;
+  ItemWtSets *itemWtSets;
+
+  for (i = 0; i < userSet->szTestSet; i++) {
+    testSetInd = userSet->testSets[i];
+    setScore = 0;
+    for (j = 0; j < userSet->uSetsSize[testSetInd]; j++) {
+      item = userSet->uSets[testSetInd][j];
+      //TODO: how to get arbitary item weight
+      itemWtSets = UserSets_search(userSet, item);
+      setScore += itemWtSets->wt;
+    }
+
+  }
+  return 0.0; 
 }
 
 
@@ -97,10 +153,12 @@ float validationErr(Model *model, Data *data) {
   return 0.0;
 }
 
+
 //TODO
-float testErr(Model *model Data *data) {
+float testErr(Model *model, Data *data) {
   return 0.0;
 }
+
 
 void model(Data *data, Params *params) {
  

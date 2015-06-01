@@ -45,6 +45,8 @@ void loadData(Data *data, Params *params) {
   //UserSets *dUserSet; 
   
   int *itemSetInd;
+  
+  ItemWtSets *itemWtSets;
 
   line = (char*) malloc(len);
 
@@ -91,6 +93,14 @@ void loadData(Data *data, Params *params) {
       dUserSet->items[i] = item;
     }
 
+    //sort user items 
+    UserSets_sortItems(dUserSet); 
+    
+    for (i = 0; i < nUserItems; i++) {
+      dUserSet->itemWtSets[i]->item = dUserSet->items[i];
+      dUserSet->itemWtSets[i]->ind = i;
+      dUserSet->itemWtSets[i]->wt = 0;
+    }
 
     for (i = 0; i < numSets; i++) {
       memset(line, 0, len);
@@ -129,6 +139,9 @@ void loadData(Data *data, Params *params) {
       //allocate space for storing set indices for item
       item = dUserSet->items[i]; 
       dUserSet->itemSets[item] = (int*) malloc(sizeof(int)*(dUserSet->itemSetsSize[item]));
+      dUserSet->itemWtSets[i]->szItemSets = dUserSet->itemSetsSize[item];
+      dUserSet->itemWtSets[i]->itemSets = (int*) malloc(sizeof(int)*(dUserSet->itemSetsSize[item]));
+;
     }
     
     memset(itemSetInd, 0, sizeof(int)*params->nItems);
@@ -136,7 +149,11 @@ void loadData(Data *data, Params *params) {
     for (i = 0; i < numSets; i++) {
       for (j = 0; j < dUserSet->uSetsSize[i]; j++) {
         item = dUserSet->uSets[i][j];
-        dUserSet->itemSets[item] [itemSetInd[item]++] = i;
+        //search for itemWtSet corresponding to item
+        itemWtSets = UserSets_search(dUserSet, item);
+        itemWtSets->itemSets[itemSetInd[item]] = i;
+        dUserSet->itemSets[item] [itemSetInd[item]] = i;
+        itemSetInd[item]++;
       }
     }
 

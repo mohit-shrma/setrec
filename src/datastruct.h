@@ -1,8 +1,10 @@
 #ifndef _DATASTRUCT_H
 #define _DATASTRUCT_H
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 typedef struct {
   char *user_set_file;
@@ -16,6 +18,25 @@ typedef struct {
   int maxIter;
   int seed;
 } Params;
+
+
+typedef struct {
+  //index of item in parent array
+  int ind;
+
+  //itemId 
+  int item; 
+  
+  //user score on item 
+  float wt; 
+  
+  //indices of set where item appears in user history 
+  int *itemSets; 
+  
+  //no. of set where item appears or size of above array 
+  int szItemSets;
+
+} ItemWtSets;
 
 
 typedef struct {
@@ -46,10 +67,11 @@ typedef struct {
   //TODO: make sure these items are in sorted order
   //NOTE: these items may not be in sorted order
   int *items;
-  int nUserItems;
-
-  //Wui scores
+  int nUserItems; //no. of unique items preferred by user
+  //Wui scores, item scores
   float *itemWts;
+
+  ItemWtSets **itemWtSets;
 
   //map of items to user sets  indices
   //will be null for items which dont occur 
@@ -59,6 +81,8 @@ typedef struct {
   //size of individual item sets in above arr
   int *itemSetsSize;
 
+  //true for item which occur in only test or validation set
+  int *testValItems;
 } UserSets;
 
 void UserSets_init(UserSets *self, int user, int numSets, int nItems,
@@ -66,6 +90,9 @@ void UserSets_init(UserSets *self, int user, int numSets, int nItems,
 void UserSets_free(UserSets *self);
 void UserSets_initWt(UserSets *self);
 void UserSets_updWt(UserSets *self, float **sim);
+void UserSets_sortItems(UserSets *self);
+ItemWtSets* UserSets_search(UserSets *self, int item);
+
 
 typedef struct {
   

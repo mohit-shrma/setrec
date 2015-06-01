@@ -26,14 +26,22 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   memset(self->itemSets, 0, sizeof(int*)*nItems);
   self->itemSetsSize = (int *) malloc(sizeof(int)*nItems);
   memset(self->itemSetsSize, 0, sizeof(int)*nItems);
-  
+  self->testValItems = (int*) malloc(sizeof(int)*nItems);
+  memset(self->testValItems, 0, sizeof(int)*nItems);
+
   self->items = (int*) malloc(sizeof(int)*nUserItems);
   memset(self->items, 0, sizeof(int)*nUserItems);
   
   self->itemWts = (float*) malloc(sizeof(float)*nUserItems);
   memset(self->itemWts, 0, sizeof(float)*nUserItems);
 
-  //TODO: initialize test and val sets using random
+  self->itemWtSets = (ItemWtSets **) malloc(sizeof(ItemWtSets*)*nUserItems);   
+  for (i = 0; i < nUserItems; i++) {
+    self->itemWtSets[i] = (ItemWtSets *) malloc(sizeof(ItemWtSets));
+    memset(self->itemWtSets[i], 0, sizeof(ItemWtSets));    
+  }
+
+  //initialize test and val sets using random
   self->valSets = (int *) malloc(sizeof(int)*self->szValSet);
   memset(self->valSets, 0, sizeof(int)*self->szValSet);
   i = 0;
@@ -77,11 +85,13 @@ void UserSets_initWt(UserSets *self) {
   int i, j, k;
   int item, setInd;
   float score;
+  int testValSetCt = 0;
 
   for (i = 0; i < self->nUserItems; i++) {
     item = self->items[i];
     score = 0;
     //go over sets of item
+    testValSetCt = 0;
     for (j = 0; j < self->itemSetsSize[item]; j++) {
       //jth set in which item belongs
       setInd = self->itemSets[item][j];
@@ -89,20 +99,30 @@ void UserSets_initWt(UserSets *self) {
       //ignore if setInd present in test or validation
       for (k = 0; k < self->szValSet; k++) {
         if (setInd == self->valSets[k]) {
+          testValSetCt++;
           continue;
         }
       }
 
       for (k = 0; k < self->szTestSet; k++) {
         if (setInd == self->testSets[k]) {
+          testValSetCt++;
           continue;
         }
       }
       
       score += self->labels[setInd]/self->uSetsSize[setInd];
     }
-    score = score/(self->itemSetsSize[item] - self->szValSet - self->szTestSet);
-    self->itemWts[i] = score;
+
+    if ((self->itemSetsSize[item] - testValSetCt) > 0) {
+      score = score/(self->itemSetsSize[item] - testValSetCt);
+      self->itemWts[i] = score;
+      self->itemWtSets[i]->wt = score;
+    } else {
+      self->testValItems[self->items[i]] = 1;
+      self->itemWts[i] = 0;
+      self->itemWtSets[i]->wt = 0;
+    }
   }
 
 }
@@ -113,11 +133,13 @@ void UserSets_updWt(UserSets *self, float **sim) {
   int i, j, k;
   int item, setInd;
   float score, simSet;
+  int testValSetCt;
 
   for (i = 0; i < self->nUserItems; i++) {
     item = self->items[i];
     score = 0;
     //go over sets of item
+    testValSetCt = 0;
     for (j = 0; j < self->itemSetsSize[item]; j++) {
       //jth set in which item belongs
       setInd = self->itemSets[item][j];
@@ -125,12 +147,14 @@ void UserSets_updWt(UserSets *self, float **sim) {
       //ignore if setInd present in test or validation
       for (k = 0; k < self->szValSet; k++) {
         if (setInd == self->valSets[k]) {
+          testValSetCt++;
           continue;
         }
       }
 
       for (k = 0; k < self->szTestSet; k++) {
         if (setInd == self->testSets[k]) {
+          testValSetCt++;
           continue;
         }
       }
@@ -145,8 +169,17 @@ void UserSets_updWt(UserSets *self, float **sim) {
       }
       score += (self->labels[setInd]*simSet)/self->uSetsSize[setInd];
     }
-    score = score/(self->itemSetsSize[item] - self->szValSet - self->szTestSet);
-    self->itemWts[i] = score;
+    
+    if ((self->itemSetsSize[item] - testValSetCt) > 0) {
+      score = score/(self->itemSetsSize[item] - testValSetCt);
+      self->itemWts[i] = score;
+      self->itemWtSets[i]->wt = score;
+    } else {
+      assert(self->testValItems[self->items[i]] == 1);
+      self->itemWts[i] = 0;
+      self->itemWtSets[i]->wt = 0;
+    }
+    
   }
 
 }
@@ -166,6 +199,12 @@ void UserSets_free(UserSets * const self) {
     free(self->itemSets[item]);
   }
   free(self->itemSets);
+ 
+  for (i = 0; i < self->nUserItems; i++) {
+    free(self->itemWtSets[i]->itemSets);
+    free(self->itemWtSets[i]);
+  }
+  free(self->itemWtSets);
   
   free(self->uSetsSize);
   free(self->labels);
@@ -174,7 +213,45 @@ void UserSets_free(UserSets * const self) {
   free(self->itemWts);
   free(self->testSets);
   free(self->valSets);
+  free(self->testValItems);
   free(self); 
+}
+
+
+int comp (const void * elem1, const void * elem2) {
+  int f = *((int*)elem1);
+  int s = *((int*)elem2);
+  if (f > s) return  1;
+  if (f < s) return -1;
+  return 0;
+}
+
+
+void UserSets_sortItems(UserSets *self) {
+  qsort(self->items, self->nUserItems, sizeof(int), comp);
+}
+
+//use binary search to return the ItemWtSets
+ItemWtSets* UserSets_search(UserSets *self, int item) {
+  int i;
+  int lb, ub, mid;
+  
+  lb = 0;
+  ub = self->nUserItems - 1;
+
+  while (lb <= ub) {
+    mid = (lb + ub) / 2;
+    if (self->itemWtSets[mid]->item == item) {
+      return self->itemWtSets[mid];
+    } else if (self->itemWtSets[mid]->item < item) {
+      lb = mid+1;
+    } else{
+      ub = mid-1;
+    }
+  }
+
+  printf("ERR: cant find item");
+  return NULL;
 }
 
 
@@ -198,7 +275,7 @@ void Data_free(Data *self) {
   for (i = 0; i < self->nUsers; i++) {
     UserSets_free(self->userSets[i]);
   }
-  
+  free(self->userSets);
   free(self);
 }
 
