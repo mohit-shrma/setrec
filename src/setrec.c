@@ -34,7 +34,7 @@ void parse_cmd_line(int argc, char **argv) {
   //printf("\ndisplaying data...");
   //writeData(data);
 
-  //run model
+  //learn model
   model(data, params);
 
   Data_free(data);  

@@ -43,11 +43,162 @@ float computeObjective(Data *data, Model *model) {
 }
 
 
+float *setScores(int *sets, int setsSz, UserSets *userSet) {
+  
+  int i, j;
+  int item, setSz;
+  ItemWtSets *itemWtSets;
+  float *scores = (float*) malloc(sizeof(float)*setsSz);
+  memset(scores, 0, sizeof(float)*setsSz);
+
+  for (i = 0; i < setsSz; i++) {
+    setSz = userSet->uSetsSize[sets[i]];
+    for (j = 0; j < setSz; j++) {
+      item = userSet->uSets[sets[i]][j];
+      itemWtSets = UserSets_search(userSet, item);
+      scores[i] += itemWtSets->wt;    
+    }
+  }
+  return scores;
+}
+
+
+float** computeTestScores(Data *data) {
+  int u;
+  UserSets *userSet;
+  float **testScores = (float**) malloc(sizeof(float*)*data->nUsers);
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    testScores[u] = setScores(userSet->testSets, userSet->szTestSet, userSet); 
+  }
+  return testScores;
+}
+
+
+float** computeValScores(Data *data) {
+  int u;
+  UserSets *userSet;
+  float **valScores = (float**) malloc(sizeof(float*)*data->nUsers); 
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    valScores[u] = setScores(userSet->valSets, userSet->szValSet, userSet); 
+  }
+  return valScores;
+}
+
+
+float **testLabels(Data *data) {
+  int u, i; 
+  UserSets *userSet;
+  float **labels = (float**) malloc(sizeof(float*)*data->nUsers);
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    labels[u] = (float*) malloc(sizeof(float)*userSet->szTestSet);
+    for (i = 0; i < userSet->szTestSet; i++) {
+      labels[u][i] = userSet->labels[userSet->testSets[i]];
+    }
+  }
+  return labels;
+}
+
+
+float **valLabels(Data *data) {
+  int u, i; 
+  UserSets *userSet;
+  float **labels = (float**) malloc(sizeof(float*)*data->nUsers);
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    labels[u] = (float*) malloc(sizeof(float)*userSet->szValSet);
+    for (i = 0; i < userSet->szValSet; i++) {
+      labels[u][i] = userSet->labels[userSet->valSets[i]];
+    }
+  }
+  return labels;
+}
+
+
+float computeCorr(float **labels, float **predScores, int nUsers, 
+    int setsPerUser) {
+
+  int u, i, j;
+  float corr;
+  float *x, *y;
+  
+  x = (float*)malloc(sizeof(float)*nUsers*setsPerUser);
+  y = (float*)malloc(sizeof(float)*nUsers*setsPerUser);
+  j = 0;
+
+  for (u = 0; u < nUsers; u++) {
+    for (i = 0; i < setsPerUser; i++) {
+      x[j] = labels[u][i];
+      y[j] = predScores[u][i];
+      j++;
+    }
+  }
+
+  corr = pearsonCorr(x, y, nUsers*setsPerUser);
+
+  free(x);
+  free(y);
+
+  return corr;
+}
+
+
+float validationErr(Model *model, Data *data) {
+  float **valScores = NULL;
+  float **labels = NULL;
+  float corr = 0;
+  int u;
+
+  valScores = computeValScores(data);
+  labels = valLabels(data);
+
+  corr = computeCorr(labels, valScores, data->nUsers, data->userSets[0]->szValSet);
+  
+  //free up space
+  for (u = 0; u < data->nUsers; u++) {
+    free(valScores[u]);
+    free(labels[u]);
+  }
+  free(valScores);
+  free(labels);
+
+  return corr;
+}
+
+
+float testErr(Model *model, Data *data) {
+  float **testScores = NULL;
+  float **labels = NULL;
+  float corr = 0;
+  int u;
+
+  testScores = computeTestScores(data);
+  labels = testLabels(data);
+  
+  corr = computeCorr(labels, testScores, data->nUsers, data->userSets[0]->szTestSet);
+  
+  //free up space
+  for (u = 0; u < data->nUsers; u++) {
+    free(testScores[u]);
+    free(labels[u]);
+  }
+  free(testScores);
+  free(labels);
+  
+  return corr;
+}
+
+
 void trainModel(Model *model, Data *data, Params *params, float **sim) {
   int iter, u, i, j, k;
   int numItems, item, itemInd;
   float uTv, diff, Wui;
   UserSets *userSet;
+
+  printf("\nBaseline Val Err: %f", validationErr(model, data));
+  printf("\nBaseline Test Err: %f", testErr(model, data));
 
   for (iter = 0; iter < params->maxIter; iter++) {
     //go over users
@@ -87,45 +238,14 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
     }
 
     //objective check
-    if (iter%2 == 0) {
+    if (iter%10 == 0) {
       computeObjective(data, model);
+      printf("\nValidation Err: %f", validationErr(model, data));
     }
   }
 
-}
+  printf("\nTestErr: %f", testErr(model, data));
 
-
-//TODO
-float userTestErr(UserSets *userSet) {
-  int i, j, item;
-  int testSetInd;
-  float setScore;
-  ItemWtSets *itemWtSets;
-
-  for (i = 0; i < userSet->szTestSet; i++) {
-    testSetInd = userSet->testSets[i];
-    setScore = 0;
-    for (j = 0; j < userSet->uSetsSize[testSetInd]; j++) {
-      item = userSet->uSets[testSetInd][j];
-      //TODO: how to get arbitary item weight
-      itemWtSets = UserSets_search(userSet, item);
-      setScore += itemWtSets->wt;
-    }
-
-  }
-  return 0.0; 
-}
-
-
-//TODO
-float validationErr(Model *model, Data *data) {
-  return 0.0;
-}
-
-
-//TODO
-float testErr(Model *model, Data *data) {
-  return 0.0;
 }
 
 

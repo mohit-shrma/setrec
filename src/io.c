@@ -90,9 +90,11 @@ void loadData(Data *data, Params *params) {
     for (i = 0; i < nUserItems; i++) {
       item = atoi(strtok(NULL, " "));
       dUserSet->itemWtSets[i]->item = item;
+      dUserSet->itemWtSets[i]->szItemSets = 0;
+      dUserSet->itemWtSets[i]->wt = 0;
     }
 
-    //TODO:sort user items 
+    //sort user items 
     UserSets_sortItems(dUserSet); 
 
     for (i = 0; i < nUserItems; i++) {
@@ -119,7 +121,6 @@ void loadData(Data *data, Params *params) {
 
         dUserSet->uSets[i] = (int*) malloc(sizeof(int)*setSz);
         memset(dUserSet->uSets[i], 0, sizeof(int)*setSz);
-        
         
         for (j = 0; j < setSz; j++) {
           item = atoi(strtok(NULL, " "));
