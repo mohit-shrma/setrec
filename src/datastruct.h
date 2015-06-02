@@ -6,6 +6,13 @@
 #include <string.h>
 #include <assert.h>
 
+
+typedef struct {
+  float corr;
+  float misClassLoss;
+} Metric;
+
+
 typedef struct {
   char *user_set_file;
   int nUsers;

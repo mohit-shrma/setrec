@@ -34,3 +34,37 @@ float pearsonCorr(float *x, float *y, int n) {
   return corr;
 }
 
+
+void writeIntVector(int *vec, int n, char *fileName) {
+  FILE *fp = NULL;
+  int i;
+  fp = fopen(fileName, "w");
+ 
+  if (fp == NULL) {
+    printf("\nErr: cant open file");
+  } else {
+    for (i = 0; i < n; i++) {
+      fprintf(fp, "%d\n", vec[i]);
+    }
+  }
+
+  fclose(fp);
+}
+
+void writeFloatVector(float *vec, int n, char *fileName) {
+  FILE *fp = NULL;
+  int i;
+  fp = fopen(fileName, "w");
+ 
+  if (fp == NULL) {
+    printf("\nErr: cant open file");
+  } else {
+    for (i = 0; i < n; i++) {
+      fprintf(fp, "%f\n", vec[i]);
+    }
+  }
+
+  fclose(fp);
+}
+
+

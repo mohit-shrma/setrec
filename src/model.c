@@ -63,6 +63,18 @@ float *setScores(int *sets, int setsSz, UserSets *userSet) {
 }
 
 
+float setScoreLatFac(int *set, int setSz, Model *model, UserSet *userSet) {
+  int i, j;
+  int item;
+  float score = 0;
+  for (i = 0; i < setSz; i++) {
+    item = set[i];
+    score += dotProd(model->uFac[userSet->userId], model->iFac[item], model->facDim);
+  }
+  return score;
+}
+
+
 float** computeTestScores(Data *data) {
   int u;
   UserSets *userSet;
@@ -123,7 +135,8 @@ float computeCorr(float **labels, float **predScores, int nUsers,
   int u, i, j;
   float corr;
   float *x, *y;
-  
+  int signLoss = 0;
+
   x = (float*)malloc(sizeof(float)*nUsers*setsPerUser);
   y = (float*)malloc(sizeof(float)*nUsers*setsPerUser);
   j = 0;
@@ -137,6 +150,16 @@ float computeCorr(float **labels, float **predScores, int nUsers,
   }
 
   corr = pearsonCorr(x, y, nUsers*setsPerUser);
+
+  //writeFloatVector(x, nUsers*setsPerUser, "x.txt");
+  //writeFloatVector(y, nUsers*setsPerUser, "y.txt");
+
+  for (i = 0; i < nUsers*setsPerUser; i++) {
+    if (x[i]*y[i] < 0) {
+      signLoss++;
+    } 
+  }
+  printf("\nsignLoss = %d", signLoss);
 
   free(x);
   free(y);
@@ -197,6 +220,13 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
   float uTv, diff, Wui;
   UserSets *userSet;
 
+  int *usersAx, *itemsAx;
+  
+  usersAx = (int *) malloc(sizeof(int)*data->nUsers);
+  memset(usersAx, 0, sizeof(int)*data->nUsers);
+  itemsAx = (int*) malloc(sizeof(int)*data->nItems);
+  memset(itemsAx, 0, sizeof(int)*data->nItems);
+
   printf("\nBaseline Val Err: %f", validationErr(model, data));
   printf("\nBaseline Test Err: %f", testErr(model, data));
 
@@ -214,6 +244,9 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
       if (userSet->testValItems[i]) {
         continue;
       }
+      
+      usersAx[u] += 1;
+      itemsAx[i] += 1;
 
       Wui = userSet->itemWtSets[itemInd]->wt; //user score on item
 
@@ -238,7 +271,7 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
     }
 
     //objective check
-    if (iter%10 == 0) {
+    if (iter%100 == 0) {
       computeObjective(data, model);
       printf("\nValidation Err: %f", validationErr(model, data));
     }
@@ -246,6 +279,11 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
 
   printf("\nTestErr: %f", testErr(model, data));
 
+  //writeIntVector(usersAx, data->nUsers, "usersAx.txt");
+  //writeIntVector(itemsAx, data->nItems, "itemsAx.txt");
+  
+  free(usersAx);
+  free(itemsAx);
 }
 
 
