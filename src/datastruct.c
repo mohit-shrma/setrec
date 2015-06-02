@@ -195,10 +195,9 @@ void UserSets_free(UserSets * const self) {
   free(self); 
 }
 
-//TODO: verify whether sorting correctly
 int comp (const void * elem1, const void * elem2) {
-  ItemWtSets *f = (ItemWtSets*)elem1;
-  ItemWtSets *s = (ItemWtSets*)elem2;
+  ItemWtSets *f = *(ItemWtSets**)elem1;
+  ItemWtSets *s = *(ItemWtSets**)elem2;
   if (f->item > s->item) return  1;
   if (f->item < s->item) return -1;
   return 0;
@@ -228,13 +227,8 @@ ItemWtSets* UserSets_search(UserSets *self, int item) {
     }
   }
 
-  //TODO: need to verify sorting for above to work
-  for (i = 0; i < self->nUserItems; i++) {
-    if (self->itemWtSets[i]->item == item)
-      return self->itemWtSets[i];
-  }
+  printf("\nERR: cant find item");
 
-  printf("ERR: cant find item");
   return NULL;
 }
 
