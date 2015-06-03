@@ -63,7 +63,7 @@ float *setScores(int *sets, int setsSz, UserSets *userSet) {
 }
 
 
-float setScoreLatFac(int *set, int setSz, Model *model, UserSet *userSet) {
+float setScoreLatFac(int *set, int setSz, Model *model, UserSets *userSet) {
   int i, j;
   int item;
   float score = 0;
@@ -75,25 +75,43 @@ float setScoreLatFac(int *set, int setSz, Model *model, UserSet *userSet) {
 }
 
 
-float** computeTestScores(Data *data) {
+float *setScoresLatFac(int *sets, int setsSz, Model *model, UserSets *userSet) {
+  
+  int i, j;
+  int item, setSz;
+  ItemWtSets *itemWtSets;
+  float *scores = (float*) malloc(sizeof(float)*setsSz);
+  memset(scores, 0, sizeof(float)*setsSz);
+
+  for (i = 0; i < setsSz; i++) {
+    setSz = userSet->uSetsSize[sets[i]];
+    scores[i] += setScoreLatFac(userSet->uSets[sets[i]], setSz, model, userSet);
+  }
+  return scores;
+}
+
+
+float** computeTestScores(Data *data, Model *model) {
   int u;
   UserSets *userSet;
   float **testScores = (float**) malloc(sizeof(float*)*data->nUsers);
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     testScores[u] = setScores(userSet->testSets, userSet->szTestSet, userSet); 
+    //testScores[u] = setScoresLatFac(userSet->testSets, userSet->szTestSet, model, userSet); 
   }
   return testScores;
 }
 
 
-float** computeValScores(Data *data) {
+float** computeValScores(Data *data, Model *model) {
   int u;
   UserSets *userSet;
   float **valScores = (float**) malloc(sizeof(float*)*data->nUsers); 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     valScores[u] = setScores(userSet->valSets, userSet->szValSet, userSet); 
+    //valScores[u] = setScoresLatFac(userSet->valSets, userSet->szValSet, model, userSet); 
   }
   return valScores;
 }
@@ -174,7 +192,7 @@ float validationErr(Model *model, Data *data) {
   float corr = 0;
   int u;
 
-  valScores = computeValScores(data);
+  valScores = computeValScores(data, model);
   labels = valLabels(data);
 
   corr = computeCorr(labels, valScores, data->nUsers, data->userSets[0]->szValSet);
@@ -197,7 +215,7 @@ float testErr(Model *model, Data *data) {
   float corr = 0;
   int u;
 
-  testScores = computeTestScores(data);
+  testScores = computeTestScores(data, model);
   labels = testLabels(data);
   
   corr = computeCorr(labels, testScores, data->nUsers, data->userSets[0]->szTestSet);
@@ -271,7 +289,7 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
     }
 
     //objective check
-    if (iter%100 == 0) {
+    if (iter%1000 == 0) {
       computeObjective(data, model);
       printf("\nValidation Err: %f", validationErr(model, data));
     }
