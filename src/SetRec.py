@@ -1,7 +1,9 @@
 import sys
+import random
+from scipy.stats import pearsonr 
+
 from  Model import Model
 from UserSets import UserSets
-import random
 
 def loadData(ipFileName, nUsers):
   arrUserSets = []
@@ -44,6 +46,19 @@ def writeData(opFileName, arrUserSets):
         g.write(' '.join(l) + '\n')
 
 
+def baselineTestScores(arrUserSets):
+  testLabels = []
+  baseline1Scores = []
+  baseline2Scores = []
+  for userSet in arrUserSets:
+    testLabels += userSet.testLabels()
+    baseline1Scores += userSet.baseline1TestSetScore()
+    baseline2Scores += userSet.baseline2TestSetScore()
+  base1Score = pearsonr(testLabels, baseline1Scores)
+  base2Score = pearsonr(testLabels, baseline2Scores)
+  return (base1Score, base2Score)
+
+
 def main():
 
   ipFileName = sys.argv[1]
@@ -59,13 +74,20 @@ def main():
 
   random.seed(seed)
 
+  print 'Loading data...'
+
   arrUserSets = loadData(ipFileName, nUsers)
+  
+  print 'Computing baseline scores...'
+  (baseline1Score, baseline2Score)  = baselineTestScores(arrUserSets)
+  print "First baseline score: ", baseline1Score
+  print "Second baseline score: ", baseline2Score
 
   #writeData("tempOp", arrUserSets)
   
-  model = Model(nUsers, nItems, facDim, regU, regI, learnrate, maxIter, useSim)
+  #model = Model(nUsers, nItems, facDim, regU, regI, learnrate, maxIter, useSim)
   
-  model.train(arrUserSets)
+  #model.train(arrUserSets)
 
 
 if __name__ == '__main__':

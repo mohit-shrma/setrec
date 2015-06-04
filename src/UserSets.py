@@ -40,7 +40,7 @@ class UserSets:
 
   def addSet(self, itemSet, label):
     self.itemSets.append(itemSet)
-    self.labels.append(label)
+    self.labels.append(float(label))
     for item in itemSet:
       if item not in self.item2Sets:
         self.item2Sets[item] = []
@@ -64,12 +64,97 @@ class UserSets:
         self.itemsWt[i] = 0
         self.testValItems.append(item) 
 
+  
+  """
+    rating for an item is same as that of set
+    W_ui = sum(rating of sets with i)/(No. of sets with i)
+  """
+  def baseline1Scores(self):
+    scores = {}
+    
+    for item in self.items:
+      scores[item] = 0.0
+      for setInd in self.item2Sets[item]:
+        scores[item] += self.labels[setInd]
+      scores[item] = scores[item]/len(self.item2Sets[item])
+
+    return scores
+
+
+  def baseline1ItemScore(self, item):
+    score = 0.0
+    for setInd in self.item2Sets[item]:
+      score += self.labels[setInd]
+    score = score/len(self.item2Sets[item])
+    return score
+
+
+  def baseline1SetScore(self, itemsSet):
+    score = 0.0
+    for item in itemsSet:
+      score += self.baseline1ItemScore(item)
+    score = score/len(itemsSet)
+    return score
+
+  
+  def baseline1TestSetScore(self):
+    scores = []
+    for setInd in self.testSetInds:
+      scores.append(self.baseline1SetScore(self.itemSets[setInd]))
+    return scores
+
+
+  """
+    rating for the set is divided equally among the items in set
+    W_ui = 1/(no. of sets with item i) * sum (rating for set / no. of items in
+    set)
+  """
+  def baseline2Scores(self):
+    scores = {}
+    
+    for item in self.items:
+      scores[item] = 0.0
+      for setInd in self.item2Sets[item]:
+        scores[item] += self.labels[setInd]/len(self.itemSets[setInd])
+      scores[item] = scores[item]/len(len(self.item2Sets[item]))
+
+    return scores
+
+
+  def baseline2ItemScore(self, item):
+    score = 0.0
+    for setInd in self.item2Sets[item]:
+      score += self.labels[setInd]/len(self.itemSets[setInd])
+    score = score/len(self.item2Sets[item])
+    return score 
+
+
+  def baseline2SetScore(self, itemsSet):
+    score = 0.0
+    for item in itemsSet:
+      score += self.baseline2ItemScore(item)
+    return score
+
+
+  def baseline2TestSetScore(self):
+    scores = []
+    for setInd in self.testSetInds:
+      scores.append(self.baseline2SetScore(self.itemSets[setInd]))
+    return scores
+ 
+
+  def testLabels(self):
+    labels = []
+    for setInd in self.testSetInds:
+      labels.append(self.labels[setInd])
+    return labels
+
 
   def dispWt(self):
     for i in range(len(self.items)):
       print self.items[i], self.itemsWt[i]
 
-
+  #TODO
   def updWt(self):
     pass
 
