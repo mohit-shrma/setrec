@@ -85,6 +85,7 @@ void UserSets_free(UserSets *self);
 void UserSets_initWt(UserSets *self);
 void UserSets_updWt(UserSets *self, float **sim);
 void UserSets_sortItems(UserSets *self);
+void UserSets_dispWt(UserSets *self);
 ItemWtSets* UserSets_search(UserSets *self, int item);
 
 

@@ -49,7 +49,8 @@ void writeIntVector(int *vec, int n, char *fileName) {
   }
 
   fclose(fp);
-}
+ }
+
 
 void writeFloatVector(float *vec, int n, char *fileName) {
   FILE *fp = NULL;
@@ -64,6 +65,21 @@ void writeFloatVector(float *vec, int n, char *fileName) {
     }
   }
 
+  fclose(fp);
+}
+
+
+
+void writeMat(float **mat, int nrows, int ncols, char *fileName) {
+  FILE *fp = NULL;
+  int i, j;
+  fp = fopen(fileName, "w");
+  for (i = 0; i < nrows; i++) {
+    for (j = 0; j < ncols; j++) {
+      fprintf(fp, "%f ", mat[i][j]);
+    }
+    fprintf(fp, "\n");
+  }
   fclose(fp);
 }
 

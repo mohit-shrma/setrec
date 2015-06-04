@@ -117,6 +117,16 @@ void UserSets_initWt(UserSets *self) {
 }
 
 
+void UserSets_dispWt(UserSets *self) {
+  
+  int i, j;
+  for (i = 0; i < self->nUserItems; i++) {
+    printf("\n%d %f", self->itemWtSets[i]->item, self->itemWtSets[i]->wt);
+  }
+
+}
+
+
 void UserSets_updWt(UserSets *self, float **sim) {
   
   int i, j, k;
@@ -289,7 +299,6 @@ void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU,
       self->iFac[i][j] = (float)rand() / (float)(RAND_MAX);
     }
   }
-
 
 }
 
