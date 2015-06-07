@@ -1,6 +1,8 @@
 import sys
 import random
 from scipy.stats import pearsonr 
+from sklearn.metrics import mean_squared_error
+import numpy as np
 
 from  Model import Model
 from UserSets import UserSets
@@ -46,7 +48,20 @@ def writeData(opFileName, arrUserSets):
         g.write(' '.join(l) + '\n')
 
 
-def baselineTestScores(arrUserSets):
+def baselineRMSETestScores(arrUserSets):
+  testLabels = []
+  baseline1Scores = []
+  baseline2Scores = []
+  for userSet in arrUserSets:
+    testLabels += userSet.testLabels()
+    baseline1Scores += userSet.baseline1TestSetScore()
+    baseline2Scores += userSet.baseline2TestSetScore()
+  base1rmse = mean_squared_error(testLabels, baseline1Scores)**0.5
+  base2rmse = mean_squared_error(testLabels, baseline2Scores)**0.5 
+  return (base1rmse, base2rmse)
+
+
+def baselineCorrTestScores(arrUserSets):
   testLabels = []
   baseline1Scores = []
   baseline2Scores = []
@@ -79,9 +94,14 @@ def main():
   arrUserSets = loadData(ipFileName, nUsers)
   
   print 'Computing baseline scores...'
-  (baseline1Score, baseline2Score)  = baselineTestScores(arrUserSets)
-  print "First baseline score: ", baseline1Score
-  print "Second baseline score: ", baseline2Score
+  (baseline1Score, baseline2Score)  = baselineCorrTestScores(arrUserSets)
+  print "First baseline corr score: ", baseline1Score
+  print "Second baseline corr score: ", baseline2Score
+
+  print 'Computing rmse scores'
+  (base1rmse, base2rmse) = baselineRMSETestScores(arrUserSets)
+  print 'First baseline rmse score: ', base1rmse
+  print 'Second baseline rmse score: ', base2rmse
 
   #writeData("tempOp", arrUserSets)
   
