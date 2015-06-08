@@ -1,4 +1,5 @@
 import random
+import numpy as np
 
 class UserSets:
 
@@ -37,6 +38,18 @@ class UserSets:
         self.testSetInds.append(ind)
         j += 1
 
+
+  def setSim(self, setInd, iFactors):
+    itemSet = self.itemSets[setInd]
+    nPairs = 0
+    avgSimSet = 0.0
+    for i in range(len(itemSet)):
+      for j in range(i+1, len(itemSet)):
+        avgSimSet += np.dot(iFactors[itemSet[i]],
+            iFactors[itemSet[j]])
+        nPairs += 1
+    avgSimSet = avgSimSet/nPairs
+    return avgSimSet 
 
   def addSet(self, itemSet, label):
     self.itemSets.append(itemSet)

@@ -5,6 +5,7 @@ from sklearn.metrics import mean_squared_error
 import numpy as np
 
 from  Model import Model
+from ModelSimWt import ModelSimWt
 from UserSets import UserSets
 
 def loadData(ipFileName, nUsers):
@@ -108,6 +109,11 @@ def main():
   #model = Model(nUsers, nItems, facDim, regU, regI, learnrate, maxIter, useSim)
   
   #model.train(arrUserSets)
+
+  modelWt = ModelSimWt(nUsers, nItems, facDim, regU, regI, learnrate, maxIter, useSim)
+  for i in range(5):
+    print 'gradient check for user', i
+    modelWt.gradCheck(arrUserSets[i]) 
 
 
 if __name__ == '__main__':
