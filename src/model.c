@@ -285,11 +285,12 @@ void trainModel(Model *model, Data *data, Params *params, float **sim) {
       updateSim(sim, model);
       
       //update W if using sim: decide here or above in loop
-      UserSets_updWt(userSet, sim);
+      UserSets_updWt_avgItemPairSim(userSet, sim);
+      //UserSets_updWt_avgItemSim(userSet, sim);  
     }
 
     //objective check
-    if (iter%1000 == 0) {
+    if (iter%100 == 0) {
       computeObjective(data, model);
       printf("\nValidation Err: %f", validationErr(model, data));
     }
@@ -349,6 +350,5 @@ void model(Data *data, Params *params) {
   }
   Model_free(model);
 }
-
 
 

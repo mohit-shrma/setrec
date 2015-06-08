@@ -127,12 +127,12 @@ void UserSets_dispWt(UserSets *self) {
 }
 
 
-void UserSets_updWt(UserSets *self, float **sim) {
+void UserSets_updWt_avgItemSim(UserSets *self, float **sim) {
   
   int i, j, k;
   int item, setInd;
   float score, simSet;
-  int testValSetCt;
+  int testValSetCt, nSim;
 
   for (i = 0; i < self->nUserItems; i++) {
     item = self->itemWtSets[i]->item;
@@ -159,14 +159,87 @@ void UserSets_updWt(UserSets *self, float **sim) {
       }
   
       
-      simSet = 0;
+      simSet = 0.0;
+      nSim = 0;
       for (k = 0; k < self->uSetsSize[setInd]; k++) {
         //aggregate sim with all items in set except the item itself
         if (self->uSets[setInd][k] != item) {
           simSet += sim[item][self->uSets[setInd][k]]; 
+          nSim++;
         }
       }
-      score += (self->labels[setInd]*simSet)/self->uSetsSize[setInd];
+
+      if (nSim == 0) {
+        score = self->labels[setInd]/self->uSetsSize[setInd];
+      } else {
+        simSet = simSet/nSim;
+        score += (self->labels[setInd]*simSet)/self->uSetsSize[setInd];
+      }
+
+    }
+    
+    if ((self->itemWtSets[i]->szItemSets - testValSetCt) > 0) {
+      score = score/(self->itemWtSets[i]->szItemSets - testValSetCt);
+      self->itemWtSets[i]->wt = score;
+    } else {
+      assert(self->testValItems[self->itemWtSets[i]->item] == 1);
+      self->itemWtSets[i]->wt = 0;
+    }
+    
+  }
+
+}
+
+
+void UserSets_updWt_avgItemPairSim(UserSets *self, float **sim) {
+  
+  int i, j, k, l;
+  int item, setInd;
+  float score, simSet;
+  int testValSetCt, nSim;
+
+  for (i = 0; i < self->nUserItems; i++) {
+    item = self->itemWtSets[i]->item;
+    score = 0;
+    //go over sets of item
+    testValSetCt = 0;
+    for (j = 0; j < self->itemWtSets[i]->szItemSets; j++) {
+      //jth set in which item belongs
+      setInd = self->itemWtSets[i]->itemSets[j];
+      
+      //ignore if setInd present in test or validation
+      for (k = 0; k < self->szValSet; k++) {
+        if (setInd == self->valSets[k]) {
+          testValSetCt++;
+          continue;
+        }
+      }
+
+      for (k = 0; k < self->szTestSet; k++) {
+        if (setInd == self->testSets[k]) {
+          testValSetCt++;
+          continue;
+        }
+      }
+  
+      
+      simSet = 0.0;
+      nSim = 0;
+      
+      for (k = 0; k < self->uSetsSize[setInd]; k++) {
+        for (l = k+1; l < self->uSetsSize[setInd]; l++) {
+          simSet += sim[self->uSets[setInd][k]][self->uSets[setInd][l]];
+          nSim++;
+        }
+      } 
+      
+      if (nSim == 0) {
+        score = self->labels[setInd]/self->uSetsSize[setInd];
+      } else {
+        simSet = simSet/nSim;
+        score += (self->labels[setInd]*simSet)/self->uSetsSize[setInd];
+      }
+
     }
     
     if ((self->itemWtSets[i]->szItemSets - testValSetCt) > 0) {
