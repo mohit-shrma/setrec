@@ -102,28 +102,6 @@ typedef struct {
 void Data_init(Data *self, int nUsers, int nItems);
 void Data_free(Data *self);
 
-
-typedef struct {
-  int nUsers;
-  int nItems;
-  
-  //user and item latent factors
-  float **uFac;
-  float **iFac;
-  
-  //user and item regularization
-  float regU;
-  float regI;
-
-  //size of latent factors
-  int facDim;
-
-  float learnRate;
-} Model;
-
-void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU, float regI, float learnRate);
-void Model_free(Model *self);
-
 #endif
 
 

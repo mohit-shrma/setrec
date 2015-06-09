@@ -1,6 +1,8 @@
 #include "setrec.h"
 
 
+
+
 void parse_cmd_line(int argc, char **argv) {
   
   Params *params;
@@ -35,7 +37,7 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   //learn model
-  model(data, params);
+  modelSim(data, params);
 
   Data_free(data);  
   free(params);

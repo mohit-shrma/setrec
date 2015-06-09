@@ -343,55 +343,8 @@ void Data_free(Data *self) {
 }
 
 
-void Model_init(Model *self, int nUsers, int nItems, int facDim, float regU, 
-    float regI, float learnRate) {
-  
-  int i, j;
-  
-  self->nUsers    = nUsers;
-  self->nItems    = nItems;
-  self->facDim    = facDim;
-  self->regU      = regU;
-  self->regI      = regI;
-  self->learnRate = learnRate;
-
-  self->uFac = (float**) malloc(sizeof(float*)*nUsers);
-  for (i = 0; i < nUsers; i++) {
-    self->uFac[i] = (float*) malloc(sizeof(float)*facDim);
-    memset(self->uFac[i], 0, sizeof(float)*facDim);
-    for (j = 0; j < facDim; j++) {
-      self->uFac[i][j] = (float)rand() / (float)(RAND_MAX);
-    }
-  }
-
-  self->iFac = (float**) malloc(sizeof(float*)*nItems);
-  for (i = 0; i < nItems; i++) {
-    self->iFac[i] = (float*) malloc(sizeof(float)*facDim);
-    memset(self->iFac[i], 0, sizeof(float)*facDim);
-    for (j = 0; j < facDim; j++) {
-      self->iFac[i][j] = (float)rand() / (float)(RAND_MAX);
-    }
-  }
-
-}
 
 
-void Model_free(Model *self) {
-  int i;
-  
-  for (i = 0; i < self->nUsers; i++) {
-    free(self->uFac[i]);
-  }
-  free(self->uFac);
-
-  for (i = 0; i < self->nItems; i++) {
-    free(self->iFac[i]);
-  }
-  free(self->iFac);
-
-
-  free(self);
-}
 
 
 

@@ -6,6 +6,7 @@
 #include "datastruct.h"
 #include "io.h"
 #include "model.h"
+#include "modelSim.h"
 
 void parse_cmd_line(int argc, char **argv);
 
