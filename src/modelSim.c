@@ -333,11 +333,6 @@ void gradCheck(void *self, UserSets *userSet) {
 }
 
 
-
-
-
-
-
 void modelSim(Data *data, Params *params) {
  
   float **sim  = NULL;
