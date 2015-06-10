@@ -7,6 +7,7 @@
 #include "io.h"
 #include "model.h"
 #include "modelSim.h"
+#include "modelBaseline.h"
 
 void parse_cmd_line(int argc, char **argv);
 

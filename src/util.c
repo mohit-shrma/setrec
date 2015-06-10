@@ -84,3 +84,12 @@ void writeMat(float **mat, int nrows, int ncols, char *fileName) {
 }
 
 
+float norm(float *v, int sz) {
+  int i;
+  float norm = 0;
+  for (i = 0; i < sz; i++) {
+    norm += v[i]*v[i];
+  }
+  return sqrt(norm);
+}
+

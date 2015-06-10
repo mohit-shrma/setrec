@@ -36,8 +36,11 @@ void parse_cmd_line(int argc, char **argv) {
   //printf("\ndisplaying data...");
   //writeData(data);
 
+  //run baseline
+  modelBase(data, params);  
+
   //learn model
-  modelSim(data, params);
+  //modelSim(data, params);
 
   Data_free(data);  
   free(params);

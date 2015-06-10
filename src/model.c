@@ -82,7 +82,7 @@ void Model_free(void *selfRef) {
     free(self->iFac[i]);
   }
   free(self->iFac);
-
+  free(self->description);
 
   free(self);
 }
@@ -122,7 +122,7 @@ float Model_validationErr(void *self, Data *data, float **sim) {
   for (j = 0; j < nValSets; j++) {
     rmse += (valLabels[j] - valModelScores[j]) * (valLabels[j] - valModelScores[j]);
   }
-  rmse = sqrt(rmse);
+  rmse = sqrt(rmse/nValSets);
   
   printf("\nvalidation rmse = %f", rmse);
 
@@ -166,7 +166,7 @@ float Model_testErr(void *self, Data *data, float **sim) {
   for (j = 0; j < nTestSets; j++) {
     rmse += (testLabels[j] - testModelScores[j]) * (testLabels[j] - testModelScores[j]);
   }
-  rmse = sqrt(rmse);
+  rmse = sqrt(rmse/nTestSets);
   
   printf("\ntest rmse = %f", rmse);
 
