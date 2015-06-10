@@ -229,6 +229,115 @@ Model ModelSimProto = {
 };
 
 
+float userSetLossU(void *self, UserSets *userSet, int setInd, float *uFac) {
+  float loss, r_us, avgSimSet;
+  int user, i, j;
+  float *sumItemFac = NULL;
+  ModelSim *model = self;
+  
+  loss = 0;
+  user = userSet->userId;
+  r_us = userSet->labels[setInd];
+  avgSimSet =setSimilarity(userSet->uSets[setInd], userSet->uSetsSize[setInd],
+      self, NULL); 
+
+  sumItemFac = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(sumItemFac, 0, sizeof(float)*model->_(facDim));
+
+  if (uFac == NULL) {
+    uFac = model->_(uFac)[user];
+  }
+ 
+  //sum item's latent factor in set
+  for (i = 0; i < userSet->uSetsSize[setInd]; i++) {
+    for (j = 0; j < model->_(facDim); j++) {
+      sumItemFac[j] += model->_(iFac)[userSet->uSets[setInd][i]][j];
+    }
+  }
+  
+  loss = (r_us - (1.0/userSet->uSetsSize[setInd])*dotProd(model->_(uFac)[user],
+        sumItemFac, model->_(facDim)) );
+  loss = loss * loss * avgSimSet;
+
+  free(sumItemFac);
+
+  return loss;
+}
+
+
+void gradCheck(void *self, UserSets *userSet) {
+
+  int i, j, k;
+  int setInd;
+  float *uFac, *uFacTmp, *uFacTmp2, *uGrad, *delta, *sumItemLatFac;
+  float userLoss, userLossTemp1, userLossTemp2, avgSimSet;
+  float diff, div;
+  ModelSim *model = self;
+
+  setInd = rand() % userSet->numSets; 
+  userLoss = userSetLossU(self, userSet, setInd, NULL);
+  
+  uFacTmp = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(uFacTmp, 0, (sizeof(float)*model->_(facDim)));
+  
+  uFacTmp2 = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(uFacTmp2, 0, (sizeof(float)*model->_(facDim)));
+  
+  uFac = model->_(uFac)[userSet->userId];
+
+  uGrad = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(uGrad, 0, (sizeof(float)*model->_(facDim)));
+  
+  delta = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(delta, 0, (sizeof(float)*model->_(facDim)));
+ 
+  sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(sumItemLatFac, 0, (sizeof(float)*model->_(facDim)));
+  
+  avgSimSet = setSimilarity(userSet->uSets[setInd], userSet->uSetsSize[setInd], 
+      self, NULL);
+
+  for (i = 0; i < userSet->uSetsSize[setInd]; i++) {
+    for (k = 0; k < model->_(facDim); k++) {
+      sumItemLatFac[k] += model->_(iFac)[userSet->uSets[setInd][i]][k];
+    }
+  }
+
+  computeUGrad(model, userSet->userId, userSet->uSets[setInd], 
+      userSet->uSetsSize[setInd],
+      avgSimSet, userSet->labels[setInd], sumItemLatFac, uGrad);
+
+
+  for (i = 0; i < 5; i++) {
+    for (k = 0; k < model->_(facDim); k++) {
+      //TODO: perturbation of 0.0001 scale
+      delta[k] = ((float)rand()/(float)(RAND_MAX)) * 0.001;
+      uFacTmp[k] = uFac[k] + delta[k];
+      uFacTmp2[k] = uFac[k] - delta[k];
+    }
+    userLossTemp1 = userSetLossU(self, userSet, setInd, uFacTmp);
+    userLossTemp2 = userSetLossU(self, userSet, setInd, uFacTmp2);
+    diff = userLossTemp1 - userLoss - dotProd(delta, uGrad, model->_(facDim));
+    div = ((userLossTemp1 - userLossTemp2)/2.0)/dotProd(delta, uGrad, 
+        model->_(facDim));
+    printf("\ndiff = %f, div = %f", diff, div);
+  }
+
+
+  free(uFac);
+  free(uFacTmp);
+  free(uFacTmp2);
+  free(uGrad);
+  free(delta);
+  free(sumItemLatFac);
+}
+
+
+
+
+
+
+
 void modelSim(Data *data, Params *params) {
  
   float **sim  = NULL;
@@ -263,3 +372,9 @@ void modelSim(Data *data, Params *params) {
   modelSim->_(free)(modelSim);
 
 }
+
+
+
+
+
+
