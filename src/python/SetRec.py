@@ -4,7 +4,8 @@ from scipy.stats import pearsonr
 from sklearn.metrics import mean_squared_error
 import numpy as np
 
-from  Model import Model
+from Model import Model
+from ModelBase import ModelBase
 from ModelSimWt import ModelSimWt
 from UserSets import UserSets
 
@@ -50,13 +51,29 @@ def writeData(opFileName, arrUserSets):
 
 
 def baselineRMSETestScores(arrUserSets):
+  
   testLabels = []
   baseline1Scores = []
   baseline2Scores = []
+  
   for userSet in arrUserSets:
     testLabels += userSet.testLabels()
     baseline1Scores += userSet.baseline1TestSetScore()
     baseline2Scores += userSet.baseline2TestSetScore()
+ 
+  """
+  TODO: to compute baseline scores first train like C code 
+        then estimate it.
+  """
+
+  with open('base2score.txt', 'w') as g:
+    for score in baseline2Scores:
+      g.write('\n' + str(score));
+  
+  with open('testInds.txt', 'w') as g:
+    for userSet in arrUserSets:
+      g.write(str(userSet.testSetInds[0]) + '\n')
+
   base1rmse = mean_squared_error(testLabels, baseline1Scores)**0.5
   base2rmse = mean_squared_error(testLabels, baseline2Scores)**0.5 
   return (base1rmse, base2rmse)
@@ -93,7 +110,8 @@ def main():
   print 'Loading data...'
 
   arrUserSets = loadData(ipFileName, nUsers)
-  
+ 
+  """
   print 'Computing baseline scores...'
   (baseline1Score, baseline2Score)  = baselineCorrTestScores(arrUserSets)
   print "First baseline corr score: ", baseline1Score
@@ -103,17 +121,26 @@ def main():
   (base1rmse, base2rmse) = baselineRMSETestScores(arrUserSets)
   print 'First baseline rmse score: ', base1rmse
   print 'Second baseline rmse score: ', base2rmse
+  """
 
   #writeData("tempOp", arrUserSets)
   
   #model = Model(nUsers, nItems, facDim, regU, regI, learnrate, maxIter, useSim)
   
   #model.train(arrUserSets)
-
+  
+  """
   modelWt = ModelSimWt(nUsers, nItems, facDim, regU, regI, learnrate, maxIter, useSim)
   for i in range(5):
     print 'gradient check for user', i
     modelWt.gradCheck(arrUserSets[i]) 
+  """
+  
+  modelBase = ModelBase(nUsers, nItems)
+  modelBase.train(arrUserSets)
+
+  print 'modelBase Validation Err', modelBase.valErr(arrUserSets)
+  print 'modelBase Test Err', modelBase.testErr(arrUserSets)
 
 
 if __name__ == '__main__':
