@@ -40,7 +40,12 @@ class ModelBase:
           #get the wt of item from itemsWt array
           estScore += itemWtDict[item]
         testScores.append(estScore)
-    
+   
+    with open('testLabelsScores.txt', 'w') as g:
+      for i in range(len(testLabels)):
+        g.write(str(testLabels[i]) + '\t' + str(testScores[i]) + '\n')
+
+
     rmse = 0
     for i in range(len(testLabels)):
       rmse += (testLabels[i]-testScores[i])*(testLabels[i] - testScores[i])

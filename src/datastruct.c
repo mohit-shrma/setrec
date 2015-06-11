@@ -128,6 +128,21 @@ void UserSets_dispWt(UserSets *self) {
 }
 
 
+void UserSets_writeWt(UserSets *self, char *fileName) {
+  
+  FILE *fp = NULL;
+  int i;
+
+  fp = fopen(fileName, "w");
+  
+  for (i = 0; i < self->nUserItems; i++) {
+    fprintf(fp, "\n%d %f", self->itemWtSets[i]->item, self->itemWtSets[i]->wt);
+  }
+
+  fclose(fp);
+}
+
+
 void UserSets_updWt_avgItemSim(UserSets *self, float **sim) {
   
   int i, j, k;
