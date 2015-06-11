@@ -113,6 +113,8 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
   float rmse             = 0;
   ItemWtSets *itemWtSets = NULL;
   UserSets *userSet      = NULL;
+  int *testSetInd = NULL;
+
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
@@ -124,10 +126,14 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
   memset(testLabels, 0, sizeof(float)*nTestSets);
   memset(testModelScores, 0, sizeof(float)*nTestSets);
 
+  testSetInd = (int *) malloc(sizeof(int)*nTestSets);
+  memset(testSetInd, 0, sizeof(int)*nTestSets);
+
   j = 0;
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     for (i = 0; i < userSet->szTestSet; i++) {
+      testSetInd[j] = userSet->testSets[i];
       testLabels[j] = userSet->labels[userSet->testSets[i]];
       testModelScores[j] = 0;
       for (k = 0; k < userSet->uSetsSize[userSet->testSets[i]]; k++) {
@@ -139,6 +145,8 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
     }
   }
   
+  writeIntVector(testSetInd, nTestSets, "userTestSets.txt");
+
   for (j = 0; j < nTestSets; j++) {
     rmse += (testLabels[j] - testModelScores[j]) * (testLabels[j] - testModelScores[j]);
   }
@@ -146,10 +154,11 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
   
   printf("\ntest rmse = %f", rmse);
 
-  //writeFloatVector(testModelScores, nTestSets, "TestBaseScores.txt");
+  writeFloatVector(testModelScores, nTestSets, "TestBaseScores.txt");
 
   free(testLabels);
   free(testModelScores);
+  free(testSetInd);
   return rmse;
 }
 

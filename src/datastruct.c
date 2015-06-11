@@ -60,13 +60,14 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
         continue;
       }
     }
+    //make sure set is not present in validation set
     for (j = 0; j < self->szValSet; j++) {
       if (setInd == self->valSets[j]) {
         continue;
       }
     }
-    //make sure set is not present in validation set
-    self->testSets[i++] = setInd;
+    //self->testSets[i++] = setInd;
+    self->testSets[i++] = 0;
   }
 
 }
