@@ -1,4 +1,4 @@
-
+#include "modelBaseline.h"
 
 void ModelBase_train(void *self, Data *data, Params *params, float **sim) {
   
@@ -54,19 +54,16 @@ void ModelBase_train(void *self, Data *data, Params *params, float **sim) {
 }
 
 
-
-
-
-
 float ModelBase_validationErr(void *self, Data *data, float **sim) {
   
   int u, i, j, k, item;
-  ModelBase *model = self;
-  int nValSets          = 0;
-  float *valLabels      = NULL;
-  float *valModelScores = NULL;
-  float rmse            = 0;
-  ItemWtSets *itemWtSets = Null
+  ModelBase *model       = self;
+  int nValSets           = 0;
+  float *valLabels       = NULL;
+  float *valModelScores  = NULL;
+  float rmse             = 0;
+  ItemWtSets *itemWtSets = NULL;
+  UserSets *userSet      = NULL;
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
@@ -89,9 +86,6 @@ float ModelBase_validationErr(void *self, Data *data, float **sim) {
         itemWtSets = UserSets_search(userSet, item);
         valModelScores[j] += itemWtSets->wt;
       }
-
-      valModelScores[j] =  model->setScore(model, u, userSet->uSets[userSet->valSets[i]], 
-          userSet->uSetsSize[userSet->valSets[i]], sim);
       j++;
     }
   }
@@ -112,12 +106,13 @@ float ModelBase_validationErr(void *self, Data *data, float **sim) {
 float ModelBase_testErr(void *self, Data *data, float **sim) {
   
   int u, i, j, k, item;
-  ModelBase *model = self;
+  ModelBase *model       = self;
   int nTestSets          = 0;
   float *testLabels      = NULL;
   float *testModelScores = NULL;
-  float rmse            = 0;
-  ItemWtSets *itemWtSets = Null
+  float rmse             = 0;
+  ItemWtSets *itemWtSets = NULL;
+  UserSets *userSet      = NULL;
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
@@ -140,9 +135,6 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
         itemWtSets = UserSets_search(userSet, item);
         testModelScores[j] += itemWtSets->wt;
       }
-
-      testModelScores[j] =  model->setScore(model, u, userSet->uSets[userSet->testSets[i]], 
-          userSet->uSetsSize[userSet->testSets[i]], sim);
       j++;
     }
   }
@@ -153,6 +145,8 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
   rmse = sqrt(rmse/nTestSets);
   
   printf("\ntest rmse = %f", rmse);
+
+  //writeFloatVector(testModelScores, nTestSets, "TestBaseScores.txt");
 
   free(testLabels);
   free(testModelScores);
@@ -170,7 +164,7 @@ Model ModelBaseProto = {
 void modelBase(Data *data, Params *params) {
  
   ModelBase *modelBase = NEW(ModelBase, "second baseline prediction model");
-  modelBase->_(init)(modelSim, params->nUsers, params->nItems, params->facDim, params->regU, 
+  modelBase->_(init)(modelBase, params->nUsers, params->nItems, params->facDim, params->regU, 
     params->regI, params->learnRate);
   //train or compuite baselines
   modelBase->_(train)(modelBase, data, params, NULL);

@@ -2,6 +2,7 @@
 #define _MODELBASE_H_
 
 #include "model.h"
+#include "util.h"
 
 typedef struct {
   Model proto;

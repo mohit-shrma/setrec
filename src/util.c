@@ -69,7 +69,6 @@ void writeFloatVector(float *vec, int n, char *fileName) {
 }
 
 
-
 void writeMat(float **mat, int nrows, int ncols, char *fileName) {
   FILE *fp = NULL;
   int i, j;
