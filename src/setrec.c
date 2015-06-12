@@ -40,7 +40,7 @@ void parse_cmd_line(int argc, char **argv) {
   modelBase(data, params);  
 
   //learn model
-  //modelSim(data, params);
+  modelSim(data, params);
 
   Data_free(data);  
   free(params);

@@ -108,7 +108,7 @@ float ModelBase_validationErr(void *self, Data *data, float **sim) {
   }
   rmse = sqrt(rmse/nValSets);
   
-  printf("\nvalidation rmse = %f", rmse);
+  printf("\n%s validation rmse = %f", model->_(description), rmse);
 
   free(valLabels);
   free(valModelScores);
@@ -166,7 +166,7 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
   }
   rmse = sqrt(rmse/nTestSets);
   
-  printf("\ntest rmse = %f", rmse);
+  printf("\n%s test rmse = %f", model->_(description), rmse);
 
   writeFloatVector(testModelScores, nTestSets, "TestBaseScores.txt");
   writeFloatVector(testLabels, nTestSets, "TestSetLabels.txt");
