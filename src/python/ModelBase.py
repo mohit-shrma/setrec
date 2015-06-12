@@ -15,6 +15,7 @@ class ModelBase:
       #got through items preferred by user
       for i in range(len(userSet.items)):
         item = userSet.items[i]
+        userSet.itemsWt[i] = 0
         #go through sets where item appears
         for setInd in userSet.item2Sets[item]:
           if setInd in userSet.testSetInds or setInd in userSet.valSetInds:

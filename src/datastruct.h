@@ -79,6 +79,7 @@ typedef struct {
   int *testValItems;
 } UserSets;
 
+
 void UserSets_init(UserSets *self, int user, int numSets, int nItems,
     int nUserItems);
 void UserSets_free(UserSets *self);
@@ -87,6 +88,7 @@ void UserSets_updWt_avgItemSim(UserSets *self, float **sim);
 void UserSets_updWt_avgItemPairSim(UserSets *self, float **sim);
 void UserSets_sortItems(UserSets *self);
 void UserSets_dispWt(UserSets *self);
+void UserSets_writeWt(UserSets *self, char *fileName);
 ItemWtSets* UserSets_search(UserSets *self, int item);
 
 
