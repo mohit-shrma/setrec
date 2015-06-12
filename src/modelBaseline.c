@@ -8,7 +8,8 @@ void ModelBase_train(void *self, Data *data, Params *params, float **sim) {
   int nTestValSets;
 
   ModelBase *model = self;
-
+  int found = 0;
+  
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     //assign score to all items for user
@@ -17,31 +18,43 @@ void ModelBase_train(void *self, Data *data, Params *params, float **sim) {
       
       //init score
       itemWtSets->wt = 0;
-      nTestValSets = 0;
+      nTestValSets   = 0;
 
       //go through the sets where item appears
       for (j = 0; j < itemWtSets->szItemSets; j++) {
         setInd = itemWtSets->itemSets[j];
+        
+        found = 0;
         //ignore if setInd in test or validation sets
         for (k = 0; k < userSet->szValSet; k++) {
           if (setInd == userSet->valSets[k]) {
             nTestValSets++;
-            continue;
+            found = 1;
           }
         }
 
+        if (found) {
+          continue;
+        }
+
+        found = 0;
         for (k = 0; k < userSet->szTestSet; k++) {
           if (setInd == userSet->testSets[k]) {
             nTestValSets++;
-            continue;
+            found = 1;
           }
+        }
+        if (found) {
+          continue;
         }
 
         itemWtSets->wt += userSet->labels[setInd] / userSet->uSetsSize[setInd];
       }
+
       if (itemWtSets->szItemSets > nTestValSets) {
         itemWtSets->wt = itemWtSets->wt / (itemWtSets->szItemSets - nTestValSets);
       }
+
     }
   }
 

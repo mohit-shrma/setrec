@@ -66,8 +66,7 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
         continue;
       }
     }
-    //self->testSets[i++] = setInd;
-    self->testSets[i++] = 0;
+    self->testSets[i++] = setInd;
   }
 
 }

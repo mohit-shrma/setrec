@@ -35,8 +35,7 @@ class UserSets:
     while (j < self.SZ_TEST):
       ind = random.randint(0, self.numSets-1)
       if ind not in self.valSetInds:
-        #self.testSetInds.append(ind)
-        self.testSetInds.append(0)
+        self.testSetInds.append(ind)
         j += 1
 
 
