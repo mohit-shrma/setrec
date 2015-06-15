@@ -34,6 +34,28 @@ void Model_init(void *selfRef, int nUsers, int nItems, int facDim, float regU,
 }
 
 
+void Model_reset(void *selfRef) {
+  
+  int i, j;
+  Model *self = selfRef;
+
+  for (i = 0; i < self->nUsers; i++) {
+    memset(self->uFac[i], 0, sizeof(float)*self->facDim);
+    for (j = 0; j < self->facDim; j++) {
+      self->uFac[i][j] = (float)rand() / (float)(RAND_MAX);
+    }
+  }
+
+  for (i = 0; i < self->nItems; i++) {
+    memset(self->iFac[i], 0, sizeof(float)*self->facDim);
+    for (j = 0; j < self->facDim; j++) {
+      self->iFac[i][j] = (float)rand() / (float)(RAND_MAX);
+    }
+  }
+
+}
+
+
 void Model_describe(void *self) {
   Model *model = self;
   printf("\n%s", model->description);
@@ -64,7 +86,7 @@ float Model_setScore(void *self, int user, int *set, int setSz, float **sim) {
 }
 
 
-void Model_train(void *self, Data *data, Params *params, float **Sim) {
+void Model_train(void *self, Data *data, Params *params, float **Sim, float *valTest) {
   printf("\nModel specific training procedure");
 }
 
@@ -188,6 +210,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.free) proto.free                   = Model_free;
   if (!proto.validationErr) proto.validationErr = Model_validationErr;
   if (!proto.testErr) proto.testErr             = Model_testErr;
+  if (!proto.reset) proto.reset                 = Model_reset;
 
   //struct of one size
   Model *model = calloc(1, size);

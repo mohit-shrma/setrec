@@ -1,6 +1,6 @@
 #include "modelBaseline.h"
 
-void ModelBase_train(void *self, Data *data, Params *params, float **sim) {
+void ModelBase_train(void *self, Data *data, Params *params, float **sim, float *valTest) {
   
   int u, i, j, k, setInd;
   UserSets *userSet = NULL;
@@ -59,10 +59,10 @@ void ModelBase_train(void *self, Data *data, Params *params, float **sim) {
   }
 
   //compute validation error
-  model->_(validationErr) (model, data, sim); 
+  valTest[0] = model->_(validationErr) (model, data, sim); 
   
   //compute test error
-  model->_(testErr) (model, data, sim);
+  valTest[1] = model->_(testErr) (model, data, sim);
 
 }
 
@@ -181,13 +181,13 @@ Model ModelBaseProto = {
 };
 
 
-void modelBase(Data *data, Params *params) {
+void modelBase(Data *data, Params *params, float *valTest) {
  
   ModelBase *modelBase = NEW(ModelBase, "second baseline prediction model");
   modelBase->_(init)(modelBase, params->nUsers, params->nItems, params->facDim, params->regU, 
     params->regI, params->learnRate);
   //train or compuite baselines
-  modelBase->_(train)(modelBase, data, params, NULL);
+  modelBase->_(train)(modelBase, data, params, NULL, valTest);
   modelBase->_(free)(modelBase);
 }
 

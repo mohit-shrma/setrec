@@ -10,6 +10,6 @@ typedef struct {
 
 float ModelSim_objective(void *self, Data *data);
 float ModelSim_setScore(void *self, int user, int *set, int setSz, float **sim);
-void ModelSim_train(void *self, Data *data, Params *params, float **sim);
-void modelSim(Data *data, Params *params);
+void ModelSim_train(void *self, Data *data, Params *params, float **sim, float *valTest);
+void modelSim(Data *data, Params *params, float *valTest);
 #endif

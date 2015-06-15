@@ -368,7 +368,8 @@ float ModelSim_objective(void *self, Data *data) {
 }
 
 
-void ModelSim_train(void *self, Data *data, Params *params, float **sim) {
+void ModelSim_train(void *self, Data *data, Params *params, float **sim, 
+    float *valTest) {
 
   int iter, u, i, j, k, s;
   UserSets *userSet;
@@ -456,16 +457,16 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim) {
     //update sim
     model->_(updateSim)(model, sim);
     //objective check
-    if (iter % 1000 == 0) {
+    if (iter % 2 == 0) {
       model->_(objective)(model, data);
       //validation err
-      model->_(validationErr) (model, data, sim);
+      valTest[0] = model->_(validationErr) (model, data, sim);
     }
     
   }
 
   //get test eror
-  model->_(testErr) (model, data, sim);
+  valTest[1] = model->_(testErr) (model, data, sim);
 
   free(sumItemLatFac);
   free(uGrad);
@@ -473,7 +474,7 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim) {
 }
 
 
-void modelSim(Data *data, Params *params) {
+void modelSim(Data *data, Params *params, float *valTest) {
  
   float **sim  = NULL;
 
@@ -502,9 +503,8 @@ void modelSim(Data *data, Params *params) {
   //  ModelSim_gradCheck(modelSim, data->userSets[rand()%data->nUsers]);
   //}
   
-  
   //train model 
-  modelSim->_(train)(modelSim, data,  params, sim);
+  modelSim->_(train)(modelSim, data,  params, sim, valTest);
 
   //free up allocated space
   if (params->useSim) {
@@ -515,7 +515,7 @@ void modelSim(Data *data, Params *params) {
   }
   
   modelSim->_(free)(modelSim);
-
+  
 }
 
 

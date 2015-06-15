@@ -1,15 +1,25 @@
 #include "setrec.h"
 
 
-
-
 void parse_cmd_line(int argc, char **argv) {
   
   Params *params;
   Data *data = NULL;
+  float *baseValTest, *simValTest, *tempValTest;
+  int i;
+
   params = (Params *) malloc(sizeof(Params));
   memset(params, 0, sizeof(Params));
  
+  tempValTest = (float*) malloc(sizeof(float)*2);
+  memset(tempValTest, 0, sizeof(float)*2);
+  
+  baseValTest = (float*) malloc(sizeof(float)*2);
+  memset(baseValTest, 0, sizeof(float)*2);
+
+  simValTest = (float*) malloc(sizeof(float)*2);
+  memset(simValTest, 0, sizeof(float)*2);
+
   if (argc < 11) {
     printf("\n Error: need args");
     exit(0);
@@ -36,14 +46,34 @@ void parse_cmd_line(int argc, char **argv) {
   //printf("\ndisplaying data...");
   //writeData(data);
 
-  //learn model
-  modelSim(data, params);
+  for (i = 0; i <3; i++) {
 
-  //run baseline
-  modelBase(data, params);  
-  
+    //learn model
+    memset(tempValTest, 0, sizeof(float)*2);
+    modelSim(data, params, tempValTest);
+    simValTest[0] += tempValTest[0];
+    simValTest[1] += tempValTest[1];
+
+    //run baseline
+    memset(tempValTest, 0, sizeof(float)*2);
+    modelBase(data, params, tempValTest);  
+    baseValTest[0] += tempValTest[0];
+    baseValTest[1] += tempValTest[1];
+
+    //reset test and val for next iter
+    Data_reset(data, params->nUsers, params->nItems);
+
+  }
+
+  printf("\navg baseline validation: %f test: %f", baseValTest[0]/i, 
+      baseValTest[1]/i);
+  printf("\navg sim validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
+
   Data_free(data);  
   free(params);
+  free(baseValTest);
+  free(simValTest);
+  free(tempValTest);
 }
 
 

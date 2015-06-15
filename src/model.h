@@ -34,17 +34,20 @@ typedef struct {
   float (*setScore) (void *self, int user, int *set, int setSz, float **sim);
   float (*validationErr) (void *self, Data *data, float **sim);
   float (*testErr) (void *self, Data *data, float **sim);
-  void  (*train) (void *self, Data *data, Params *params, float **Sim);
+  void  (*train) (void *self, Data *data, Params *params, float **Sim, float *valTest);
   void (*free) (void *self);
+  void (*reset) (void *self);
+  
 } Model;
 
 void Model_init(void *self, int nUsers, int nItems, int facDim, float regU, float regI, float learnRate);
+void Model_reset(void *self);
 void Model_free(void *self);
 void Model_describe(void *self);
 void Model_updateSim(void *self, float **sim);
 float Model_objective(void *self, Data *data);
 float Model_setScore(void *self, int user, int *set, int setSz, float **sim);
-void Model_train(void *self, Data *data, Params *params, float **Sim);
+void Model_train(void *self, Data *data, Params *params, float **Sim, float *valTest);
 float Model_validationErr(void *self, Data *data, float **sim);
 float Model_testErr(void *self, Data *data, float **sim);
 void *Model_new(size_t size, Model proto, char *description);

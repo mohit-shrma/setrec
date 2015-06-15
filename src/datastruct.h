@@ -82,6 +82,7 @@ typedef struct {
 
 void UserSets_init(UserSets *self, int user, int numSets, int nItems,
     int nUserItems);
+void UserSets_reset(UserSets * const self, int nItems);
 void UserSets_free(UserSets *self);
 void UserSets_initWt(UserSets *self);
 void UserSets_updWt_avgItemSim(UserSets *self, float **sim);
@@ -103,6 +104,7 @@ typedef struct {
 
 void Data_init(Data *self, int nUsers, int nItems);
 void Data_free(Data *self);
+void Data_reset(Data *self, int nUsers, int nItems);
 
 #endif
 

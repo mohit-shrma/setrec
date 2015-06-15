@@ -72,6 +72,52 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
 }
 
 
+void UserSets_reset(UserSets * const self, int nItems) {
+ 
+  int i, j, setInd;
+ 
+  //TODO: can remove this
+  //reset self->testValItems
+  memset(self->testValItems, 0, sizeof(int)*nItems);
+  
+  //reset validation and test sets
+  memset(self->valSets, 0, sizeof(int)*self->szValSet);
+  i = 0; 
+  while (i < self->szValSet) {
+    setInd = rand()%self->numSets;
+    //make sure set is not present already in validation set
+    for (j = 0; j < i; j++) {
+      if (setInd == self->valSets[j]) {
+        continue; 
+      }
+    }
+    self->valSets[i++] = setInd;
+  }
+  
+  
+  memset(self->testSets, 0, sizeof(int)*self->szTestSet);
+  i = 0;
+  while (i < self->szTestSet) {
+    setInd = rand()%self->numSets;
+    //make sure set is not present already in test set
+    for (j = 0; j < i; j++) {
+      if (setInd == self->testSets[j]) {
+        continue;
+      }
+    }
+    //make sure set is not present in validation set
+    for (j = 0; j < self->szValSet; j++) {
+      if (setInd == self->valSets[j]) {
+        continue;
+      }
+    }
+    self->testSets[i++] = setInd;
+  }
+
+
+}
+
+
 void UserSets_initWt(UserSets *self) {
   
   int i, j, k;
@@ -342,6 +388,17 @@ void Data_init(Data *self, int nUsers, int nItems) {
   self->userSets = (UserSets**) malloc(sizeof(UserSets*)*nUsers);
   for (i = 0; i < nUsers; i++) {
     self->userSets[i] = (UserSets*) malloc(sizeof(UserSets));
+  }
+  
+}
+
+
+void Data_reset(Data *self, int nUsers, int nItems) {
+  
+  int i;
+  
+  for (i = 0; i < self->nUsers; i++) {
+    UserSets_reset(self->userSets[i], nItems);
   }
   
 }
