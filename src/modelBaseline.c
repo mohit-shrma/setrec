@@ -158,8 +158,6 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
     }
   }
   
-  writeIntVector(testSetInd, nTestSets, "userTestSets.txt");
-  UserSets_writeWt(data->userSets[0], "userSet0Wt.txt");
 
   for (j = 0; j < nTestSets; j++) {
     rmse += (testLabels[j] - testModelScores[j]) * (testLabels[j] - testModelScores[j]);
@@ -168,8 +166,6 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
   
   printf("\n%s test rmse = %f", model->_(description), rmse);
 
-  writeFloatVector(testModelScores, nTestSets, "TestBaseScores.txt");
-  writeFloatVector(testLabels, nTestSets, "TestSetLabels.txt");
 
   free(testLabels);
   free(testModelScores);
