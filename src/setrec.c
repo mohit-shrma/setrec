@@ -36,6 +36,9 @@ void parse_cmd_line(int argc, char **argv) {
     params->seed            = atoi(argv[10]);
   }
 
+  //initialize random seed
+  srand(params->seed);
+
   //load data
   data = (Data *) malloc(sizeof(Data));
   Data_init(data, params->nUsers, params->nItems);
@@ -47,6 +50,12 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   for (i = 0; i <3; i++) {
+    
+    //run baseline
+    memset(tempValTest, 0, sizeof(float)*2);
+    modelBase(data, params, tempValTest);  
+    baseValTest[0] += tempValTest[0];
+    baseValTest[1] += tempValTest[1];
 
     //learn model
     memset(tempValTest, 0, sizeof(float)*2);
@@ -54,20 +63,19 @@ void parse_cmd_line(int argc, char **argv) {
     simValTest[0] += tempValTest[0];
     simValTest[1] += tempValTest[1];
 
-    //run baseline
-    memset(tempValTest, 0, sizeof(float)*2);
-    modelBase(data, params, tempValTest);  
-    baseValTest[0] += tempValTest[0];
-    baseValTest[1] += tempValTest[1];
-
     //reset test and val for next iter
+    srand(params->seed + (i+1));
     Data_reset(data, params->nUsers, params->nItems);
-
   }
 
   printf("\navg baseline validation: %f test: %f", baseValTest[0]/i, 
       baseValTest[1]/i);
   printf("\navg sim validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
+
+  if (baseValTest[1]/i > simValTest[1]/i) {
+    printf("\n* %f %f", baseValTest[1]/i, simValTest[1]/i);
+  }
+
 
   Data_free(data);  
   free(params);

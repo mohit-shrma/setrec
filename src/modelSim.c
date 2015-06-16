@@ -375,12 +375,14 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
   UserSets *userSet;
   int isTestValSet, setSz, item;
   int *set;
-  float r_us; //actual set preference
+  float r_us, prevVal; //actual set preference
   float avgSetSim, temp; 
   ModelSim *model         = self;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float* uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
+  
+  prevVal = 0.0;
 
   model->_(objective)(model, data);
   for (iter = 0; iter < params->maxIter; iter++) {
@@ -457,10 +459,17 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
     //update sim
     model->_(updateSim)(model, sim);
     //objective check
-    if (iter % 2 == 0) {
+    if (iter % OBJ_ITER == 0) {
       model->_(objective)(model, data);
       //validation err
       valTest[0] = model->_(validationErr) (model, data, sim);
+      if (iter > 0) {
+        if (abs(prevVal - valTest[0]) < EPS) {
+          //exit the model train procedure
+          printf("\nConverged in iteration: %d", iter);
+          break;
+        }
+      }
     }
     
   }
@@ -479,9 +488,6 @@ void modelSim(Data *data, Params *params, float *valTest) {
   float **sim  = NULL;
 
   int i, j, k;
-
-  //init random with seed
-  srand(params->seed);
 
   //allocate storage for model
   ModelSim *modelSim = NEW(ModelSim, "set prediction model with sim");
