@@ -8,6 +8,7 @@
 
 #define EPS 0.0001
 #define OBJ_ITER 1000
+#define VAL_ITER 1000
 
 typedef struct {
   int nUsers;

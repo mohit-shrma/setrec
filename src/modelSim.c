@@ -458,9 +458,9 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
 
     //update sim
     model->_(updateSim)(model, sim);
-    //objective check
-    if (iter % OBJ_ITER == 0) {
-      model->_(objective)(model, data);
+    
+    //validation check
+    if (iter % VAL_ITER == 0) {
       //validation err
       valTest[0] = model->_(validationErr) (model, data, sim);
       if (iter > 0) {
@@ -470,6 +470,11 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
           break;
         }
       }
+    }
+    
+    //objective check
+    if (iter % OBJ_ITER == 0) {
+      model->_(objective)(model, data);
     }
     
   }
