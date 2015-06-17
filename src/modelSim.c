@@ -464,12 +464,14 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
       //validation err
       valTest[0] = model->_(validationErr) (model, data, sim);
       if (iter > 0) {
-        if (abs(prevVal - valTest[0]) < EPS) {
+        if (fabs(prevVal - valTest[0]) < EPS) {
           //exit the model train procedure
-          printf("\nConverged in iteration: %d", iter);
+          printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
+              prevVal, valTest[0], fabs(prevVal - valTest[0]));
           break;
         }
       }
+      prevVal = valTest[0];
     }
     
     //objective check
