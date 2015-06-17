@@ -6,6 +6,13 @@
 typedef struct {
   Model proto;
   //add below model specific implementation
+  
+  //average label of sets
+  float avgLabel;
+
+  //no. of positive and negative sets
+  int posCount, negCount;
+
 } ModelRand;
 
 float ModelRand_testErr(void *Self, Data *data, float **sim);

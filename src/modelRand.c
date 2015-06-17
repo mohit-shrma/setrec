@@ -104,13 +104,32 @@ void ModelRand_train(void *self, Data *data, Params *params, float **sim,
     float *valTest) {
   
   ModelRand *model = self;
+  int u, i, j, s;
+  int nSets = 0;
   
+  model->posCount = 0;
+  model->negCount = 0;
+  model->avgLabel = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (s = 0; s < userSet->numSets; s++) {
+      model->avgLabel += userSet->labels[s];
+      if (userSet->label[s] > 0) {
+        model->posCount++;
+      } else {
+        model->negCount++;
+      }
+    }
+    nSets += userSet->numSets;
+  }
+  model->avgLabel = model->avgLabel/nSets;
+
   //compute validation error
   valTest[0] = model->_(validationErr) (model, data, sim);
 
   //compute test error
   valTest[1] = model->_(testErr) (model, data, sim);
-
 }
 
 
