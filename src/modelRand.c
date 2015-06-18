@@ -27,9 +27,11 @@ float ModelRand_validationErr(void *self, Data *data, float **sim) {
     userSet = data->userSets[u];
     for (i = 0; i < userSet->szValSet; i++) {
       valLabels[j] = userSet->labels[userSet->valSets[i]];
-      valModelScores[j] = (float)(rand()%2);
-      if (valModelScores[j] <= 0) {
+      valModelScores[j] = (float) generateGaussianNoise(model->avgLabel, 1.0);
+      if (valModelScores[j] <= -1) {
         valModelScores[j] = -1;
+      } else if (valModelScores[j] >= 1) {
+        valModelScores[j] = 1;
       }
       j++;
     }
@@ -76,9 +78,11 @@ float ModelRand_testErr(void *self, Data *data, float **sim) {
     userSet = data->userSets[u];
     for (i = 0; i < userSet->szTestSet; i++) {
       testLabels[j] = userSet->labels[userSet->testSets[i]];
-      testModelScores[j] = (float)(rand()%2);
-      if (testModelScores[j] <= 0) {
+      testModelScores[j] = (float) generateGaussianNoise(model->avgLabel, 1.0);
+      if (testModelScores[j] <= -1) {
         testModelScores[j] = -1;
+      } else if (testModelScores[j] >= 1) {
+        testModelScores[j] = 1;
       }
       j++;
     }
@@ -104,6 +108,7 @@ void ModelRand_train(void *self, Data *data, Params *params, float **sim,
     float *valTest) {
   
   ModelRand *model = self;
+  UserSets *userSet = NULL;
   int u, i, j, s;
   int nSets = 0;
   
@@ -115,7 +120,7 @@ void ModelRand_train(void *self, Data *data, Params *params, float **sim,
     userSet = data->userSets[u];
     for (s = 0; s < userSet->numSets; s++) {
       model->avgLabel += userSet->labels[s];
-      if (userSet->label[s] > 0) {
+      if (userSet->labels[s] > 0) {
         model->posCount++;
       } else {
         model->negCount++;
@@ -124,6 +129,9 @@ void ModelRand_train(void *self, Data *data, Params *params, float **sim,
     nSets += userSet->numSets;
   }
   model->avgLabel = model->avgLabel/nSets;
+
+  printf("\navgLabel: %f posCount: %d negCount: %d", model->avgLabel, 
+      model->posCount, model->negCount);
 
   //compute validation error
   valTest[0] = model->_(validationErr) (model, data, sim);

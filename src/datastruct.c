@@ -255,12 +255,11 @@ void UserSets_updWt_avgItemSim(UserSets *self, float **sim) {
 void UserSets_updWt_avgItemPairSim(UserSets *self, float **sim) {
   
   int i, j, k, l;
-  int item, setInd;
+  int setInd;
   float score, simSet;
   int testValSetCt, nSim;
 
   for (i = 0; i < self->nUserItems; i++) {
-    item = self->itemWtSets[i]->item;
     score = 0;
     //go over sets of item
     testValSetCt = 0;
