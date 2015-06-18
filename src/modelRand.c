@@ -11,6 +11,8 @@ float ModelRand_validationErr(void *self, Data *data, float **sim) {
   float rmse             = 0;
   ItemWtSets *itemWtSets = NULL;
   UserSets *userSet      = NULL;
+  int rnd;
+  float posPc, negPc;
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
@@ -22,17 +24,30 @@ float ModelRand_validationErr(void *self, Data *data, float **sim) {
   memset(valLabels, 0, sizeof(float)*nValSets);
   memset(valModelScores, 0, sizeof(float)*nValSets);
 
+  posPc = ((float)model->posCount)/((float)(model->posCount + model->negCount));
+  negPc = 1.0 - posPc;
+
   j = 0;
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     for (i = 0; i < userSet->szValSet; i++) {
       valLabels[j] = userSet->labels[userSet->valSets[i]];
       valModelScores[j] = (float) generateGaussianNoise(model->avgLabel, 1.0);
+      /*
+      rnd = rand()%100;
+      if (rnd <= posPc*100) {
+        valModelScores[j] = 1;
+      } else {
+        valModelScores[j] = -1;
+      }
+      */
+      
       if (valModelScores[j] <= -1) {
         valModelScores[j] = -1;
       } else if (valModelScores[j] >= 1) {
         valModelScores[j] = 1;
       }
+      
       j++;
     }
   }
@@ -60,7 +75,8 @@ float ModelRand_testErr(void *self, Data *data, float **sim) {
   float rmse             = 0;
   ItemWtSets *itemWtSets = NULL;
   UserSets *userSet      = NULL;
-
+  int rnd;
+  float posPc, negPc;
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
@@ -72,6 +88,8 @@ float ModelRand_testErr(void *self, Data *data, float **sim) {
   memset(testLabels, 0, sizeof(float)*nTestSets);
   memset(testModelScores, 0, sizeof(float)*nTestSets);
 
+  posPc = ((float)model->posCount)/((float)(model->posCount + model->negCount));
+  negPc = 1.0 - posPc;
 
   j = 0;
   for (u = 0; u < data->nUsers; u++) {
@@ -79,11 +97,19 @@ float ModelRand_testErr(void *self, Data *data, float **sim) {
     for (i = 0; i < userSet->szTestSet; i++) {
       testLabels[j] = userSet->labels[userSet->testSets[i]];
       testModelScores[j] = (float) generateGaussianNoise(model->avgLabel, 1.0);
+      /*rnd = rand()%100;
+      if (rnd <= posPc*100) {
+        testModelScores[j] = 1;
+      } else {
+        testModelScores[j] = -1;
+      }*/
+      
       if (testModelScores[j] <= -1) {
         testModelScores[j] = -1;
       } else if (testModelScores[j] >= 1) {
         testModelScores[j] = 1;
       }
+      
       j++;
     }
   }
@@ -130,8 +156,10 @@ void ModelRand_train(void *self, Data *data, Params *params, float **sim,
   }
   model->avgLabel = model->avgLabel/nSets;
 
+  /*
   printf("\navgLabel: %f posCount: %d negCount: %d", model->avgLabel, 
       model->posCount, model->negCount);
+  */
 
   //compute validation error
   valTest[0] = model->_(validationErr) (model, data, sim);
