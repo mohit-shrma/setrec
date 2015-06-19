@@ -198,6 +198,75 @@ float Model_testErr(void *self, Data *data, float **sim) {
 }
 
 
+float Model_userFacNorm(void *self, Data *data) {
+  Model *model = self;
+  return matNorm(model->uFac, model->nUsers, model->facDim);
+}
+
+
+float Model_itemFacNorm(void *self, Data *data) {
+  Model *model = self;
+  return matNorm(model->iFac, model->nItems, model->facDim);
+}
+
+
+float Model_setSimilarity(void *self, int *set, int setSz, float **sim) {
+  
+  float setSim = 0.0;
+  int i, j, nPairs = 0;
+  Model *model = self;
+
+  nPairs = (setSz * (setSz-1)) / 2;
+  if (sim != NULL) {
+    for (i = 0; i < setSz; i++) {
+      for (j = i+1; j < setSz; j++) {
+        setSim += sim[set[i]][set[j]];
+      }
+    }
+  } else {
+    for (i = 0; i < setSz; i++) {
+      for (j = i+1; j < setSz; j++) {
+        //printf("\n%f %f", model->_(iFac)[set[i]], model->_(iFac)[set[j]]);
+        setSim += dotProd(model->iFac[set[i]], model->iFac[set[j]], 
+            model->facDim);
+      }
+    }
+  }
+  //printf("\nsetSim = %f, nPairs = %d, setSz = %d", setSim, nPairs, setSz);
+  setSim = setSim/nPairs;
+
+  if (nPairs == 0) {
+    setSim = 1.0;
+  }
+
+  return setSim;
+
+}
+
+
+void Model_writeUserSetSim(void *self, Data *data, char *fName) {
+    
+  Model *model = self;
+  int u, i, s;
+  UserSets * userSet = NULL;
+  int *set = NULL;
+  FILE *fp = NULL;
+  float sim = 0.0;
+
+  fp = fopen(fName, "w");
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (s = 0; s < userSet->numSets; s++) {
+      set = userSet->uSets[s];    
+      sim = model->setSimilarity(self, set, userSet->uSetsSize[s], NULL);
+      fprintf(fp, "\n%d %d %d %f", u, s, userSet->uSetsSize[s], sim);
+    }
+  }
+  fclose(fp);
+ 
+}
+
+
 void *Model_new(size_t size, Model proto, char *description) {
   
   //set up default methods if they are not set up
@@ -211,6 +280,10 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.validationErr) proto.validationErr = Model_validationErr;
   if (!proto.testErr) proto.testErr             = Model_testErr;
   if (!proto.reset) proto.reset                 = Model_reset;
+  if (!proto.userFacNorm) proto.userFacNorm     = Model_userFacNorm;
+  if (!proto.itemFacNorm) proto.itemFacNorm     = Model_itemFacNorm;
+  if (!proto.setSimilarity) proto.setSimilarity = Model_setSimilarity;
+  if (!proto.writeUserSetSim) proto.writeUserSetSim = Model_writeUserSetSim;
 
   //struct of one size
   Model *model = calloc(1, size);

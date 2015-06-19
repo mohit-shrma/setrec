@@ -32,38 +32,6 @@ float ModelSim_setScore(void *self, int user, int *set, int setSz, float **sim) 
 }
 
 
-//TODO: put in common place
-float setSimilarity(int *set, int setSz, void *self, float **sim) {
-  float setSim = 0.0;
-  int i, j, nPairs = 0;
-  ModelSim *model = self;
-  nPairs = (setSz * (setSz-1)) / 2;
-  if (sim != NULL) {
-    for (i = 0; i < setSz; i++) {
-      for (j = i+1; j < setSz; j++) {
-        setSim += sim[set[i]][set[j]];
-      }
-    }
-  } else {
-    for (i = 0; i < setSz; i++) {
-      for (j = i+1; j < setSz; j++) {
-        //printf("\n%f %f", model->_(iFac)[set[i]], model->_(iFac)[set[j]]);
-        setSim += dotProd(model->_(iFac)[set[i]], model->_(iFac)[set[j]], 
-            model->_(facDim));
-      }
-    }
-  }
-  //printf("\nsetSim = %f, nPairs = %d, setSz = %d", setSim, nPairs, setSz);
-  setSim = setSim/nPairs;
-
-  if (nPairs == 0) {
-    setSim = 1.0;
-  }
-
-  return setSim;
-}
-
-
 void computeUGrad(ModelSim *model, int user, int *set, int setSz, 
   float avgSimSet, float r_us, float *sumItemLatFac, float *uGrad) {
   int i, j;
@@ -123,8 +91,7 @@ float userSetLossU(void *self, UserSets *userSet, int setInd, float *uFac) {
   loss = 0;
   user = userSet->userId;
   r_us = userSet->labels[setInd];
-  avgSimSet = setSimilarity(userSet->uSets[setInd], userSet->uSetsSize[setInd],
-      self, NULL); 
+  avgSimSet = model->_(setSimilarity)(self, userSet->uSets[setInd], userSet->uSetsSize[setInd], NULL); 
 
   sumItemFac = (float*) malloc(sizeof(float)*model->_(facDim));
   memset(sumItemFac, 0, sizeof(float)*model->_(facDim));
@@ -252,8 +219,7 @@ void ModelSim_gradCheck(void *self, UserSets *userSet) {
   sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
   memset(sumItemLatFac, 0, (sizeof(float)*model->_(facDim)));
   
-  avgSimSet = setSimilarity(userSet->uSets[setInd], userSet->uSetsSize[setInd], 
-      self, NULL);
+  avgSimSet = model->_(setSimilarity)(self, userSet->uSets[setInd], userSet->uSetsSize[setInd], NULL);
 
   for (i = 0; i < userSet->uSetsSize[setInd]; i++) {
     for (k = 0; k < model->_(facDim); k++) {
@@ -267,7 +233,7 @@ void ModelSim_gradCheck(void *self, UserSets *userSet) {
 
   for (i = 0; i < 5; i++) {
     for (k = 0; k < model->_(facDim); k++) {
-      //TODO: perturbation of 0.001 scale
+      //perturbation of 0.001 scale
       delta[k] = ((float)rand()/(float)(RAND_MAX)) * 0.001;
       uFacTmp[k] = uFac[k] + delta[k];
       uFacTmp2[k] = uFac[k] - delta[k];
@@ -327,30 +293,6 @@ void ModelSim_gradCheck(void *self, UserSets *userSet) {
 }
 
 
-void writeUserSetSim(void *self, Data *data) {
-  
-  ModelSim *model = self;
-  int u, i, s;
-  UserSets * userSet = NULL;
-  int *set = NULL;
-  FILE *fp = NULL;
-  float sim = 0.0;
-
-  fp = fopen("userSim.txt", "w");
-  for (u = 0; u < data->nUsers; u++) {
-    userSet = data->userSets[u];
-    for (s = 0; s < userSet->numSets; s++) {
-      set = userSet->uSets[s];    
-      sim = setSimilarity(set, userSet->uSetsSize[s], self, NULL);
-      fprintf(fp, "\n%d %d %d %f", u, s, userSet->uSetsSize[s], sim);
-    }
-  }
-  fclose(fp);
-  
-}
-
-
-//TODO: need sim matrix in computing objective
 //different name to avoid ambiguous match in model.c
 float ModelSim_objective(void *self, Data *data) {
 
@@ -370,7 +312,7 @@ float ModelSim_objective(void *self, Data *data) {
       //TODO: remove training and test set
       userSetPref = model->_(setScore)(model, u, set, setSz, NULL);
       //set sim
-      setSim = setSimilarity(set, setSz, model, NULL);   
+      setSim = model->_(setSimilarity)(self, set, setSz, NULL);   
  
       diff = userSetPref - userSet->labels[s];
       
@@ -388,6 +330,51 @@ float ModelSim_objective(void *self, Data *data) {
   printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f", (rmse+uRegErr+iRegErr),
       rmse, uRegErr, iRegErr);
   return (rmse + uRegErr + iRegErr);
+}
+
+
+void coefficientNormUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
+
+  int k;
+  float facNorm;
+
+  for (k = 0; k < facDim; k++) {
+    fac[k] -= learnRate*(grad[k] + reg*fac[k]); 
+  }
+
+  //normalize factor
+  facNorm = norm(fac, facDim);
+  for (k = 0; k < facDim; k++) {
+    fac[k] = fac[k]/facNorm;
+  }
+
+}
+
+
+void tangentGradientUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
+  
+  int k;
+  float facNorm, gradFacPdt;
+
+  //update gradient to include regularization gradient
+  for (k = 0; k < facDim; k++) {
+    grad[k] += reg*fac[k];
+  }
+  
+  gradFacPdt = dotProd(grad, fac, facDim);
+  
+  for (k = 0; k < facDim; k++) {
+    fac[k] -= learnRate*(grad[k] - fac[k]*gradFacPdt);
+  }
+
+  //normalize factor if norm exceeds 1.1-1.5
+  facNorm = norm(fac, facDim);
+  //if (facNorm*facNorm > 1.1) {
+    for (k = 0; k < facDim; k++) {
+      fac[k] = fac[k]/facNorm;
+    }
+  //}
+
 }
 
 
@@ -436,17 +423,16 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
       set       = userSet->uSets[s];
       setSz     = userSet->uSetsSize[s];
       r_us      = userSet->labels[s];
-
-      //TODO: dont update no. of items in set is 1
+      
+      //dont update no. of items if set is 1
       if (setSz == 1) {
         continue;
       }
 
-      //TODO: verify whether similarity with and without sim are same
-      avgSetSim = setSimilarity(set, setSz, model, sim);
-      //avgSetSim = setSimilarity(set, setSz, model, NULL);
-      //printf("\n%f", avgSetSim);
-      //update user and latent factor
+      avgSetSim = model->_(setSimilarity)(self, set, setSz, sim);
+      //avgSetSim = model->_(setSimilarity)(self, set, setSz, NULL);
+      
+      //update user and item latent factor
      
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < setSz; i++) {
@@ -474,16 +460,10 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
            iGrad);
         //update item + reg
         //printf("\nitem = %d norm iGrad = %f", item, norm(iGrad, model->_(facDim)));
-        for (k = 0; k < model->_(facDim); k++) {
-          model->_(iFac)[item][k] -= model->_(learnRate)*(iGrad[k] + model->_(regI)*model->_(iFac)[item][k]);
-        }
-        
-        //normalize item latent factor
-        temp = norm(model->_(iFac)[item], model->_(facDim));
-        for (k = 0; k < model->_(facDim); k++) {
-          model->_(iFac)[item][k] /= temp;
-        }
-
+        coefficientNormUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
+            model->_(learnRate), model->_(facDim));
+        //tangentGradientUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
+        //    model->_(learnRate), model->_(facDim));
       }
 
     }
@@ -519,8 +499,7 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
   //get test eror
   valTest[1] = model->_(testErr) (model, data, sim);
 
-  //writeUserSetSim(self, data);
-
+  //model->_(writeUserSetSim)(self, data, "userSetsSim.txt");
 
   free(sumItemLatFac);
   free(uGrad);
