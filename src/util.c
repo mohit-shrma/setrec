@@ -93,6 +93,16 @@ float norm(float *v, int sz) {
 }
 
 
+float matNorm(float **mat, int nrows, int ncols) {
+  int i;
+  float matNorm = 0;
+  for (i = 0; i < nrows; i++) {
+    matNorm += norm(mat[i], ncols);
+  }
+  return matNorm/nrows;
+}
+
+
 /*
  * Following implement Box-Muller transform to generate samples from gaussian
  * distributions.

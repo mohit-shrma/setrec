@@ -327,6 +327,29 @@ void ModelSim_gradCheck(void *self, UserSets *userSet) {
 }
 
 
+void writeUserSetSim(void *self, Data *data) {
+  
+  ModelSim *model = self;
+  int u, i, s;
+  UserSets * userSet = NULL;
+  int *set = NULL;
+  FILE *fp = NULL;
+  float sim = 0.0;
+
+  fp = fopen("userSim.txt", "w");
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (s = 0; s < userSet->numSets; s++) {
+      set = userSet->uSets[s];    
+      sim = setSimilarity(set, userSet->uSetsSize[s], self, NULL);
+      fprintf(fp, "\n%d %d %d %f", u, s, userSet->uSetsSize[s], sim);
+    }
+  }
+  fclose(fp);
+  
+}
+
+
 //TODO: need sim matrix in computing objective
 //different name to avoid ambiguous match in model.c
 float ModelSim_objective(void *self, Data *data) {
@@ -344,7 +367,7 @@ float ModelSim_objective(void *self, Data *data) {
       set = userSet->uSets[s];
       setSz = userSet->uSetsSize[s];
       //get preference over set
-      //TODO
+      //TODO: remove training and test set
       userSetPref = model->_(setScore)(model, u, set, setSz, NULL);
       //set sim
       setSim = setSimilarity(set, setSz, model, NULL);   
@@ -421,6 +444,8 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
 
       //TODO: verify whether similarity with and without sim are same
       avgSetSim = setSimilarity(set, setSz, model, sim);
+      //avgSetSim = setSimilarity(set, setSz, model, NULL);
+      //printf("\n%f", avgSetSim);
       //update user and latent factor
      
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
@@ -452,9 +477,18 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
         for (k = 0; k < model->_(facDim); k++) {
           model->_(iFac)[item][k] -= model->_(learnRate)*(iGrad[k] + model->_(regI)*model->_(iFac)[item][k]);
         }
+        
+        //normalize item latent factor
+        temp = norm(model->_(iFac)[item], model->_(facDim));
+        for (k = 0; k < model->_(facDim); k++) {
+          model->_(iFac)[item][k] /= temp;
+        }
+
       }
 
     }
+
+    //printf("\nuserFacNorm:%f itemFacNorm:%f", model->_(userFacNorm)(self, data), model->_(itemFacNorm)(self, data));
 
     //update sim
     model->_(updateSim)(model, sim);
@@ -463,6 +497,7 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
     if (iter % VAL_ITER == 0) {
       //validation err
       valTest[0] = model->_(validationErr) (model, data, sim);
+      printf("\nIter:%d validation error: %f", iter, valTest[0]);
       if (iter > 0) {
         if (fabs(prevVal - valTest[0]) < EPS) {
           //exit the model train procedure
@@ -483,6 +518,9 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
 
   //get test eror
   valTest[1] = model->_(testErr) (model, data, sim);
+
+  //writeUserSetSim(self, data);
+
 
   free(sumItemLatFac);
   free(uGrad);
