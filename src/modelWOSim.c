@@ -202,6 +202,7 @@ void ModelWOSim_train(void *self, Data *data, Params *params, float **sim,
     if (iter % VAL_ITER == 0) {
       //validation err
       valTest[0] = model->_(validationErr) (model, data, sim);
+      printf("\nIter:%d validation error: %f", iter, valTest[0]);
       if (iter > 0) {
         if (fabs(prevVal - valTest[0]) < EPS) {
           //exit the model train procedure
@@ -222,6 +223,8 @@ void ModelWOSim_train(void *self, Data *data, Params *params, float **sim,
 
   //get test eror
   valTest[1] = model->_(testErr) (model, data, sim);
+  
+  //model->_(writeUserSetSim)(self, data, "userSetsWOSim.txt");
 
   free(sumItemLatFac);
   free(uGrad);
