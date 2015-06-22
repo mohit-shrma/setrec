@@ -11,7 +11,7 @@ typedef struct {
   float avgLabel;
 
   //no. of positive and negative sets
-  int posCount, negCount;
+  int posCount, negCount, zeroCount;
 
 } ModelRand;
 

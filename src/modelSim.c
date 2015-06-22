@@ -296,7 +296,7 @@ void ModelSim_gradCheck(void *self, UserSets *userSet) {
 //different name to avoid ambiguous match in model.c
 float ModelSim_objective(void *self, Data *data) {
 
-  int u, i, s, item, setSz;
+  int u, i, s, item, setSz, isTestValSet;
   UserSets *userSet = NULL;
   int *set = NULL;
   float rmse = 0, diff = 0, userSetPref = 0, setSim = 0;
@@ -305,11 +305,33 @@ float ModelSim_objective(void *self, Data *data) {
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
+    isTestValSet = 0;
     for (s = 0; s < userSet->numSets; s++) {
+      
+      //check if set in test sets
+      for (i = 0; i < userSet->szTestSet; i++) {
+        if (s == userSet->testSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+
+      //check if set in validation sets
+      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
+        if (s == userSet->valSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      if (isTestValSet) {
+        continue;
+      }
+      
       set = userSet->uSets[s];
       setSz = userSet->uSetsSize[s];
       //get preference over set
-      //TODO: remove training and test set
+      //TODO: remove validation and test set
       userSetPref = model->_(setScore)(model, u, set, setSz, NULL);
       //set sim
       setSim = model->_(setSimilarity)(self, set, setSz, NULL);   
@@ -450,6 +472,7 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
       for (k = 0; k < model->_(facDim); k++) {
         model->_(uFac)[u][k] -= model->_(learnRate)*(uGrad[k] + model->_(regU)*model->_(uFac)[u][k]);
       }
+
       //printf("\naftr u = %d norm uFac = %f", 
       //    u, norm(model->_(uFac)[u], model->_(facDim)));
       //compute  gradient of item and update their latent factor in sets
@@ -462,8 +485,6 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
         //printf("\nitem = %d norm iGrad = %f", item, norm(iGrad, model->_(facDim)));
         coefficientNormUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
             model->_(learnRate), model->_(facDim));
-        //tangentGradientUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
-        //    model->_(learnRate), model->_(facDim));
       }
 
     }
@@ -495,6 +516,10 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
     }
     
   }
+
+  
+  //get train error
+  printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
 
   //get test eror
   valTest[1] = model->_(testErr) (model, data, sim);

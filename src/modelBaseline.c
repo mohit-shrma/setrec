@@ -175,9 +175,9 @@ float ModelBase_testErr(void *self, Data *data, float **sim) {
 
 
 Model ModelBaseProto = {
-  .train = ModelBase_train,
-  .validationErr = ModelBase_validationErr,
-  .testErr = ModelBase_testErr
+  .train             = ModelBase_train,
+  .validationErr     = ModelBase_validationErr,
+  .testErr           = ModelBase_testErr
 };
 
 
