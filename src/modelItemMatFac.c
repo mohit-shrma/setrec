@@ -79,7 +79,7 @@ float ModelItemMatFac_objective(void *self, Data *data) {
   
   obj = rmse + uRegErr + iRegErr;
 
-  printf("\nObj: %f SE: %f uRegEr: %f iRegErr:%f", obj, rmse, uRegErr, iRegErr);
+  //printf("\nObj: %f SE: %f uRegEr: %f iRegErr:%f", obj, rmse, uRegErr, iRegErr);
 
   return obj;
 }
@@ -128,6 +128,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   ItemWtSets *itemWtSets = NULL;
   float *iGrad = (float *) malloc(sizeof(float)*model->_(facDim));
   float *uGrad = (float *) malloc(sizeof(float)*model->_(facDim));
+  float prevVal = 0;
 
   model->_(objective) (model, data);
 
@@ -161,7 +162,12 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     //validation
     if (iter % VAL_ITER == 0) {
       valTest[0] = model->_(validationErr) (model, data, NULL);
-      printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
+      //printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
+      if (fabs(prevVal - valTest[0]) < EPS) {
+        printf("\nConverged in iterations: %d", iter);
+        break;
+      }
+      prevVal = valTest[0];
     }
 
     //objective check
@@ -171,9 +177,6 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 
   }
 
-  if (iter % OBJ_ITER == 0) {
-    model->_(objective) (model, data);
-  }
   
   valTest[0] = model->_(validationErr) (model, data, NULL);
   printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
