@@ -8,7 +8,7 @@
 
 #define EPS 0.0001
 #define OBJ_ITER 1000
-#define VAL_ITER 50
+#define VAL_ITER 100
 
 typedef struct {
   int nUsers;
@@ -38,6 +38,7 @@ typedef struct {
   float (*setScore) (void *self, int user, int *set, int setSz, float **sim);
   float (*validationErr) (void *self, Data *data, float **sim);
   float (*testErr) (void *self, Data *data, float **sim);
+  float (*trainErr) (void *self, Data *data, float **sim);
   float (*userFacNorm) (void *self, Data *data);
   float (*itemFacNorm) (void *self, Data *data);
   float (*setSimilarity) (void *self, int *set, int setSz, float **sim);  
@@ -60,6 +61,7 @@ void Model_writeUserSetSim(void *self, Data *data, char *fName);
 void Model_train(void *self, Data *data, Params *params, float **Sim, float *valTest);
 float Model_validationErr(void *self, Data *data, float **sim);
 float Model_testErr(void *self, Data *data, float **sim);
+float Model_trainErr(void *self, Data *data, float **sim);
 float Model_userFacNorm(void *self, Data *data);
 float Model_itemFacNorm(void *Self, Data *data);
 void *Model_new(size_t size, Model proto, char *description);

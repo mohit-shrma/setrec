@@ -155,8 +155,8 @@ float Model_validationErr(void *self, Data *data, float **sim) {
 
 
 float Model_testErr(void *self, Data *data, float **sim) {
-  int u, i, j;
   
+  int u, i, j;
   Model *model          = self;
   UserSets *userSet     = NULL;
   int nTestSets          = 0;
@@ -196,6 +196,55 @@ float Model_testErr(void *self, Data *data, float **sim) {
   free(testModelScores);
   return rmse;
 }
+
+
+float Model_trainErr(void *self, Data *data, float **sim) {
+
+  int u, i, j, s, isTestValSet, nTrainSets, setSz;
+  Model *model = self;
+  UserSets *userSet = NULL;
+  int *set = NULL;
+  float rmse = 0, diff;
+  
+  nTrainSets = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    isTestValSet = 0;
+    for (s = 0; s < userSet->numSets; s++) {
+      //check if set in test sets
+      for (i = 0; i < userSet->szTestSet; i++) {
+        if (s == userSet->testSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      //check if set in validation sets
+      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
+        if (s == userSet->valSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+    
+      if (isTestValSet) {
+        continue;
+      }
+    
+      set = userSet->uSets[s];
+      setSz = userSet->uSetsSize[s];
+      
+      diff = (userSet->labels[s] - model->setScore(model, u, set, setSz, sim));
+      rmse += diff*diff;
+      nTrainSets++;
+    }
+  }
+  
+  rmse = sqrt(rmse/nTrainSets);
+  
+  return rmse;
+}
+
 
 
 float Model_userFacNorm(void *self, Data *data) {
@@ -279,6 +328,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.free) proto.free                   = Model_free;
   if (!proto.validationErr) proto.validationErr = Model_validationErr;
   if (!proto.testErr) proto.testErr             = Model_testErr;
+  if (!proto.trainErr) proto.trainErr           = Model_trainErr;
   if (!proto.reset) proto.reset                 = Model_reset;
   if (!proto.userFacNorm) proto.userFacNorm     = Model_userFacNorm;
   if (!proto.itemFacNorm) proto.itemFacNorm     = Model_itemFacNorm;
