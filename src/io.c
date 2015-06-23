@@ -45,7 +45,10 @@ void loadData(Data *data, Params *params) {
   //UserSets *dUserSet; 
   
   int *itemSetInd;
+  int posCount, negCount, zeroCount;
   
+  posCount = negCount = zeroCount = 0;
+
   ItemWtSets *itemWtSets;
 
   line = (char*) malloc(len);
@@ -113,6 +116,14 @@ void loadData(Data *data, Params *params) {
         label = atof(token);
         dUserSet->labels[i] = label;
 
+        if (label > 0) {
+          posCount++;
+        } else if (label < 0) {
+          negCount++;
+        } else {
+          zeroCount++;
+        }
+
         setSz = atoi(strtok(NULL, " "));
         dUserSet->uSetsSize[i] = setSz;
        
@@ -156,6 +167,8 @@ void loadData(Data *data, Params *params) {
     memset(line, 0, len);
   }
 
+  printf("\nposCount: %d, negCount: %d, zeroCount: %d", posCount, negCount, 
+      zeroCount);
 
   fclose(fp);
   if (line) {
