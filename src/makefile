@@ -21,12 +21,12 @@ LIBSDIR= -L.. -I/usr/include -L$(GKLIBHOME)
 LIBS = -lm 
 
 #CFLAGS = $(COPTIONS)  $(OPTFLAGS) -I$(GKINCHOME)
-#CFLAGS = $(COPTIONS)  $(OPTFLAGS) 
-CFLAGS = $(COPTIONS)   
+CFLAGS = $(COPTIONS)  $(OPTFLAGS) 
+#CFLAGS = $(COPTIONS)   
 #CFLAGS=  -I. $(OPTFLAGS) -I$(GKINCHOME) 
 
 
-setrec:  model.o modelBaseline.o modelSim.o util.o io.o datastruct.o setrec.o 
+setrec:  model.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o util.o io.o datastruct.o setrec.o 
 	$(CC) $^ $(CFLAGS) $(LIBS) $(LIBSDIR) -o $@
 
 
