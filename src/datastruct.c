@@ -32,6 +32,9 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
     self->itemWtSets[i] = (ItemWtSets *) malloc(sizeof(ItemWtSets));
     memset(self->itemWtSets[i], 0, sizeof(ItemWtSets));    
   }
+ 
+  //make sure you can always have a test and validation set
+  assert(numSets > self->szValSet + self->szTestSet);
 
   //initialize test and val sets using random
   self->valSets = (int *) malloc(sizeof(int)*self->szValSet);
