@@ -1,17 +1,18 @@
 #!/bin/bash
 
-PARALLEL=$HOME/tools/parallel-20131022/src/parallel
 SETREC=/home/grad02/mohit/exmoh/dev/bitbucket/setrec/src/setrec
-IPFILE=/home/grad02/mohit/data/lastfm/lastfm-dataset-1K/last_user_6mon_artist_atleast50uFiltLabeledWkSetInd.ssv
+IPFILE=$1
+#IPFILE=last_user_6mon_artist_atleast50uFiltLabeledWkSetInd_2_0_0_5_NZ.ssv
 OPDIR=/home/grad02/mohit/data/lastfm/lastfm-dataset-1K/lastOp  
 #./setrec /home/grad02/mohit/data/lastfm/lastfm-dataset-1K/last_user_6mon_artist_atleast50uFiltLabeledWkSetInd.ssv 731 3087 5 0.001 0.001 0.001 1 10 1
 
-userRegs=("0.1" "0.01" "0.001")
-itemRegs=("0.1" "0.01" "0.001")
-fDims=(1 5 10 15)
+userRegs=("0.001" "0.01" "0.1" "1" "10" )
+itemRegs=("0.001" "0.01" "0.1" "1" "10" )
+fDims=(1 5 10 15 30)
 lRates=("0.001" "0.0001" "0.00001")
 
-mkdir $OPDIR
+rm -rf $OPDIR
+mkdir -p $OPDIR
 
 for facDim in "${fDims[@]}";do
   for learnRate in "${lRates[@]}";do
