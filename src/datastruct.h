@@ -105,6 +105,7 @@ typedef struct {
 void Data_init(Data *self, int nUsers, int nItems);
 void Data_free(Data *self);
 void Data_reset(Data *self, int nUsers, int nItems);
+void Data_jaccSim(Data *self, float **sim);
 
 #endif
 

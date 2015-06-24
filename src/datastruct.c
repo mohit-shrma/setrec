@@ -417,3 +417,93 @@ void Data_free(Data *self) {
 }
 
 
+void Data_jaccSim(Data *data, float **sim) {
+ 
+  int u, i, j, s;
+  int item, nSets, setInd, prevSetInd;
+  float unionSize, intersSize;
+  UserSets *userSet = NULL;
+  Set** itemMembSets = NULL;
+  Set *temp = NULL;
+
+  //get number of sets
+  nSets = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    nSets += userSet->numSets - userSet->szValSet - userSet->szTestSet;
+  }
+
+  //for each item allocate space for sets 
+  itemMembSets = (Set**) malloc(sizeof(Set*)*data->nItems);
+  for (i = 0; i < data->nItems; i++) {
+    itemMembSets[i] = (Set *) malloc(sizeof(Set));
+    Set_init(itemMembSets[i], nSets);
+  }
+
+  temp = (Set *) malloc(sizeof(Set));
+  Set_init(temp, nSets);
+
+  //TODO: verify addition of item to test and validation sets
+  //add sets to item
+  setInd = 0;
+  prevSetInd = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    
+    userSet = data->userSets[u];
+
+    prevSetInd = setInd;
+    //go through all sets and add them to items
+    for (s = 0; s < userSet->numSets; s++) {
+      for (j = 0; j < userSet->uSetsSize[s]; j++) {
+        item = userSet->uSets[s][j];
+        Set_addElem(itemMembSets[item], setInd);
+      }
+      setInd++;
+    }
+
+    //remove test set
+    for (s = 0; s < userSet->szTestSet; s++) {
+      for (j = 0; j < userSet->uSetsSize[userSet->testSets[s]]; j++) {
+        item = userSet->uSets[userSet->testSets[s]][j];
+        //remove set corresponding to test set
+        Set_delElem(itemMembSets[item], prevSetInd + userSet->testSets[s]);
+      }
+    }
+
+    //remove validation set
+    for (s = 0; s < userSet->szValSet; s++) {
+      for (j = 0; j < userSet->uSetsSize[userSet->valSets[s]]; j++) {
+        item = userSet->uSets[userSet->valSets[s]][j];
+        //remove set corresponding to validation set
+        Set_delElem(itemMembSets[item], prevSetInd + userSet->valSets[s]);
+      }
+    }
+
+  }
+
+  //compute jaccard similarity between item sets
+  for (i = 0; i < data->nItems; i++) {
+    for (j = i+1; j < data->nItems; j++) {
+      Set_union(temp, itemMembSets[i], itemMembSets[j]);
+      unionSize = (float) Set_numElem(temp);
+      Set_intersection(temp, itemMembSets[i], itemMembSets[j]);
+      Set_intersection(temp, itemMembSets[i], itemMembSets[j]);
+      intersSize = (float) Set_numElem(temp);
+      sim[i][j] = intersSize/unionSize;
+      sim[j][i] = sim[i][j];
+    }
+  }
+  
+  
+
+  //free allocated space for sets
+  for (i = 0; i < data->nItems; i++) {
+    free(itemMembSets[i]);
+  }
+  free(itemMembSets);
+  free(temp);
+}
+
+
+
+
