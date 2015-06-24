@@ -9,6 +9,38 @@ from ModelBase import ModelBase
 from ModelSimWt import ModelSimWt
 from UserSets import UserSets
 
+
+def computeJaccSim(arrUserSets, nItems):
+  
+  nSets = 0
+  for userSet in arrUserSets:
+    nSets += userSet.numSets - len(userSet.testSetInds) - len(userSet.valSetInds)
+  
+  itemSets = {}
+  setTillNow = 0
+
+  for userSet in arrUserSets:
+    for setInd in range(len(userSet.itemSets)):
+      if setInd not in userSet.testSetInds and setInd not in userSet.valSetInds:
+        for item in userSet.itemSets[setInd]:
+          if item not in itemSets:
+            itemSets[item] = set([])
+          itemSets[item].add(setTillNow)
+        setTillNow += 1
+  
+  print 'setTillNow: ', setTillNow, 'nSets: ', nSets
+  
+  sim = np.zeros((nItems, nItems))  
+  for i in range(nItems):
+    if i%100 == 0:
+      print str(i)+'...'
+    for j in range(i+1, nItems):
+      sim[i][j] = float(len(itemSets[i] & itemSets[j]))/float(len(itemSets[i] | itemSets[j])) 
+      sim[j][i] = sim[i][j]
+  
+  return sim
+
+
 def loadData(ipFileName, nUsers):
   arrUserSets = []
   
@@ -110,7 +142,14 @@ def main():
   print 'Loading data...'
 
   arrUserSets = loadData(ipFileName, nUsers)
- 
+  sim = computeJaccSim(arrUserSets, nItems) 
+  
+  with open('jacSim.txt', 'w') as g:
+    for i in range(nItems):
+      for j in range(i+1, nItems):
+        g.write('\n' + str(i) + ' ' + str(j) + ' ' + str(sim[i][j]))
+
+
   """
   print 'Computing baseline scores...'
   (baseline1Score, baseline2Score)  = baselineCorrTestScores(arrUserSets)
@@ -136,12 +175,13 @@ def main():
     modelWt.gradCheck(arrUserSets[i]) 
   """
   
+  """
   modelBase = ModelBase(nUsers, nItems)
   modelBase.train(arrUserSets)
 
   print 'modelBase Validation Err', modelBase.valErr(arrUserSets)
   print 'modelBase Test Err', modelBase.testErr(arrUserSets)
-
+  """
 
 if __name__ == '__main__':
   main()

@@ -83,6 +83,20 @@ void writeMat(float **mat, int nrows, int ncols, char *fileName) {
 }
 
 
+void writeUpperMat(float **mat, int nrows, int ncols, char *fileName) {
+  FILE *fp = NULL;
+  int i, j;
+  fp = fopen(fileName, "w");
+  for (i = 0; i < nrows; i++) {
+    for (j = i+1; j < ncols; j++) {
+      fprintf(fp, "\n%d %d %f", i, j, mat[i][j]);
+    }
+  }
+  fclose(fp);
+}
+
+
+
 float norm(float *v, int sz) {
   int i;
   float norm = 0;

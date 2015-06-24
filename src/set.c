@@ -69,6 +69,7 @@ void Set_intersection(Set *inters, Set *a, Set *b) {
 
 /*
  * copied from somewhere on web
+ * http://graphics.stanford.edu/~seander/bithacks.html 
  */
 
 int numberOfSetBits(int i)

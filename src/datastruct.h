@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "set.h"
 
 typedef struct {
   float corr;

@@ -1,35 +1,4 @@
-
 #include "modelSim.h"
-
-//r_us = 1/|s| u^T sum_{i \in s}<v_i>
-float ModelSim_setScore(void *self, int user, int *set, int setSz, float **sim) {
-  
-  int i, j, k;
-  int item;
-  float *itemsLatFac = NULL;
-  float pref = 0.0;
-  ModelSim *model = self;
-
-  itemsLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
-  memset(itemsLatFac, 0, sizeof(float)*model->_(facDim));
-
-  for (i = 0; i < setSz; i++) {
-    item = set[i];
-    for (k = 0; k < model->_(facDim); k++) {
-      itemsLatFac[k] += model->_(iFac)[item][k];
-    }
-  }
-
-  pref = (1.0/setSz)*dotProd(model->_(uFac)[user], itemsLatFac, 
-      model->_(facDim)); 
-
-  //printf("\nnorm(itemsLatFac) = %f, pref = %f ", norm(itemsLatFac, 
-  //      model->_(facDim)), pref);
-
-  free(itemsLatFac);
-  
-  return pref;
-}
 
 
 void computeUGrad(ModelSim *model, int user, int *set, int setSz, 
@@ -77,7 +46,6 @@ void computeIGrad(ModelSim *model, int user, int item, int *set, int setSz,
 
 Model ModelSimProto = {
   .objective        = ModelSim_objective,
-  .setScore         = ModelSim_setScore,
   .train            = ModelSim_train
 };
 
@@ -294,7 +262,7 @@ void ModelSim_gradCheck(void *self, UserSets *userSet) {
 
 
 //different name to avoid ambiguous match in model.c
-float ModelSim_objective(void *self, Data *data) {
+float ModelSim_objective(void *self, Data *data, float **sim) {
 
   int u, i, s, item, setSz, isTestValSet;
   UserSets *userSet = NULL;
@@ -331,7 +299,6 @@ float ModelSim_objective(void *self, Data *data) {
       set = userSet->uSets[s];
       setSz = userSet->uSetsSize[s];
       //get preference over set
-      //TODO: remove validation and test set
       userSetPref = model->_(setScore)(model, u, set, setSz, NULL);
       //set sim
       setSim = model->_(setSimilarity)(self, set, setSz, NULL);   
@@ -416,7 +383,7 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
   
   prevVal = 0.0;
 
-  model->_(objective)(model, data);
+  model->_(objective)(model, data, sim);
   for (iter = 0; iter < params->maxIter; iter++) {
     for (u = 0; u < data->nUsers; u++) {
       userSet = data->userSets[u];
@@ -512,7 +479,7 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
     
     //objective check
     if (iter % OBJ_ITER == 0) {
-      model->_(objective)(model, data);
+      model->_(objective)(model, data, sim);
     }
     
   }

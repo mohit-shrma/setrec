@@ -420,7 +420,7 @@ void Data_free(Data *self) {
 void Data_jaccSim(Data *data, float **sim) {
  
   int u, i, j, s;
-  int item, nSets, setInd, prevSetInd;
+  int item, nSets, setInd, prevSetInd, tempInd;
   float unionSize, intersSize;
   UserSets *userSet = NULL;
   Set** itemMembSets = NULL;
@@ -430,7 +430,7 @@ void Data_jaccSim(Data *data, float **sim) {
   nSets = 0;
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
-    nSets += userSet->numSets - userSet->szValSet - userSet->szTestSet;
+    nSets += userSet->numSets;
   }
 
   //for each item allocate space for sets 
@@ -443,7 +443,6 @@ void Data_jaccSim(Data *data, float **sim) {
   temp = (Set *) malloc(sizeof(Set));
   Set_init(temp, nSets);
 
-  //TODO: verify addition of item to test and validation sets
   //add sets to item
   setInd = 0;
   prevSetInd = 0;
@@ -463,24 +462,26 @@ void Data_jaccSim(Data *data, float **sim) {
 
     //remove test set
     for (s = 0; s < userSet->szTestSet; s++) {
-      for (j = 0; j < userSet->uSetsSize[userSet->testSets[s]]; j++) {
-        item = userSet->uSets[userSet->testSets[s]][j];
+      tempInd = userSet->testSets[s];
+      for (j = 0; j < userSet->uSetsSize[tempInd]; j++) {
+        item = userSet->uSets[tempInd][j];
         //remove set corresponding to test set
-        Set_delElem(itemMembSets[item], prevSetInd + userSet->testSets[s]);
+        Set_delElem(itemMembSets[item], prevSetInd + tempInd);
       }
     }
 
     //remove validation set
     for (s = 0; s < userSet->szValSet; s++) {
-      for (j = 0; j < userSet->uSetsSize[userSet->valSets[s]]; j++) {
-        item = userSet->uSets[userSet->valSets[s]][j];
+      tempInd = userSet->valSets[s];
+      for (j = 0; j < userSet->uSetsSize[tempInd]; j++) {
+        item = userSet->uSets[tempInd][j];
         //remove set corresponding to validation set
-        Set_delElem(itemMembSets[item], prevSetInd + userSet->valSets[s]);
+        Set_delElem(itemMembSets[item], prevSetInd + tempInd);
       }
     }
 
   }
-
+  
   //compute jaccard similarity between item sets
   for (i = 0; i < data->nItems; i++) {
     for (j = i+1; j < data->nItems; j++) {
@@ -494,14 +495,12 @@ void Data_jaccSim(Data *data, float **sim) {
     }
   }
   
-  
-
   //free allocated space for sets
   for (i = 0; i < data->nItems; i++) {
-    free(itemMembSets[i]);
+    Set_free(itemMembSets[i]);
   }
   free(itemMembSets);
-  free(temp);
+  Set_free(temp);
 }
 
 

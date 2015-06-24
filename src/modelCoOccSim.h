@@ -7,8 +7,7 @@ typedef struct {
   Model proto;
 } ModelCoOccSim;
 
-float ModelCoOccSim_objective(void *self, Data *data);
-
+float ModelCoOccSim_objective(void *self, Data *data, float **sim);
 void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim, float *valTest);
 void modelCoOccSim(Data *data, Params *params, float *valTest);
 

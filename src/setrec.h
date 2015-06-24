@@ -10,7 +10,10 @@
 #include "modelWOSim.h"
 #include "modelBaseline.h"
 #include "modelRand.h"
+#include "modelCoOccSim.h"
 
 void parse_cmd_line(int argc, char **argv);
 
 #endif
+
+

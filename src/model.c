@@ -74,15 +74,37 @@ void Model_updateSim(void *self, float **sim) {
 }
 
 
-float Model_objective(void *self, Data *data) {
+float Model_objective(void *self, Data *data, float **sim) {
   printf("\nModel specific objective computation.");
   return -1.0;
 }
 
 
+//r_us = 1/|s| u^T sum_{i \in s}<v_i>
 float Model_setScore(void *self, int user, int *set, int setSz, float **sim) {
-  printf("\nModel specific set score.");
-  return -1;
+ 
+  int i, j, k;
+  int item;
+  float *itemsLatFac = NULL;
+  float pref = 0.0;
+  Model *model = self;
+
+  itemsLatFac = (float*) malloc(sizeof(float)*model->facDim);
+  memset(itemsLatFac, 0, sizeof(float)*model->facDim);
+
+  for (i = 0; i < setSz; i++) {
+    item = set[i];
+    for (k = 0; k < model->facDim; k++) {
+      itemsLatFac[k] += model->iFac[item][k];
+    }
+  }
+
+  pref = (1.0/setSz)*dotProd(model->uFac[user], itemsLatFac, 
+      model->facDim); 
+
+  free(itemsLatFac);
+  
+  return pref;
 }
 
 
@@ -244,7 +266,6 @@ float Model_trainErr(void *self, Data *data, float **sim) {
   
   return rmse;
 }
-
 
 
 float Model_userFacNorm(void *self, Data *data) {

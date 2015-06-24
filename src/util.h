@@ -14,5 +14,6 @@ void writeIntVector(int *vec, int n, char *fileName);
 void writeFloatVector(float *vec, int n, char *fileName);
 void writeMat(float **mat, int nrows, int ncols, char *fileName);
 double generateGaussianNoise(double mu, double sigma);
+void writeUpperMat(float **mat, int nrows, int ncols, char *fileName);
 
 #endif

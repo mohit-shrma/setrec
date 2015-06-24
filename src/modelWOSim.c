@@ -1,36 +1,6 @@
 #include "modelWOSim.h"
 
 
-float ModelWOSim_setScore(void *self, int user, int *set, int setSz, float** sim) {
-   
-  int i, j, k;
-  int item;
-  float *itemsLatFac = NULL;
-  float pref = 0.0;
-  ModelWOSim *model = self;
-
-  itemsLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
-  memset(itemsLatFac, 0, sizeof(float)*model->_(facDim));
-
-  for (i = 0; i < setSz; i++) {
-    item = set[i];
-    for (k = 0; k < model->_(facDim); k++) {
-      itemsLatFac[k] += model->_(iFac)[item][k];
-    }
-  }
-
-  pref = (1.0/setSz)*dotProd(model->_(uFac)[user], itemsLatFac, 
-      model->_(facDim)); 
-
-  //printf("\nnorm(itemsLatFac) = %f, pref = %f ", norm(itemsLatFac, 
-  //      model->_(facDim)), pref);
-
-  free(itemsLatFac);
-  
-  return pref; 
-}
-
-
 void computeUGradWOSim(ModelWOSim *model, int user, int *set, int setSz, 
     float r_us, float *sumItemLatFac, float *uGrad) {
   int i, j;
@@ -70,7 +40,6 @@ void computeIGradWOSim(ModelWOSim *model, int user, int item, int *set, int setS
 
 Model ModelWOSimProto = {
   .objective        = ModelWOSim_objective,
-  .setScore         = ModelWOSim_setScore,
   .train            = ModelWOSim_train
 };
 
@@ -128,7 +97,7 @@ void ModelWOSim_train(void *self, Data *data, Params *params, float **sim,
   
   prevVal = 0.0;
 
-  model->_(objective)(model, data);
+  model->_(objective)(model, data, sim);
   for (iter = 0; iter < params->maxIter; iter++) {
     for (u = 0; u < data->nUsers; u++) {
       userSet = data->userSets[u];
@@ -216,7 +185,7 @@ void ModelWOSim_train(void *self, Data *data, Params *params, float **sim,
     
     //objective check
     if (iter % OBJ_ITER == 0) {
-      model->_(objective)(model, data);
+      model->_(objective)(model, data, sim);
     }
     
   }

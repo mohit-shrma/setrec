@@ -26,7 +26,7 @@ CFLAGS = $(COPTIONS)  $(OPTFLAGS)
 #CFLAGS=  -I. $(OPTFLAGS) -I$(GKINCHOME) 
 
 
-setrec:  model.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o util.o io.o datastruct.o setrec.o 
+setrec:  model.o modelCoOccSim.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o set.o util.o io.o datastruct.o setrec.o 
 	$(CC) $^ $(CFLAGS) $(LIBS) $(LIBSDIR) -o $@
 
 

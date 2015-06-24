@@ -34,7 +34,7 @@ typedef struct {
       float regI, float learnRate);
   void (*describe) (void *self);
   void (*updateSim) (void *self, float **sim);
-  float (*objective) (void *self, Data *data);
+  float (*objective) (void *self, Data *data, float **sim);
   float (*setScore) (void *self, int user, int *set, int setSz, float **sim);
   float (*validationErr) (void *self, Data *data, float **sim);
   float (*testErr) (void *self, Data *data, float **sim);
@@ -54,7 +54,7 @@ void Model_reset(void *self);
 void Model_free(void *self);
 void Model_describe(void *self);
 void Model_updateSim(void *self, float **sim);
-float Model_objective(void *self, Data *data);
+float Model_objective(void *self, Data *data, float **sim);
 float Model_setScore(void *self, int user, int *set, int setSz, float **sim);
 float Model_setSimilarity(void *self, int *set, int setSz, float **sim);
 void Model_writeUserSetSim(void *self, Data *data, char *fName);

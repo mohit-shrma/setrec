@@ -53,7 +53,7 @@ float ModelItemMatFac_validationErr(void *self, Data *data, float **sim) {
 }
 
 
-float ModelItemMatFac_objective(void *self, Data *data) {
+float ModelItemMatFac_objective(void *self, Data *data, float **sim) {
   
   int u, i, item;
   UserSets *userSet = NULL;
@@ -130,7 +130,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   float *uGrad = (float *) malloc(sizeof(float)*model->_(facDim));
   float prevVal = 0;
 
-  model->_(objective) (model, data);
+  model->_(objective) (model, data, sim);
 
   for (iter = 0; iter < params->maxIter; iter++) {
     //update user and item latent factor pair
@@ -172,7 +172,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 
     //objective check
     if (iter % OBJ_ITER == 0) {
-      model->_(objective) (model, data);
+      model->_(objective) (model, data, sim);
     }
 
   }
