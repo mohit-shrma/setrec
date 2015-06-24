@@ -18,6 +18,7 @@ void Set_init(Set *self, int nElem);
 void Set_reset(Set *self);
 void Set_free(Set *self);
 void Set_addElem(Set *self, int elem);
+void Set_delElem(Set *self, int elem);
 void Set_union(Set *uni, Set *a, Set *b);
 void Set_intersection(Set *inters, Set *a, Set *b);
 void Set_display(Set *self);

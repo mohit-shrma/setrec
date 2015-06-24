@@ -36,6 +36,15 @@ void Set_addElem(Set *self, int elem) {
 }
 
 
+void Set_delElem(Set *self, int elem) {
+  int ind, pos;
+  ind = elem/(sizeof(int)*8);
+  pos = elem % (sizeof(int)*8);
+  assert(ind < self->bVecSz);
+  self->bVec[ind] = self->bVec[ind] & ~(1 << pos);
+}
+
+
 void Set_union(Set *uni, Set *a, Set *b) {
   int i;
   assert(a->nElem == b->nElem);

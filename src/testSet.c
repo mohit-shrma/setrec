@@ -19,6 +19,7 @@ int main(int argc, char **argv) {
   Set_addElem(a, 35);
   Set_addElem(a, 100);
 
+  Set_addElem(b, 0);
   Set_addElem(b, 2);
   Set_addElem(b, 1);
   Set_addElem(b, 45);
