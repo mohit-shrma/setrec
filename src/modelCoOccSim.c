@@ -249,7 +249,7 @@ void modelCoOccSim(Data *data, Params *params, float *valTest) {
 
 
   //train model
-
+  modelCoOccSim->_(train)(modelCoOccSim, data, params, sim, valTest);
 
 
   if (params->useSim) {
