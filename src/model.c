@@ -302,12 +302,14 @@ float Model_setSimilarity(void *self, int *set, int setSz, float **sim) {
       }
     }
   }
-  //printf("\nsetSim = %f, nPairs = %d, setSz = %d", setSim, nPairs, setSz);
-  setSim = setSim/nPairs;
 
-  if (nPairs == 0) {
+  if (0 == nPairs) {
     setSim = 1.0;
+  } else {
+    setSim = setSim/nPairs;
   }
+  
+  //printf("\nsetSim = %f, nPairs = %d, setSz = %d", setSim, nPairs, setSz);
 
   return setSim;
 

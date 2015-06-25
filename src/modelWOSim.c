@@ -65,7 +65,7 @@ float ModelWOSim_objective(void *self, Data *data) {
       diff = userSetPref - userSet->labels[s];
       
       //printf("\ndiff = %f userSetPref = %f setSim = %f", diff, userSetPref, setSim);
-      rmse = diff*diff;
+      rmse += diff*diff;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
   }

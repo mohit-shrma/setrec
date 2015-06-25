@@ -82,7 +82,7 @@ float ModelCoOccSim_objective(void *self, Data *data, float **sim) {
       diff = userSetPref - userSet->labels[s];
       
       //printf("\ndiff = %f userSetPref = %f setSim = %f", diff, userSetPref, setSim);
-      rmse = diff*diff*setSim;
+      rmse += diff*diff*setSim;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
   }
@@ -205,6 +205,8 @@ void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim,
     
   }
 
+  model->_(objective)(model, data, sim);
+  
   //get test eror
   valTest[1] = model->_(testErr) (model, data, sim);
   
