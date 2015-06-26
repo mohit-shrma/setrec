@@ -5,9 +5,6 @@ COPTIONS = -DLINUX -g -D_FILE_OFFSET_BITS=64 -std=c99 -Wall\
 					 -Wno-parentheses -Wsequence-point
 
 
-GKINCHOME=/Users/mohitsharma/dev/gklib/trunk
-GKLIBHOME=/Users/mohitsharma/dev/gklib/trunk/build/Darwin-x86_64/
-
 #Standard Libraries
 STDLIBS = -fopenmp -lpthread -lm
 
@@ -26,7 +23,7 @@ CFLAGS = $(COPTIONS)  $(OPTFLAGS)
 #CFLAGS=  -I. $(OPTFLAGS) -I$(GKINCHOME) 
 
 
-setrec:  model.o modelCoOccSim.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o set.o util.o io.o datastruct.o setrec.o 
+setrec:  model.o modelHingeProdSim.o modelCoOccSim.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o set.o util.o io.o datastruct.o setrec.o 
 	$(CC) $^ $(CFLAGS) $(LIBS) $(LIBSDIR) -o $@
 
 
