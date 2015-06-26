@@ -50,7 +50,7 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   for (i = 0; i < 3; i++) {
-   
+  
     //run baseline
     memset(tempValTest, 0, sizeof(float)*2);
     modelBase(data, params, tempValTest);  
@@ -59,7 +59,7 @@ void parse_cmd_line(int argc, char **argv) {
 
     //learn model
     memset(tempValTest, 0, sizeof(float)*2);
-    modelSim(data, params, tempValTest);
+    mHingeProdSim(data, params, tempValTest);
     simValTest[0] += tempValTest[0];
     simValTest[1] += tempValTest[1];
 
@@ -84,13 +84,11 @@ void parse_cmd_line(int argc, char **argv) {
 
   printf("\navg baseline validation: %f test: %f", baseValTest[0]/i, 
       baseValTest[1]/i);
-  printf("\navg sim validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
+  printf("\navg hinge sim validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
 
-  if (baseValTest[1]/i > simValTest[1]/i) {
-    printf("\n* %f %f %d %f %f %f", params->regU, params->regI, 
-        params->facDim, params->learnRate, baseValTest[1]/i, 
-        simValTest[1]/i);
-  }
+  printf("\nRE: %f %f %d %f %f %f %f %f", params->regU, params->regI, 
+      params->facDim, params->learnRate, baseValTest[0]/i, 
+      simValTest[0]/i, baseValTest[1]/i, simValTest[1]/i);
 
   Data_free(data);  
   free(params);

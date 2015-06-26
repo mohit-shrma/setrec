@@ -11,6 +11,7 @@
 #include "modelBaseline.h"
 #include "modelRand.h"
 #include "modelCoOccSim.h"
+#include "modelHingeProdSim.h"
 
 void parse_cmd_line(int argc, char **argv);
 

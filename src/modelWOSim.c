@@ -44,7 +44,7 @@ Model ModelWOSimProto = {
 };
 
 
-float ModelWOSim_objective(void *self, Data *data) {
+float ModelWOSim_objective(void *self, Data *data, float **sim) {
 
   int u, i, s, item, setSz;
   UserSets *userSet = NULL;

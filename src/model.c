@@ -176,6 +176,96 @@ float Model_validationErr(void *self, Data *data, float **sim) {
 }
 
 
+float Model_hingeValErr(void *self, Data *data, float **sim) {
+  
+  int u, i, j;
+  Model *model  = self;
+  UserSets *userSet     = NULL;
+  int nValSets          = 0;
+  float *valLabels      = NULL;
+  float *valModelScores = NULL;
+  float loss       = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    nValSets += userSet->szValSet;
+  }
+
+  valLabels = (float*) malloc(sizeof(float)*nValSets);
+  valModelScores = (float*) malloc(sizeof(float)*nValSets);
+  memset(valLabels, 0, sizeof(float)*nValSets);
+  memset(valModelScores, 0, sizeof(float)*nValSets);
+
+  j = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->szValSet; i++) {
+      valModelScores[j] =  model->setScore(model, u, userSet->uSets[userSet->valSets[i]], 
+          userSet->uSetsSize[userSet->valSets[i]], sim);
+      valLabels[j] = userSet->labels[userSet->valSets[i]];
+      j++;
+    }
+  }
+
+  for (j = 0; j < nValSets; j++) {
+    if (valLabels[j]*valModelScores[j] < 1) {
+      loss += 1.0 - valLabels[j]*valModelScores[j];
+    }
+  }
+  
+  //printf("\n%s validation rmse = %f", model->description, rmse);
+
+  free(valLabels);
+  free(valModelScores);
+  return loss;
+}
+
+
+float Model_validationClassLoss(void *self, Data *data, float **sim) {
+  
+  int u, i, j;
+  Model *model          = self;
+  UserSets *userSet     = NULL;
+  int nValSets          = 0;
+  float *valLabels      = NULL;
+  float *valModelScores = NULL;
+  float classLoss        = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    nValSets += userSet->szValSet;
+  }
+
+  valLabels = (float*) malloc(sizeof(float)*nValSets);
+  valModelScores = (float*) malloc(sizeof(float)*nValSets);
+  memset(valLabels, 0, sizeof(float)*nValSets);
+  memset(valModelScores, 0, sizeof(float)*nValSets);
+
+  j = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->szValSet; i++) {
+      valModelScores[j] =  model->setScore(model, u, userSet->uSets[userSet->valSets[i]], 
+          userSet->uSetsSize[userSet->valSets[i]], sim);
+      valLabels[j] = userSet->labels[userSet->valSets[i]];
+      j++;
+    }
+  }
+
+  for (j = 0; j < nValSets; j++) {
+    if (valLabels[j]*valModelScores[j] < 0) {
+      classLoss += 1;
+    }
+  }
+  
+  //printf("\n%s validation rmse = %f", model->description, rmse);
+
+  free(valLabels);
+  free(valModelScores);
+  return classLoss;
+}
+
+
 float Model_testErr(void *self, Data *data, float **sim) {
   
   int u, i, j;
@@ -217,6 +307,98 @@ float Model_testErr(void *self, Data *data, float **sim) {
   free(testLabels);
   free(testModelScores);
   return rmse;
+}
+
+
+float Model_hingeTestErr(void *self, Data *data, float **sim) {
+    
+  int u, i, j;
+  Model *model  = self;
+  UserSets *userSet     = NULL;
+  int nTestSets          = 0;
+  float *testLabels      = NULL;
+  float *testModelScores = NULL;
+  float loss        = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    nTestSets += userSet->szTestSet;
+  }
+
+  testLabels = (float*) malloc(sizeof(float)*nTestSets);
+  testModelScores = (float*) malloc(sizeof(float)*nTestSets);
+  memset(testLabels, 0, sizeof(float)*nTestSets);
+  memset(testModelScores, 0, sizeof(float)*nTestSets);
+
+  j = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->szTestSet; i++) {
+      testModelScores[j] =  model->setScore(model, u, 
+          userSet->uSets[userSet->testSets[i]], 
+          userSet->uSetsSize[userSet->testSets[i]], sim);
+      testLabels[j] = userSet->labels[userSet->testSets[i]];
+      j++;
+    }
+  }
+
+  for (j = 0; j < nTestSets; j++) {
+    if (testLabels[j]*testModelScores[j] < 1) {
+      loss += 1.0 - testLabels[j]*testModelScores[j];
+    }
+  }
+  
+  //printf("\n%s test rmse = %f", model->description, rmse);
+
+  free(testLabels);
+  free(testModelScores);
+  return loss;
+
+}
+
+
+float Model_testClassLoss(void *self, Data *data, float **sim) {
+  
+  int u, i, j;
+  Model *model          = self;
+  UserSets *userSet     = NULL;
+  int nTestSets          = 0;
+  float *testLabels      = NULL;
+  float *testModelScores = NULL;
+  float classLoss        = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    nTestSets += userSet->szTestSet;
+  }
+
+  testLabels = (float*) malloc(sizeof(float)*nTestSets);
+  testModelScores = (float*) malloc(sizeof(float)*nTestSets);
+  memset(testLabels, 0, sizeof(float)*nTestSets);
+  memset(testModelScores, 0, sizeof(float)*nTestSets);
+
+  j = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->szTestSet; i++) {
+      testModelScores[j] =  model->setScore(model, u, userSet->uSets[userSet->testSets[i]], 
+          userSet->uSetsSize[userSet->testSets[i]], sim);
+      testLabels[j] = userSet->labels[userSet->testSets[i]];
+      j++;
+    }
+  }
+
+  for (j = 0; j < nTestSets; j++) {
+    if (testLabels[j]*testModelScores[j] < 0) {
+      classLoss += 1;
+    }
+  }
+  
+  //printf("\n%s test rmse = %f", model->description, rmse);
+
+  free(testLabels);
+  free(testModelScores);
+  return classLoss;
 }
 
 
@@ -350,7 +532,11 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.train) proto.train                 = Model_train;
   if (!proto.free) proto.free                   = Model_free;
   if (!proto.validationErr) proto.validationErr = Model_validationErr;
+  if (!proto.validationClassLoss) proto.validationClassLoss = Model_validationClassLoss;
   if (!proto.testErr) proto.testErr             = Model_testErr;
+  if (!proto.hingeTestErr) proto.hingeTestErr   = Model_hingeTestErr;
+  if (!proto.hingeValidationErr) proto.hingeValidationErr = Model_hingeValErr;
+  if (!proto.testClassLoss) proto.testClassLoss       = Model_testClassLoss;
   if (!proto.trainErr) proto.trainErr           = Model_trainErr;
   if (!proto.reset) proto.reset                 = Model_reset;
   if (!proto.userFacNorm) proto.userFacNorm     = Model_userFacNorm;
