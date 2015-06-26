@@ -9,21 +9,19 @@ COPTIONS = -DLINUX -g -D_FILE_OFFSET_BITS=64 -std=c99 -Wall\
 STDLIBS = -fopenmp -lpthread -lm
 
 #external libraries
-EXT_LIBS = -lGKlib
-EXT_LIBS_DIR= -L$(GKLIBHOME)
 
-LIBSDIR= -L.. -I/usr/include -L$(GKLIBHOME)
-#LIBS = $(STDLIBS) $(EXT_LIBS)
-#LIBS = -lm $(EXT_LIBS)
+LIBSDIR= -L.. -I/usr/include 
+#LIBS = $(STDLIBS) 
+#LIBS = -lm 
 LIBS = -lm 
 
-#CFLAGS = $(COPTIONS)  $(OPTFLAGS) -I$(GKINCHOME)
+#CFLAGS = $(COPTIONS)  $(OPTFLAGS) 
 CFLAGS = $(COPTIONS)  $(OPTFLAGS) 
 #CFLAGS = $(COPTIONS)   
-#CFLAGS=  -I. $(OPTFLAGS) -I$(GKINCHOME) 
+#CFLAGS=  -I. $(OPTFLAGS) 
 
 
-setrec:  model.o modelHingeProdSim.o modelCoOccSim.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o set.o util.o io.o datastruct.o setrec.o 
+setrec: model.o modelHingeProdSim.o modelCoOccSim.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o set.o util.o io.o datastruct.o setrec.o 
 	$(CC) $^ $(CFLAGS) $(LIBS) $(LIBSDIR) -o $@
 
 
