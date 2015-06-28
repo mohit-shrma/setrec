@@ -16,6 +16,7 @@ typedef struct {
 
 typedef struct {
   char *user_set_file;
+  char *ext_setSim_file;
   int nUsers;
   int nItems;
   int facDim;

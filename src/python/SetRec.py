@@ -41,6 +41,69 @@ def computeJaccSim(arrUserSets, nItems):
   return sim
 
 
+def computeSideInfoSim(arrUserSets, featureMat):
+
+  for userSet in arrUserSets:
+    
+    u = userSet.user
+    
+    for s in range(len(userSet.itemSets)):
+      
+      sim = 0.0
+      itemSet = userSet.itemSets[s]
+      
+      if (len(itemSet) <= 1):
+        continue
+
+      nPairs = 0
+      
+      for i in range(len(itemSet)):
+        normI = np.linalg.norm(featureMat[itemSet[i]])
+        
+        if (normI == 0):
+          continue
+        
+        for j in range(i, len(itemSet)):
+          normJ = np.linalg.norm(featureMat[itemSet[j]])
+        
+          if normJ == 0:
+            continue
+      
+          nPairs += 1
+          sim += np.dot(featureMat[itemSet[i]], featureMat[itemSet[j]])/(normI*normJ) 
+     
+      if (nPairs > 0):
+        sim = sim/nPairs
+      else:
+        sim = 0
+
+      print u, s, len(itemSet), sim
+
+
+def computeItemSims(nItems, featureMat):
+  for i in range(nItems):
+    normI = np.linalg.norm(featureMat[i])
+    if normI == 0:
+      continue
+    for j in range(i+1, nItems):
+      normJ = np.linalg.norm(featureMat[j])
+      if normJ == 0:
+        continue
+      print i, j, np.dot(featureMat[i], featureMat[j])/(normI*normJ)
+
+
+def loadItemFeat(itemFeatFName, nItems, nFeatures):
+  itemFeats = np.zeros((nItems, nFeatures))
+  with open(itemFeatFName, 'r') as f:
+    i = 0
+    for line in f:
+      cols = line.strip().split()
+      for k in range(0, len(cols), 2):
+        itemFeats[i][int(cols[k])] = float(cols[k+1])
+      i += 1
+  return itemFeats
+
+
 def loadData(ipFileName, nUsers):
   arrUserSets = []
   
@@ -126,28 +189,35 @@ def baselineCorrTestScores(arrUserSets):
 
 def main():
 
-  ipFileName = sys.argv[1]
-  nUsers = int(sys.argv[2])
-  nItems = int(sys.argv[3])
-  facDim = int(sys.argv[4])
-  regU = float(sys.argv[5])
-  regI = float(sys.argv[6])
-  learnrate = float(sys.argv[7])
-  useSim = bool(sys.argv[8])
-  maxIter = int(sys.argv[9])
-  seed = int(sys.argv[10])
+  ipFileName      = sys.argv[1]
+  nUsers          = int(sys.argv[2])
+  nItems          = int(sys.argv[3])
+  facDim          = int(sys.argv[4])
+  regU            = float(sys.argv[5])
+  regI            = float(sys.argv[6])
+  learnrate       = float(sys.argv[7])
+  useSim          = bool(sys.argv[8])
+  maxIter         = int(sys.argv[9])
+  seed            = int(sys.argv[10])
+  featureMatFName = sys.argv[11]
 
   random.seed(seed)
 
-  print 'Loading data...'
+  #print 'Loading data...'
 
   arrUserSets = loadData(ipFileName, nUsers)
-  sim = computeJaccSim(arrUserSets, nItems) 
+  #sim = computeJaccSim(arrUserSets, nItems) 
   
+  featureMat = loadItemFeat(featureMatFName, nItems, 1623)
+  #computeSideInfoSim(arrUserSets, featureMat)
+  computeItemSims(nItems, featureMat)
+
+  """
   with open('jacSim.txt', 'w') as g:
     for i in range(nItems):
       for j in range(i+1, nItems):
         g.write('\n' + str(i) + ' ' + str(j) + ' ' + str(sim[i][j]))
+  """
 
 
   """

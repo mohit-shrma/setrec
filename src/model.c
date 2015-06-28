@@ -253,7 +253,7 @@ float Model_validationClassLoss(void *self, Data *data, float **sim) {
   }
 
   for (j = 0; j < nValSets; j++) {
-    if (valLabels[j]*valModelScores[j] < 0) {
+    if (valLabels[j]*valModelScores[j] <= 0) {
       classLoss += 1;
     }
   }
@@ -389,7 +389,7 @@ float Model_testClassLoss(void *self, Data *data, float **sim) {
   }
 
   for (j = 0; j < nTestSets; j++) {
-    if (testLabels[j]*testModelScores[j] < 0) {
+    if (testLabels[j]*testModelScores[j] <= 0) {
       classLoss += 1;
     }
   }
@@ -398,6 +398,51 @@ float Model_testClassLoss(void *self, Data *data, float **sim) {
 
   free(testLabels);
   free(testModelScores);
+  return classLoss;
+}
+
+
+float Model_trainClassLoss(void *self, Data *data, float **sim) {
+
+  int u, i, j, s, isTestValSet, setSz;
+  Model *model = self;
+  UserSets *userSet = NULL;
+  int *set = NULL;
+  float classLoss = 0, setScore;
+  
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    isTestValSet = 0;
+    for (s = 0; s < userSet->numSets; s++) {
+      //check if set in test sets
+      for (i = 0; i < userSet->szTestSet; i++) {
+        if (s == userSet->testSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      //check if set in validation sets
+      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
+        if (s == userSet->valSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+    
+      if (isTestValSet) {
+        continue;
+      }
+    
+      set = userSet->uSets[s];
+      setSz = userSet->uSetsSize[s];
+      setScore = model->setScore(model, u, set, setSz, sim); 
+      if (setScore*userSet->labels[s] <= 0) {
+        classLoss += 1;
+      }
+    }
+  }
+  
   return classLoss;
 }
 
@@ -498,22 +543,23 @@ float Model_setSimilarity(void *self, int *set, int setSz, float **sim) {
 }
 
 
-void Model_writeUserSetSim(void *self, Data *data, char *fName) {
+void Model_writeUserSetSim(void *self, Data *data, float **sim, char *fName) {
     
   Model *model = self;
-  int u, i, s;
+  int u, i, s, setSz;
   UserSets * userSet = NULL;
   int *set = NULL;
   FILE *fp = NULL;
-  float sim = 0.0;
+  float simSet = 0.0;
 
   fp = fopen(fName, "w");
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     for (s = 0; s < userSet->numSets; s++) {
       set = userSet->uSets[s];    
-      sim = model->setSimilarity(self, set, userSet->uSetsSize[s], NULL);
-      fprintf(fp, "\n%d %d %d %f", u, s, userSet->uSetsSize[s], sim);
+      setSz = userSet->uSetsSize[s];
+      simSet = model->setSimilarity(self, set, userSet->uSetsSize[s], sim);
+      fprintf(fp, "\n%d %d %d %f", u, s, setSz, simSet);
     }
   }
   fclose(fp);
@@ -524,25 +570,26 @@ void Model_writeUserSetSim(void *self, Data *data, char *fName) {
 void *Model_new(size_t size, Model proto, char *description) {
   
   //set up default methods if they are not set up
-  if (!proto.init) proto.init                   = Model_init;
-  if (!proto.describe) proto.describe           = Model_describe;
-  if (!proto.updateSim) proto.updateSim         = Model_updateSim;
-  if (!proto.objective) proto.objective         = Model_objective;
-  if (!proto.setScore) proto.setScore           = Model_setScore;
-  if (!proto.train) proto.train                 = Model_train;
-  if (!proto.free) proto.free                   = Model_free;
-  if (!proto.validationErr) proto.validationErr = Model_validationErr;
+  if (!proto.init) proto.init                               = Model_init;
+  if (!proto.describe) proto.describe                       = Model_describe;
+  if (!proto.updateSim) proto.updateSim                     = Model_updateSim;
+  if (!proto.objective) proto.objective                     = Model_objective;
+  if (!proto.setScore) proto.setScore                       = Model_setScore;
+  if (!proto.train) proto.train                             = Model_train;
+  if (!proto.free) proto.free                               = Model_free;
+  if (!proto.validationErr) proto.validationErr             = Model_validationErr;
   if (!proto.validationClassLoss) proto.validationClassLoss = Model_validationClassLoss;
-  if (!proto.testErr) proto.testErr             = Model_testErr;
-  if (!proto.hingeTestErr) proto.hingeTestErr   = Model_hingeTestErr;
-  if (!proto.hingeValidationErr) proto.hingeValidationErr = Model_hingeValErr;
-  if (!proto.testClassLoss) proto.testClassLoss       = Model_testClassLoss;
-  if (!proto.trainErr) proto.trainErr           = Model_trainErr;
-  if (!proto.reset) proto.reset                 = Model_reset;
-  if (!proto.userFacNorm) proto.userFacNorm     = Model_userFacNorm;
-  if (!proto.itemFacNorm) proto.itemFacNorm     = Model_itemFacNorm;
-  if (!proto.setSimilarity) proto.setSimilarity = Model_setSimilarity;
-  if (!proto.writeUserSetSim) proto.writeUserSetSim = Model_writeUserSetSim;
+  if (!proto.testErr) proto.testErr                         = Model_testErr;
+  if (!proto.hingeTestErr) proto.hingeTestErr               = Model_hingeTestErr;
+  if (!proto.hingeValidationErr) proto.hingeValidationErr   = Model_hingeValErr;
+  if (!proto.testClassLoss) proto.testClassLoss             = Model_testClassLoss;
+  if (!proto.trainClassLoss) proto.trainClassLoss           = Model_trainClassLoss;
+  if (!proto.trainErr) proto.trainErr                       = Model_trainErr;
+  if (!proto.reset) proto.reset                             = Model_reset;
+  if (!proto.userFacNorm) proto.userFacNorm                 = Model_userFacNorm;
+  if (!proto.itemFacNorm) proto.itemFacNorm                 = Model_itemFacNorm;
+  if (!proto.setSimilarity) proto.setSimilarity             = Model_setSimilarity;
+  if (!proto.writeUserSetSim) proto.writeUserSetSim         = Model_writeUserSetSim;
 
   //struct of one size
   Model *model = calloc(1, size);
@@ -554,4 +601,5 @@ void *Model_new(size_t size, Model proto, char *description) {
 
   return model;
 }
+
 

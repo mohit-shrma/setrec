@@ -59,10 +59,10 @@ void ModelBase_train(void *self, Data *data, Params *params, float **sim, float 
   }
 
   //compute validation error
-  valTest[0] = model->_(validationClassLoss) (model, data, sim); 
+  valTest[0] = model->_(validationErr) (model, data, sim); 
   
   //compute test error
-  valTest[1] = model->_(testClassLoss) (model, data, sim);
+  valTest[1] = model->_(testErr) (model, data, sim);
 
 }
 

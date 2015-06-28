@@ -34,6 +34,7 @@ void parse_cmd_line(int argc, char **argv) {
     params->useSim          = atoi(argv[8]);
     params->maxIter         = atoi(argv[9]);
     params->seed            = atoi(argv[10]);
+    params->ext_setSim_file = argv[11];
   }
 
   //initialize random seed
@@ -42,9 +43,13 @@ void parse_cmd_line(int argc, char **argv) {
   //load data
   data = (Data *) malloc(sizeof(Data));
   Data_init(data, params->nUsers, params->nItems);
-  
+
   //printf("\nloading data...");
   loadData(data, params);
+  
+  //load external similarities
+  //loadSims(data, params);
+  //writeSims(data);
 
   //printf("\ndisplaying data...");
   //writeData(data);
@@ -59,7 +64,7 @@ void parse_cmd_line(int argc, char **argv) {
 
     //learn model
     memset(tempValTest, 0, sizeof(float)*2);
-    mHingeProdSim(data, params, tempValTest);
+    modelCoOccSim(data, params, tempValTest);
     simValTest[0] += tempValTest[0];
     simValTest[1] += tempValTest[1];
 

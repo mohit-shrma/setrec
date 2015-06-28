@@ -246,9 +246,12 @@ void modelCoOccSim(Data *data, Params *params, float *valTest) {
   }
 
   //compute jaccard similarities
-  Data_jaccSim(data, sim);   
-  //writeUpperMat(sim, data->nItems, data->nItems, "jaccSimC2.txt");
+  //Data_jaccSim(data, sim);   
+  
+  loadItemSims(params, sim);
 
+  //writeUpperMat(sim, data->nItems, data->nItems, "loadedSimC2.txt");
+  //modelCoOccSim->_(writeUserSetSim)(modelCoOccSim, data, sim, "jaccSetSim.txt");  
 
   //train model
   modelCoOccSim->_(train)(modelCoOccSim, data, params, sim, valTest);

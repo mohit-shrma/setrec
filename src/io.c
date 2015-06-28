@@ -178,5 +178,42 @@ void loadData(Data *data, Params *params) {
 }
 
 
+void loadItemSims(Params *params, float **sim) {
+  
+  FILE *fp = NULL;
+  char *line = NULL;
+  char *token = NULL;
+  size_t len = 200;
+  int read;
+
+  int item1, item2;
+
+  fp = fopen(params->ext_setSim_file, "r");
+  
+  line = (char*) malloc(len);
+  memset(line, 0, len);
+
+  if (fp == NULL) {
+    printf("\nError opening file: %s", params->ext_setSim_file);
+    exit(EXIT_FAILURE);
+  }
+  
+  while ((read = getline(&line, &len, fp)) != -1) {
+  
+    if (read >= len) {
+      printf("\nErr: line > capacity");
+    }
+
+    token = strtok(line, " ");
+    item1 = atoi(token);
+    item2 = atoi(strtok(NULL, " "));
+    sim[item1][item2] = atof(strtok(NULL, " "));
+  
+  }
+
+  fclose(fp);
+}
+
+
 
 
