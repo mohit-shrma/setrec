@@ -2,23 +2,31 @@ import sys
 import random
 
 
-
-def getUserItems(ratFileName):
+def getUserItemsNMap(ratFileName):
   userItemsRat = {}
+  userMap = {}
+  itemMap = {}
+  u = 0
+  i = 0 
   with open(ratFileName, 'r') as f:
     for line in f:
       cols = line.strip().split(',')
       user = int(cols[0])
       item = int(cols[1])
+      if user not in userMap:
+        userMap[user] = u
+        u += 1
+      if item not in itemMap:
+        itemMap[item] = i
+        i+= 1
       rat = float(cols[2])
       if user not in userItemsRat:
         userItemsRat[user] = {}
       userItemsRat[user][item] = rat
-  return userItemsRat
+  return (userItemsRat, userMap, itemMap)
 
 
 def getSetsForUser(itemRats, nSetsPerUser, setSize, thresh):
-  
   nItems = len(itemRats)
   setLabels = []
 
@@ -43,7 +51,7 @@ def getSetsForUser(itemRats, nSetsPerUser, setSize, thresh):
     #get avg of top items
     sm = 0.0
     nTopItems = 0.0
-    for i in range(setSize/2, nItems):
+    for i in range(setSize/2, setSize):
       sm += setItemRat[i][0]
       nTopItems += 1
     avgTopRatItems = sm/nTopItems
@@ -57,9 +65,9 @@ def getSetsForUser(itemRats, nSetsPerUser, setSize, thresh):
   return setLabels
 
 
-def genSetsNWrite(userItemsRat, opFileName, setSize, thresh, nSetsPerUser):
-  
-  with open(opFileName, 'w') as g, open(opFileName + '_map', 'w') as h:
+def genSetsNWrite(userItemsRat, opFileName, setSize, thresh, nSetsPerUser, uMap,
+    iMap):
+  with open(opFileName, 'w') as g:
     u = 0
     for user, itemRats in userItemsRat.iteritems():
       setLabels = getSetsForUser(itemRats, nSetsPerUser, setSize, thresh)
@@ -67,12 +75,17 @@ def genSetsNWrite(userItemsRat, opFileName, setSize, thresh, nSetsPerUser):
       setItems = set([])
       for (st, label) in setLabels:
         setItems = setItems | st
-      g.write(str(u) + ' ' + str(nSets) + ' ' + str(len(setItems)) + '\n')
+      g.write(str(uMap[user]) + ' ' + str(nSets) + ' ' + str(len(setItems)) + '\n')
       for (st, label) in setLabels:
-        g.write(str(label) + ' ' + str(len(st)) + ' ' 
-            + ' '.join(map(str, list(st))) + '\n')
-      h.write(str(u) + ' ' + str(user) + '\n')
-      u += 1
+        stItm = map(lambda x: iMap[x], st)
+        g.write(str(label) + ' ' + str(len(stItm)) + ' ' 
+            + ' '.join(map(str, list(stItm))) + '\n')
+
+
+def writeMap(m, opName):
+  with open(opName, 'w') as g:
+    for k, v in m.iteritems():
+      g.write(str(k) + '\t' + str(v) + '\n')
 
 
 def main():
@@ -81,9 +94,16 @@ def main():
   thresh = float(sys.argv[3])
   nSetsPerUser = int(sys.argv[4])
   opFileName = sys.argv[5]
+  
+  uMapFName = opFileName + '_u_map'
+  iMapFName = opFileName + '_i_map'
 
-  userItemsRat = getUserItems(ratFileName)
-  genSetsNWrite(userItemsRat, opFileName, setSize, thresh, nSetsPerUser)
+  (userItemsRat, userMap, itemMap) = getUserItemsNMap(ratFileName)
+  writeMap(userMap, uMapFName)
+  writeMap(itemMap, iMapFName)
+  genSetsNWrite(userItemsRat, opFileName, setSize, thresh, nSetsPerUser,
+      userMap, itemMap)
 
-if __init__ == '__main__':
+
+if __name__ == '__main__':
   main()
