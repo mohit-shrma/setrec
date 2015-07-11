@@ -9,8 +9,8 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   self->userId     = user;
   self->numSets    = numSets;
   self->nUserItems = nUserItems;
-  self->szValSet   = 1;
-  self->szTestSet  = 1;
+  self->szValSet   = 0;
+  self->szTestSet  = 0;
 
   self->uSets = (int **) malloc(sizeof(int*)*numSets);
   memset(self->uSets, 0, sizeof(int*)*numSets);
@@ -25,7 +25,6 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   //TODO: use bsearch on arr
   self->testValItems = (int*) malloc(sizeof(int)*nItems);
   memset(self->testValItems, 0, sizeof(int)*nItems);
-
 
   self->itemWtSets = (ItemWtSets **) malloc(sizeof(ItemWtSets*)*nUserItems);   
   for (i = 0; i < nUserItems; i++) {
@@ -386,7 +385,10 @@ void Data_init(Data *self, int nUsers, int nItems) {
   int i;
   self->nUsers = nUsers;
   self->nItems = nItems;
-
+  self->testSet = (RatingSet *) malloc(sizeof(RatingSet));
+  memset(self->testSet, 0, sizeof(RatingSet));
+  self->valSet = (RatingSet *) malloc(sizeof(RatingSet));
+  memset(self->valSet, 0, sizeof(RatingSet));
   self->userSets = (UserSets**) malloc(sizeof(UserSets*)*nUsers);
   for (i = 0; i < nUsers; i++) {
     self->userSets[i] = (UserSets*) malloc(sizeof(UserSets));
@@ -413,6 +415,8 @@ void Data_free(Data *self) {
     UserSets_free(self->userSets[i]);
   }
   free(self->userSets);
+  RatingSet_free(self->testSet);
+  RatingSet_free(self->valSet);
   free(self);
 }
 
@@ -501,6 +505,28 @@ void Data_jaccSim(Data *data, float **sim) {
   free(itemMembSets);
   Set_free(temp);
 }
+
+
+void RatingSet_init(RatingSet *ratSet, int sz) {
+  int i;
+  ratSet->size = sz;
+  ratSet->rats = (Rating **) malloc(sizeof(Rating*)*sz);
+  for (i = 0; i < sz; i++) {
+    ratSet->rats[i] = (Rating *) malloc(sizeof(Rating));
+    memset(ratSet->rats[i], 0, sizeof(Rating));
+  }
+}
+
+
+void RatingSet_free(RatingSet *ratSet) {
+  int i;
+  for (i = 0; i < ratSet->size; i++) {
+    free(ratSet->rats[i]);
+  }
+  free(ratSet->rats);
+  free(ratSet);
+}
+
 
 
 

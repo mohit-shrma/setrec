@@ -34,7 +34,10 @@ void parse_cmd_line(int argc, char **argv) {
     params->useSim          = atoi(argv[8]);
     params->maxIter         = atoi(argv[9]);
     params->seed            = atoi(argv[10]);
-    params->ext_setSim_file = argv[11];
+    params->test_set_file   = argv[11];
+    params->test_set_size   = atoi(argv[12]);
+    params->val_set_file    = argv[12];
+    params->val_set_size    = atoi(argv[13]);
   }
 
   //initialize random seed
@@ -57,14 +60,16 @@ void parse_cmd_line(int argc, char **argv) {
   for (i = 0; i < 3; i++) {
   
     //run baseline
+    /*
     memset(tempValTest, 0, sizeof(float)*2);
     modelBase(data, params, tempValTest);  
     baseValTest[0] += tempValTest[0];
     baseValTest[1] += tempValTest[1];
+    */
 
     //learn model
     memset(tempValTest, 0, sizeof(float)*2);
-    modelCoOccSim(data, params, tempValTest);
+    modelSim(data, params, tempValTest);
     simValTest[0] += tempValTest[0];
     simValTest[1] += tempValTest[1];
 

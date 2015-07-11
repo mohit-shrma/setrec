@@ -8,6 +8,8 @@
 
 void loadData(Data *data, Params *params);
 void writeData(Data *data);
+void RatingSet_load(RatingSet *ratSet, char *ip, int setSize);
+void RatingSet_write(RatingSet *ratSet);
 
 #endif
 

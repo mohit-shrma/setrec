@@ -567,6 +567,25 @@ void Model_writeUserSetSim(void *self, Data *data, float **sim, char *fName) {
 }
 
 
+float Model_indivItemSetErr(void *self, RatingSet *ratSet) {
+  
+  float rmse, estRat, diff;
+  int i;
+  Model *model = self;
+  
+  rmse = 0.0;
+  
+  for (i = 0; i < ratSet->size; i++) {
+    estRat = dotProd(model->uFac[ratSet->rats[i]->user], 
+        model->iFac[ratSet->rats[i]->item], model->facDim);
+    diff = ratSet->rats[i]->rat - estRat;
+    rmse += diff*diff;
+  }
+
+  return sqrt(rmse/ratSet->size);
+}
+
+
 void *Model_new(size_t size, Model proto, char *description) {
   
   //set up default methods if they are not set up
@@ -589,6 +608,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.userFacNorm) proto.userFacNorm                 = Model_userFacNorm;
   if (!proto.itemFacNorm) proto.itemFacNorm                 = Model_itemFacNorm;
   if (!proto.setSimilarity) proto.setSimilarity             = Model_setSimilarity;
+  if (!proto.indivItemSetErr) proto.indivItemSetErr         = Model_indivItemSetErr;
   if (!proto.writeUserSetSim) proto.writeUserSetSim         = Model_writeUserSetSim;
 
   //struct of one size

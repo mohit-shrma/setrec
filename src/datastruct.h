@@ -17,6 +17,10 @@ typedef struct {
 typedef struct {
   char *user_set_file;
   char *ext_setSim_file;
+  char *val_set_file;
+  int val_set_size;
+  char *test_set_file;
+  int test_set_size;
   int nUsers;
   int nItems;
   int facDim;
@@ -96,11 +100,28 @@ ItemWtSets* UserSets_search(UserSets *self, int item);
 
 
 typedef struct {
+  int user;
+  int item;
+  float rat;
+} Rating;
+
+typedef struct {
+  Rating **rats;
+  int size;
+} RatingSet;
+
+void RatingSet_init(RatingSet *self, int size);
+void RatingSet_free(RatingSet *self);
+
+
+typedef struct {
   
   int nUsers;
   int nItems;
   
   UserSets **userSets;
+  RatingSet *testSet;
+  RatingSet *valSet;  
 
 } Data;
 
@@ -108,6 +129,7 @@ void Data_init(Data *self, int nUsers, int nItems);
 void Data_free(Data *self);
 void Data_reset(Data *self, int nUsers, int nItems);
 void Data_jaccSim(Data *self, float **sim);
+
 
 #endif
 

@@ -322,6 +322,19 @@ float ModelSim_objective(void *self, Data *data, float **sim) {
 }
 
 
+void coeffUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
+
+  int k;
+  float facNorm;
+
+  for (k = 0; k < facDim; k++) {
+    fac[k] -= learnRate*(grad[k] + reg*fac[k]); 
+  }
+
+}
+ 
+
+
 void coefficientNormUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
 
   int k;
@@ -450,7 +463,7 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
            iGrad);
         //update item + reg
         //printf("\nitem = %d norm iGrad = %f", item, norm(iGrad, model->_(facDim)));
-        coefficientNormUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
+        coeffUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
             model->_(learnRate), model->_(facDim));
       }
 
@@ -464,7 +477,7 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
     //validation check
     if (iter % VAL_ITER == 0) {
       //validation err
-      valTest[0] = model->_(validationErr) (model, data, sim);
+      valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
       printf("\nIter:%d validation error: %f", iter, valTest[0]);
       if (iter > 0) {
         if (fabs(prevVal - valTest[0]) < EPS) {
@@ -486,10 +499,10 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
 
   
   //get train error
-  printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
+  //printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
 
   //get test eror
-  valTest[1] = model->_(testErr) (model, data, sim);
+  valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
 
   //model->_(writeUserSetSim)(self, data, "userSetsSim.txt");
 
