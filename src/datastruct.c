@@ -488,7 +488,6 @@ void Data_jaccSim(Data *data, float **sim) {
       Set_union(temp, itemMembSets[i], itemMembSets[j]);
       unionSize = (float) Set_numElem(temp);
       Set_intersection(temp, itemMembSets[i], itemMembSets[j]);
-      Set_intersection(temp, itemMembSets[i], itemMembSets[j]);
       intersSize = (float) Set_numElem(temp);
       sim[i][j] = intersSize/unionSize;
       sim[j][i] = sim[i][j];
