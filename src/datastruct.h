@@ -21,6 +21,8 @@ typedef struct {
   int val_set_size;
   char *test_set_file;
   int test_set_size;
+  char *train_set_file;
+  int train_set_size;
   int nUsers;
   int nItems;
   int facDim;
@@ -122,7 +124,7 @@ typedef struct {
   UserSets **userSets;
   RatingSet *testSet;
   RatingSet *valSet;  
-
+  RatingSet *trainSet;
 } Data;
 
 void Data_init(Data *self, int nUsers, int nItems);

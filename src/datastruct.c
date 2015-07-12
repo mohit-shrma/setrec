@@ -374,7 +374,7 @@ ItemWtSets* UserSets_search(UserSets *self, int item) {
     }
   }
 
-  printf("\nERR: cant find item");
+  //printf("\nERR: cant find item");
 
   return NULL;
 }
@@ -389,6 +389,8 @@ void Data_init(Data *self, int nUsers, int nItems) {
   memset(self->testSet, 0, sizeof(RatingSet));
   self->valSet = (RatingSet *) malloc(sizeof(RatingSet));
   memset(self->valSet, 0, sizeof(RatingSet));
+  self->trainSet = (RatingSet *) malloc(sizeof(RatingSet));
+  memset(self->trainSet, 0, sizeof(RatingSet));
   self->userSets = (UserSets**) malloc(sizeof(UserSets*)*nUsers);
   for (i = 0; i < nUsers; i++) {
     self->userSets[i] = (UserSets*) malloc(sizeof(UserSets));
@@ -415,6 +417,7 @@ void Data_free(Data *self) {
     UserSets_free(self->userSets[i]);
   }
   free(self->userSets);
+  RatingSet_free(self->trainSet);
   RatingSet_free(self->testSet);
   RatingSet_free(self->valSet);
   free(self);

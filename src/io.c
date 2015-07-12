@@ -243,10 +243,17 @@ void loadData(Data *data, Params *params) {
   fclose(fp);
   
   //load test set
-  RatingSet_load(data->testSet, params->test_set_file,  params->test_set_size); 
+  RatingSet_load(data->testSet, params->test_set_file,  params->test_set_size);
+  //RatingSet_write(data->testSet);
 
   //load validation set
   RatingSet_load(data->valSet, params->val_set_file, params->val_set_size);
+  //RatingSet_write(data->valSet);
+
+  //load train set
+  RatingSet_load(data->trainSet, params->train_set_file, params->train_set_size);
+
+  //RatingSet_write(data->trainSet);
 
   if (line) {
     free(line);

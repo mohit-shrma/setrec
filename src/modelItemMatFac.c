@@ -1,5 +1,30 @@
 #include "modelItemMatFac.h"
 
+void loadUserItemWtsFrmTrain(Data *data) {
+  int u, i, j;
+  UserSets *userSet = NULL;
+  ItemWtSets *itemWtSets = NULL;
+  RatingSet *trainSet = data->trainSet;
+  float rat = 0;
+  int notFoundCt = 0;
+  int foundCt = 0;
+  for (j = 0; j < trainSet->size; j++) {
+    u = trainSet->rats[j]->user;
+    i = trainSet->rats[j]->item;
+    rat = trainSet->rats[j]->rat;
+    userSet = data->userSets[u];
+    itemWtSets = UserSets_search(userSet, i);
+    if (NULL == itemWtSets) {
+      //printf("\nu:%d i:%d j:%d not found", u, i, j);
+      notFoundCt++;
+      continue;
+    }
+    foundCt++;
+    itemWtSets->wt = rat;
+  }
+  printf("\nfound:%d notFound: %d", foundCt, notFoundCt);
+}
+
 
 void initUserItemWeights(Data *data) {
 
@@ -79,7 +104,7 @@ float ModelItemMatFac_objective(void *self, Data *data, float **sim) {
   
   obj = rmse + uRegErr + iRegErr;
 
-  //printf("\nObj: %f SE: %f uRegEr: %f iRegErr:%f", obj, rmse, uRegErr, iRegErr);
+  printf("\nObj: %f SE: %f uRegEr: %f iRegErr:%f", obj, rmse, uRegErr, iRegErr);
 
   return obj;
 }
@@ -161,10 +186,10 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 
     //validation
     if (iter % VAL_ITER == 0) {
-      valTest[0] = model->_(validationErr) (model, data, NULL);
-      //printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
+      valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
+      printf("\nIter:%d validation err:%f", iter, valTest[0]);
       if (fabs(prevVal - valTest[0]) < EPS) {
-        printf("\nConverged in iterations: %d", iter);
+        printf("\nConverged in iterations: %d currVal:%f prevVal:%f", iter, valTest[0], prevVal);
         break;
       }
       prevVal = valTest[0];
@@ -178,8 +203,11 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   }
 
   
-  valTest[0] = model->_(validationErr) (model, data, NULL);
-  printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
+  valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
+  //printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
+  
+  //get test eror
+  valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
   
   free(iGrad);
   free(uGrad);
@@ -202,7 +230,10 @@ void modelItemMatFac(Data *data, Params *params, float *valTest) {
       params->facDim, params->regU, params->regI, params->learnRate); 
 
   //initialize user-item weights
-  initUserItemWeights(data);
+  //initUserItemWeights(data);
+
+  //load user item weights from train
+  loadUserItemWtsFrmTrain(data);
 
   //train model
   modelItemMatFac->_(train)(modelItemMatFac, data, params, NULL, valTest);  

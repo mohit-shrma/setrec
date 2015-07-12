@@ -20,7 +20,7 @@ void parse_cmd_line(int argc, char **argv) {
   simValTest = (float*) malloc(sizeof(float)*2);
   memset(simValTest, 0, sizeof(float)*2);
 
-  if (argc < 11) {
+  if (argc < 17) {
     printf("\n Error: need args");
     exit(0);
   } else {
@@ -34,10 +34,13 @@ void parse_cmd_line(int argc, char **argv) {
     params->useSim          = atoi(argv[8]);
     params->maxIter         = atoi(argv[9]);
     params->seed            = atoi(argv[10]);
-    params->test_set_file   = argv[11];
-    params->test_set_size   = atoi(argv[12]);
-    params->val_set_file    = argv[12];
-    params->val_set_size    = atoi(argv[13]);
+    params->train_set_file  = argv[11];
+    params->train_set_size  = atoi(argv[12]);
+    params->test_set_file   = argv[13];
+    params->test_set_size   = atoi(argv[14]);
+    params->val_set_file    = argv[15];
+    params->val_set_size    = atoi(argv[16]);
+
   }
 
   //initialize random seed
@@ -57,19 +60,17 @@ void parse_cmd_line(int argc, char **argv) {
   //printf("\ndisplaying data...");
   //writeData(data);
 
-  for (i = 0; i < 3; i++) {
+  for (i = 0; i < 1; i++) {
   
     //run baseline
-    /*
     memset(tempValTest, 0, sizeof(float)*2);
-    modelBase(data, params, tempValTest);  
+    //modelItemMatFac(data, params, tempValTest);  
     baseValTest[0] += tempValTest[0];
-    baseValTest[1] += tempValTest[1];
-    */
+    baseValTest[1] += tempValTest[1];  
 
     //learn model
     memset(tempValTest, 0, sizeof(float)*2);
-    modelSim(data, params, tempValTest);
+    modelCoOccSim(data, params, tempValTest);
     simValTest[0] += tempValTest[0];
     simValTest[1] += tempValTest[1];
 
@@ -94,7 +95,7 @@ void parse_cmd_line(int argc, char **argv) {
 
   printf("\navg baseline validation: %f test: %f", baseValTest[0]/i, 
       baseValTest[1]/i);
-  printf("\navg hinge sim validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
+  printf("\navg non sim validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
 
   printf("\nRE: %f %f %d %f %f %f %f %f", params->regU, params->regI, 
       params->facDim, params->learnRate, baseValTest[0]/i, 

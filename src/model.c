@@ -572,16 +572,27 @@ float Model_indivItemSetErr(void *self, RatingSet *ratSet) {
   float rmse, estRat, diff;
   int i;
   Model *model = self;
-  
+  int user, item;
+  float rat;
   rmse = 0.0;
   
   for (i = 0; i < ratSet->size; i++) {
-    estRat = dotProd(model->uFac[ratSet->rats[i]->user], 
-        model->iFac[ratSet->rats[i]->item], model->facDim);
-    diff = ratSet->rats[i]->rat - estRat;
+    user = ratSet->rats[i]->user; 
+    item = ratSet->rats[i]->item;
+    rat  = ratSet->rats[i]->rat;
+    estRat = dotProd(model->uFac[user], model->iFac[item], model->facDim);
+    diff = rat - estRat;
+
+    if (estRat != estRat) {
+      printf("\nu:%d i:%d estRat: %f rat:%f", user, item, estRat, rat);
+      printf("\nuserFac Norm: %f itemFac Norm: %f", norm(model->uFac[user], model->facDim), norm(model->iFac[item], model->facDim));
+      fflush(stdout);
+      writeFloatVector(model->iFac[item], model->facDim, "temp.txt");
+      exit(0);
+    }
     rmse += diff*diff;
   }
-
+  printf("\nrmse: %f nSet: %d", rmse, ratSet->size);
   return sqrt(rmse/ratSet->size);
 }
 

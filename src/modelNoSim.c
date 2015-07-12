@@ -1,8 +1,9 @@
-#include "modelCoOccSim.h"
+#include "modelNoSim.h"
 
 
-void computeUGradCoOccSim(ModelCoOccSim *model, int user, int *set, int setSz, 
+void computeUGrad2(ModelNoSim *model, int user, int *set, int setSz, 
     float r_us, float *sumItemLatFac, float *uGrad) {
+  
   int i, j;
   float temp;
 
@@ -21,11 +22,11 @@ void computeUGradCoOccSim(ModelCoOccSim *model, int user, int *set, int setSz,
 }
 
 
-void computeIGradCoOccSim(ModelCoOccSim *model, int user, int item, int *set, int setSz, 
+void computeIGrad2(ModelNoSim *model, int user, int item, int *set, int setSz,
     float r_us, float *sumItemLatFac, float *iGrad) {
   
   int i, j;
-  float temp,  comDiff;
+  float temp, comDiff;
   
   memset(iGrad, 0, sizeof(float)*model->_(facDim));
   
@@ -38,14 +39,23 @@ void computeIGradCoOccSim(ModelCoOccSim *model, int user, int item, int *set, in
 }
 
 
-float ModelCoOccSim_objective(void *self, Data *data, float **sim) {
-  
+Model ModelNoSimProto = {
+  .objective        = ModelNoSim_objective,
+  .train            = ModelNoSim_train
+};
+
+
+
+float ModelNoSim_objective(void *self, Data *data, float **sim) {
+
   int u, i, s, item, setSz, isTestValSet;
   UserSets *userSet = NULL;
   int *set = NULL;
-  float rmse = 0, diff = 0, userSetPref = 0, setSim = 0;
+  float rmse = 0, diff = 0, userSetPref = 0;
   float uRegErr = 0, iRegErr = 0;
-  ModelCoOccSim *model = self;
+  ModelNoSim *model = self;
+
+  int nSets = 0;
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
@@ -76,16 +86,17 @@ float ModelCoOccSim_objective(void *self, Data *data, float **sim) {
       setSz = userSet->uSetsSize[s];
       //get preference over set
       userSetPref = model->_(setScore)(model, u, set, setSz, NULL);
-      //set sim
-      setSim = model->_(setSimilarity)(self, set, setSz, sim);   
  
       diff = userSetPref - userSet->labels[s];
       
       //printf("\ndiff = %f userSetPref = %f setSim = %f", diff, userSetPref, setSim);
-      rmse += diff*diff*setSim;
+      rmse += diff*diff;
+      nSets++;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
   }
+    
+
   uRegErr = uRegErr*model->_(regU);
 
   for (i = 0; i < data->nItems; i++) {
@@ -98,8 +109,44 @@ float ModelCoOccSim_objective(void *self, Data *data, float **sim) {
 }
 
 
-//TODO:check if coefficient norm update required
-void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim, 
+
+void coeffUpdate2(float *fac, float *grad, float reg, float learnRate, int facDim) {
+
+  int k;
+  float facNorm;
+
+  for (k = 0; k < facDim; k++) {
+    fac[k] -= learnRate*(grad[k] + reg*fac[k]); 
+    /*
+    if (fac[k] < 0) {
+      fac[k] = 0;
+    }
+    */
+  }
+
+}
+
+
+
+void coefficientNormUpdate2(float *fac, float *grad, float reg, float learnRate, int facDim) {
+
+  int k;
+  float facNorm;
+
+  for (k = 0; k < facDim; k++) {
+    fac[k] -= learnRate*(grad[k] + reg*fac[k]); 
+  }
+
+  //normalize factor
+  facNorm = norm(fac, facDim);
+  for (k = 0; k < facDim; k++) {
+    fac[k] = fac[k]/facNorm;
+  }
+
+}
+
+
+void ModelNoSim_train(void *self, Data *data, Params *params, float **sim, 
     float *valTest) {
 
   int iter, u, i, j, k, s;
@@ -107,8 +154,8 @@ void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim,
   int isTestValSet, setSz, item;
   int *set;
   float r_us, prevVal; //actual set preference
-  float temp, avgSetSim; 
-  ModelCoOccSim *model = self;
+  float temp; 
+  ModelNoSim *model         = self;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float* uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -144,16 +191,14 @@ void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim,
       set       = userSet->uSets[s];
       setSz     = userSet->uSetsSize[s];
       r_us      = userSet->labels[s];
-
-      //dont update no. of items in set is 1
+      
+      //dont update no. of items if set is 1
       if (setSz == 1) {
         continue;
       }
 
-      //get pairwise average similarity of set
-      avgSetSim = model->_(setSimilarity) (self, set, setSz, sim);
-
-      //update user and latent factor
+      //update user and item latent factor
+     
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < setSz; i++) {
         item = set[i];
@@ -163,23 +208,36 @@ void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim,
       }
       
       //compute user gradient
-      computeUGradCoOccSim(model, u, set, setSz, r_us, sumItemLatFac, uGrad);
+      computeUGrad2(model, u, set, setSz, r_us, sumItemLatFac, uGrad);
       //update user + reg
-      for (k = 0; k < model->_(facDim); k++) {
-        model->_(uFac)[u][k] -= model->_(learnRate)*avgSetSim*(uGrad[k] + model->_(regU)*model->_(uFac)[u][k]);
-      }
+      //printf("\nb4 u = %d norm uFac = %f uGrad = %f", 
+      //    u, norm(model->_(uFac)[u], model->_(facDim)), norm(uGrad, model->_(facDim)));
+      
+      coeffUpdate2(model->_(uFac)[u], uGrad, model->_(regU),
+          model->_(learnRate), model->_(facDim));
+
+      //printf("\naftr u = %d norm uFac = %f", 
+      //    u, norm(model->_(uFac)[u], model->_(facDim)));
       //compute  gradient of item and update their latent factor in sets
       for (i = 0; i < setSz; i++) {
         item = set[i];
         //get item gradient
-        computeIGradCoOccSim(model, u, item, set, setSz, r_us, sumItemLatFac,
+        computeIGrad2(model, u, item, set, setSz, r_us, sumItemLatFac,
            iGrad);
         //update item + reg
-        for (k = 0; k < model->_(facDim); k++) {
-          model->_(iFac)[item][k] -= model->_(learnRate)*avgSetSim*(iGrad[k] + model->_(regI)*model->_(iFac)[item][k]);
-        }
+        //printf("\nitem = %d norm iGrad = %f", item, norm(iGrad, model->_(facDim)));
+        coeffUpdate2(model->_(iFac)[item], iGrad, model->_(regI), 
+            model->_(learnRate), model->_(facDim));
       }
 
+    }
+
+    
+    //objective check
+    if (iter % OBJ_ITER == 0) {
+      printf("\nuserFacNorm:%f itemFacNorm:%f", model->_(userFacNorm)(self, data), model->_(itemFacNorm)(self, data));
+
+      model->_(objective)(model, data, NULL);
     }
 
     //validation check
@@ -198,73 +256,39 @@ void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim,
       prevVal = valTest[0];
     }
     
-    //objective check
-    if (iter % OBJ_ITER == 0) {
-      model->_(objective)(model, data, sim);
-    }
-    
   }
 
-  model->_(objective)(model, data, sim);
   
+  //get train error
+  //printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
+
   //get test eror
   valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
-  
-  //model->_(writeUserSetSim)(self, data, "userSetsWOSim.txt");
+
+  //model->_(writeUserSetSim)(self, data, "userSetsSim.txt");
 
   free(sumItemLatFac);
   free(uGrad);
   free(iGrad);
-
 }
 
 
-Model ModelCoOccSimProto = {
-  .objective = ModelCoOccSim_objective,
-  .train = ModelCoOccSim_train
-};
 
+void modelNoSim(Data *data, Params *params, float *valTest) {
+ 
 
-void modelCoOccSim(Data *data, Params *params, float *valTest) {
-  
-  int i, j;
-  float **sim = NULL;
+  int i, j, k;
 
   //allocate storage for model
-  ModelCoOccSim *modelCoOccSim = NEW(ModelCoOccSim, 
-      "set pred using co occ jaccard similarity");
-  modelCoOccSim->_(init) (modelCoOccSim, params->nUsers, params->nItems, 
-      params->facDim, params->regU, params->regI, params->learnRate);  
+  ModelNoSim *modelNoSim = NEW(ModelNoSim, "set prediction model with sim");
+  modelNoSim->_(init)(modelNoSim, params->nUsers, params->nItems, params->facDim, params->regU, 
+    params->regI, params->learnRate);
 
-  //allocate space for sim
-  if (params->useSim) {
-    sim = (float **) malloc(sizeof(float*)*data->nItems);
-    for (i = 0; i < data->nItems; i++) {
-      sim[i] = (float*) malloc(sizeof(float)*data->nItems);
-      memset(sim[i], 0, sizeof(float)*data->nItems);
-    }
-  }
-
-  //compute jaccard similarities
-  Data_jaccSim(data, sim);   
   
-  //loadItemSims(params, sim);
+  //train model 
+  modelNoSim->_(train)(modelNoSim, data,  params, NULL, valTest);
 
-  //writeUpperMat(sim, data->nItems, data->nItems, "mLensSimC2.txt");
-  //modelCoOccSim->_(writeUserSetSim)(modelCoOccSim, data, sim, "mLensJaccSetSim.txt");  
-
-  //train model
-  modelCoOccSim->_(train)(modelCoOccSim, data, params, sim, valTest);
-
-
-  if (params->useSim) {
-    for (i = 0; i < data->nItems; i++) {
-      free(sim[i]);
-    }
-    free(sim);
-  }
-
-  modelCoOccSim->_(free)(modelCoOccSim);
+  modelNoSim->_(free)(modelNoSim);
 }
 
 

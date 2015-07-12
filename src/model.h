@@ -6,11 +6,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#define EPS 0.0001
-#define OBJ_ITER 10
+#define EPS 0.00000001
+#define OBJ_ITER 1
 #define VAL_CONV 1
 #define OBJ_CONV 1
-#define VAL_ITER 10
+#define VAL_ITER 1
 
 typedef struct {
   int nUsers;

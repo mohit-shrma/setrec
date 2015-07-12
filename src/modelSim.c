@@ -271,6 +271,9 @@ float ModelSim_objective(void *self, Data *data, float **sim) {
   float uRegErr = 0, iRegErr = 0;
   ModelSim *model = self;
 
+  float avgSetSim = 0.0;
+  int nSets = 0;
+
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     isTestValSet = 0;
@@ -307,17 +310,22 @@ float ModelSim_objective(void *self, Data *data, float **sim) {
       
       //printf("\ndiff = %f userSetPref = %f setSim = %f", diff, userSetPref, setSim);
       rmse += diff*diff*setSim;
+      avgSetSim += setSim;
+      nSets++;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
   }
+    
+  avgSetSim = avgSetSim/nSets;
+
   uRegErr = uRegErr*model->_(regU);
 
   for (i = 0; i < data->nItems; i++) {
     iRegErr += dotProd(model->_(iFac)[i], model->_(iFac)[i], model->_(facDim)); 
   }
   iRegErr *= model->_(regI);
-  printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f", (rmse+uRegErr+iRegErr),
-      rmse, uRegErr, iRegErr);
+  printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f avgSetSim: %f", (rmse+uRegErr+iRegErr),
+      rmse, uRegErr, iRegErr, avgSetSim);
   return (rmse + uRegErr + iRegErr);
 }
 
@@ -329,11 +337,13 @@ void coeffUpdate(float *fac, float *grad, float reg, float learnRate, int facDim
 
   for (k = 0; k < facDim; k++) {
     fac[k] -= learnRate*(grad[k] + reg*fac[k]); 
+    if (fac[k] < 0) {
+      fac[k] = 0;
+    }
   }
 
 }
  
-
 
 void coefficientNormUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
 
@@ -449,9 +459,9 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
       //update user + reg
       //printf("\nb4 u = %d norm uFac = %f uGrad = %f", 
       //    u, norm(model->_(uFac)[u], model->_(facDim)), norm(uGrad, model->_(facDim)));
-      for (k = 0; k < model->_(facDim); k++) {
-        model->_(uFac)[u][k] -= model->_(learnRate)*(uGrad[k] + model->_(regU)*model->_(uFac)[u][k]);
-      }
+      
+      coefficientNormUpdate(model->_(uFac)[u], uGrad, model->_(regU),
+          model->_(learnRate), model->_(facDim));
 
       //printf("\naftr u = %d norm uFac = %f", 
       //    u, norm(model->_(uFac)[u], model->_(facDim)));
@@ -463,17 +473,22 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
            iGrad);
         //update item + reg
         //printf("\nitem = %d norm iGrad = %f", item, norm(iGrad, model->_(facDim)));
-        coeffUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
+        coefficientNormUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
             model->_(learnRate), model->_(facDim));
       }
 
     }
 
-    //printf("\nuserFacNorm:%f itemFacNorm:%f", model->_(userFacNorm)(self, data), model->_(itemFacNorm)(self, data));
-
     //update sim
     model->_(updateSim)(model, sim);
     
+    //objective check
+    if (iter % OBJ_ITER == 0) {
+      printf("\nuserFacNorm:%f itemFacNorm:%f", model->_(userFacNorm)(self, data), model->_(itemFacNorm)(self, data));
+
+      model->_(objective)(model, data, sim);
+    }
+
     //validation check
     if (iter % VAL_ITER == 0) {
       //validation err
@@ -488,11 +503,6 @@ void ModelSim_train(void *self, Data *data, Params *params, float **sim,
         }
       }
       prevVal = valTest[0];
-    }
-    
-    //objective check
-    if (iter % OBJ_ITER == 0) {
-      model->_(objective)(model, data, sim);
     }
     
   }
