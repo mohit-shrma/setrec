@@ -40,7 +40,7 @@ void parse_cmd_line(int argc, char **argv) {
     params->test_set_size   = atoi(argv[14]);
     params->val_set_file    = argv[15];
     params->val_set_size    = atoi(argv[16]);
-
+    params->ext_setSim_file = argv[17];
   }
 
   //initialize random seed
