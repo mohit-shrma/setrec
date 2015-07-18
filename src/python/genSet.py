@@ -47,6 +47,24 @@ def getTriplets(userItemsRat):
   return rats
 
 
+def writeTriplets(userItemsRat, opFileName, uMap, iMap):
+  rats = []
+  users = userItemsRat.keys()
+  users.sort()
+  with open(opFileName, 'w') as g:
+    for u in users:
+      itemRats = userItemsRat[u]
+      items = itemRats.keys()
+      items.sort()
+      for item in items:
+        g.write(str(uMap[u]) + ' ' + str(iMap[item]) + ' ' +
+            str(userItemsRat[u][item]))
+  return rats
+
+
+
+
+
 def getUserItemsNMap(ratFileName, setSize):
   userItemsRat = {}
   userMap = {}
@@ -226,7 +244,8 @@ def main():
 
   #write train set
   trainSet = getTriplets(userItemsRat)
-  writeEvalSet(trainSet, opFileName + '_train', userMap, itemMap)
+  writeTriplets(userItemsRat, opFileName + '_train', userMap, itemMap)
+  #writeEvalSet(trainSet, opFileName + '_train', userMap, itemMap)
 
   genSetsNWrite(userItemsRat, opFileName, setSize, thresh, nSetsPerUser,
       userMap, itemMap)
