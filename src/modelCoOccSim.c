@@ -92,8 +92,8 @@ float ModelCoOccSim_objective(void *self, Data *data, float **sim) {
     iRegErr += dotProd(model->_(iFac)[i], model->_(iFac)[i], model->_(facDim)); 
   }
   iRegErr *= model->_(regI);
-  printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f", (rmse+uRegErr+iRegErr),
-      rmse, uRegErr, iRegErr);
+  //printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f", (rmse+uRegErr+iRegErr),
+  //    rmse, uRegErr, iRegErr);
   return (rmse + uRegErr + iRegErr);
 }
 
@@ -115,7 +115,7 @@ void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim,
   
   prevVal = 0.0;
 
-  model->_(objective)(model, data, sim);
+  printf("\nInitial Objective val: %f", model->_(objective)(model, data, sim));
   for (iter = 0; iter < params->maxIter; iter++) {
     for (u = 0; u < data->nUsers; u++) {
       userSet = data->userSets[u];
@@ -186,7 +186,7 @@ void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim,
     if (iter % VAL_ITER == 0) {
       //validation err
       valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
-      printf("\nIter:%d validation error: %f", iter, valTest[0]);
+      //printf("\nIter:%d validation error: %f", iter, valTest[0]);
       if (iter > 0) {
         if (fabs(prevVal - valTest[0]) < EPS) {
           //exit the model train procedure
@@ -197,17 +197,20 @@ void ModelCoOccSim_train(void *self, Data *data, Params *params, float **sim,
       }
       prevVal = valTest[0];
     }
+   
     
     //objective check
+    /*
     if (iter % OBJ_ITER == 0) {
       model->_(objective)(model, data, sim);
     }
+    */
     
   }
 
-  model->_(objective)(model, data, sim);
+  printf("\nFinal objective val: %f", model->_(objective)(model, data, sim));
   
-  //get test eror
+  //get test error
   valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
   
   //model->_(writeUserSetSim)(self, data, "userSetsWOSim.txt");

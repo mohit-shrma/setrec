@@ -592,7 +592,7 @@ float Model_indivItemSetErr(void *self, RatingSet *ratSet) {
     }
     rmse += diff*diff;
   }
-  printf("\nrmse: %f nSet: %d", rmse, ratSet->size);
+  //printf("\nrmse: %f nSet: %d", rmse, ratSet->size);
   return sqrt(rmse/ratSet->size);
 }
 
