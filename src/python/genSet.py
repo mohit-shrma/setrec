@@ -58,11 +58,8 @@ def writeTriplets(userItemsRat, opFileName, uMap, iMap):
       items.sort()
       for item in items:
         g.write(str(uMap[u]) + ' ' + str(iMap[item]) + ' ' +
-            str(userItemsRat[u][item]))
+            str(userItemsRat[u][item]) + '\n')
   return rats
-
-
-
 
 
 def getUserItemsNMap(ratFileName, setSize):
@@ -136,12 +133,12 @@ def getSetsForUser2(itemRats, nSetsPerUser, setSize, thresh):
       label = -1.0
     
     tempList = map(str, list(tempSet))
+    #TODO: ensure unique sets
     setLabels.add(( ' '.join(tempList), int(avgTopRatItems)))
 
   setLabels = list(setLabels)
   for i in range(len(setLabels)):
     setLabels[i] = (set(map(int, setLabels[i][0].split(' '))), setLabels[i][1]) 
-
   return setLabels
 
 
