@@ -34,7 +34,7 @@ void compAddSimIGrad(ModelAddSim *model, int user, int item, int *set, int setSz
   for (j = 0; j < model->_(facDim); j++) {
     iGrad[j] = comDiff*((1.0/(1.0/setSz))*model->_(uFac)[user][j] + 
         model->simCoeff[user]*(1.0/nPairs)*(sumItemLatFac[j] - 
-          model->_(iFac)[j])); 
+          model->_(iFac)[item][j])); 
   }
 
 }
@@ -58,20 +58,16 @@ Model ModelAddSimProto = {
 };
 
 
-float ModelAddSim_objective(void *self, Data *data, float **sim) {
-  
-}
-
-
 //r_us = 1/|s| u^T sum_i{i \in s} <v_i> + lambdaSim_u*avgSetSim
-float ModelAddSim_setScore(void *self, int user, float userSimCoeff, int *set,
+float ModelAddSim_setScore(void *self, int user, int *set,
     int setSz, float **sim) {
   
   int i, j, k; 
   int item;
   float *sumItemLatFac = NULL;
-  float pref = 0.0, avgSimSet = 0.0;
-  ModelAddSim *model = self;
+  float pref           = 0.0, avgSimSet   = 0.0;
+  ModelAddSim *model   = self;
+  float userSimCoeff   = model->simCoeff[user];
 
   avgSimSet = model->_(setSimilarity)(self, set, setSz, NULL);
 
@@ -85,8 +81,8 @@ float ModelAddSim_setScore(void *self, int user, float userSimCoeff, int *set,
     }
   }
 
-  pref = (1.0/setSz)*dotProd(model->uFac[user], itemsLatFac, 
-      model->facDim) + userSimCoeff*avgSimSet; 
+  pref = (1.0/setSz)*dotProd(model->_(uFac)[user], sumItemLatFac, 
+      model->_(facDim)) + userSimCoeff*avgSimSet; 
 
   free(sumItemLatFac);
   
@@ -132,6 +128,7 @@ float ModelAddSim_objective(void *self, Data *data, float **sim) {
       
       set = userSet->uSets[s];
       setSz = userSet->uSetsSize[s];
+
       //get preference over set
       userSetPref = ModelAddSim_setScore(model, u, set, setSz, NULL);
  
@@ -173,7 +170,7 @@ void ModelAddSim_train(void *self, Data *data, Params *params, float **sim,
   
   prevVal = 0.0;
 
-  model->_(objective)(model, data, sim);
+  ModelAddSim_objective(model, data, sim);
   for (iter = 0; iter < params->maxIter; iter++) {
     for (u = 0; u < data->nUsers; u++) {
       userSet = data->userSets[u];
@@ -212,7 +209,6 @@ void ModelAddSim_train(void *self, Data *data, Params *params, float **sim,
       //avgSetSim = model->_(setSimilarity)(self, set, setSz, NULL);
       
       //update user and item latent factor
-     
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < setSz; i++) {
         item = set[i];
@@ -222,7 +218,8 @@ void ModelAddSim_train(void *self, Data *data, Params *params, float **sim,
       }
 
       //compute user gradient
-      computeUGrad(model, u, set, setSz, avgSetSim, r_us, sumItemLatFac, uGrad);
+      compAddSimUGrad(model, u, set, setSz, avgSetSim, r_us, sumItemLatFac, uGrad);
+      
       //update user + reg
       coeffUpdate(model->_(uFac)[u], uGrad, model->_(regU),
           model->_(learnRate), model->_(facDim));
@@ -231,7 +228,7 @@ void ModelAddSim_train(void *self, Data *data, Params *params, float **sim,
       for (i = 0; i < setSz; i++) {
         item = set[i];
         //get item gradient
-        computeIGrad(model, u, item, set, setSz, avgSetSim, r_us, sumItemLatFac,
+        compAddSimIGrad(model, u, item, set, setSz, avgSetSim, r_us, sumItemLatFac,
            iGrad);
         //update item + reg
         coeffUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
@@ -239,7 +236,7 @@ void ModelAddSim_train(void *self, Data *data, Params *params, float **sim,
       }
       
       //update user sim coeff grad
-      model->simCoeff[u] = model->simCoeff[u] - model->_(learnRate)*compAddSimCoeffGrad(model, user, setSz, avgSetSim, r_us, sumItemLatFac); 
+      model->simCoeff[u] = model->simCoeff[u] - model->_(learnRate)*compAddSimCoeffGrad(model, u, setSz, avgSetSim, r_us, sumItemLatFac); 
     }
 
     //update sim
@@ -247,9 +244,12 @@ void ModelAddSim_train(void *self, Data *data, Params *params, float **sim,
     
     //objective check
     if (iter % OBJ_ITER == 0) {
-      printf("\nuserFacNorm:%f itemFacNorm:%f", model->_(userFacNorm)(self, data), model->_(itemFacNorm)(self, data));
+      printf("\nuserFacNorm:%f itemFacNorm:%f userCoeffNorm:%f", 
+          model->_(userFacNorm)(self, data), 
+          model->_(itemFacNorm)(self, data),
+          norm(model->simCoeff, data->nUsers));
 
-      model->_(objective)(model, data, sim);
+      ModelAddSim_objective(model, data, sim);
     }
 
     //validation check

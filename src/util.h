@@ -6,6 +6,8 @@
 #include <float.h>
 #include <stdlib.h>
 
+void coefficientNormUpdate(float *fac, float *grad, float reg, float learnRate, int facDim);
+void coeffUpdate(float *fac, float *grad, float reg, float learnRate, int facDim);
 float dotProd(float *u, float *v, int sz);
 float norm(float *v, int sz);
 float matNorm(float **mat, int nrows, int ncols);

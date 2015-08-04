@@ -70,7 +70,7 @@ void parse_cmd_line(int argc, char **argv) {
 
     //learn model
     memset(tempValTest, 0, sizeof(float)*2);
-    modelCoOccSim(data, params, tempValTest);
+    modelAddSim(data, params, tempValTest);
     simValTest[0] += tempValTest[0];
     simValTest[1] += tempValTest[1];
 
