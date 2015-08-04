@@ -276,9 +276,6 @@ void ModelNoSim_train(void *self, Data *data, Params *params, float **sim,
 
 void modelNoSim(Data *data, Params *params, float *valTest) {
  
-
-  int i, j, k;
-
   //allocate storage for model
   ModelNoSim *modelNoSim = NEW(ModelNoSim, "set prediction model with sim");
   modelNoSim->_(init)(modelNoSim, params->nUsers, params->nItems, params->facDim, params->regU, 

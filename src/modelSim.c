@@ -330,39 +330,6 @@ float ModelSim_objective(void *self, Data *data, float **sim) {
 }
 
 
-void coeffUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
-
-  int k;
-  float facNorm;
-
-  for (k = 0; k < facDim; k++) {
-    fac[k] -= learnRate*(grad[k] + reg*fac[k]); 
-    if (fac[k] < 0) {
-      fac[k] = 0;
-    }
-  }
-
-}
- 
-
-void coefficientNormUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
-
-  int k;
-  float facNorm;
-
-  for (k = 0; k < facDim; k++) {
-    fac[k] -= learnRate*(grad[k] + reg*fac[k]); 
-  }
-
-  //normalize factor
-  facNorm = norm(fac, facDim);
-  for (k = 0; k < facDim; k++) {
-    fac[k] = fac[k]/facNorm;
-  }
-
-}
-
-
 void tangentGradientUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
   
   int k;
@@ -562,9 +529,5 @@ void modelSim(Data *data, Params *params, float *valTest) {
   modelSim->_(free)(modelSim);
   
 }
-
-
-
-
 
 
