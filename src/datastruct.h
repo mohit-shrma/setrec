@@ -133,6 +133,12 @@ void Data_reset(Data *self, int nUsers, int nItems);
 void Data_jaccSim(Data *self, float **sim);
 
 
+typedef struct {
+  int item;
+  float rating;
+} ItemRat;
+
+
 #endif
 
 

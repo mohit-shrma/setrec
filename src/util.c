@@ -7,7 +7,7 @@ void coeffUpdate(float *fac, float *grad, float reg, float learnRate, int facDim
   float facNorm;
 
   for (k = 0; k < facDim; k++) {
-    fac[k] -= learnRate*(grad[k] + reg*fac[k]); 
+    fac[k] -= learnRate*(grad[k] + 2.0*reg*fac[k]); 
   }
 
 }
