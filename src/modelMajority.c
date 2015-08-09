@@ -11,7 +11,43 @@ int compItemRat(const void *elem1, const void *elem2) {
 
 float ModelMajority_setScore(void *self, int u, int *set, int setSz, 
     float **sim) {
-  //TODO
+   
+  int i, item, majSz;
+  float r_us_est = 0;
+  ModelMajority *model = self;
+  ItemRats **itemRats = (ItemRat**) malloc(sizeof(ItemRat*)*setSz);
+  for (i = 0; i < setSz; i++) {
+    itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
+    memset(itemRats[i], 0, sizeof(ItemRat));
+  }
+
+  for (i = 0 ; i < setSz; i++) {
+    item = set[i];
+    itemRats[i]->item = item;
+    itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[item], 
+        model->_(facDim));
+  }
+
+  qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
+  
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
+  
+  for (i = 0; i < majSz; i++) {
+    r_us_est += itemRats[i]->rating;
+  }
+  r_us_est = r_us_est/majSz;
+
+  //free itemRats
+  for (i = 0; i < setSz; i++) {
+    free(itemRats[i]);
+  }
+  free(itemRats);
+
+  return r_us_est;
 }
 
 
@@ -30,56 +66,32 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
     userSet = data->userSets[u];
     isTestValSet = 0;
     for (s = 0; s < userSet->numSets; s++) {
-      //TODO: do I need this?    
-      //check if set in test sets
-      for (i = 0; i < userSet->szTestSet; i++) {
-        if (s == userSet->testSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-
-      //check if set in validation sets
-      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
-        if (s == userSet->valSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      
-      if (isTestValSet) {
-        continue;
-      }
-      
+     
       set = userSet->uSets[s];
       setSz = userSet->uSetsSize[s];
+      
       //get preference over set
       userSetPref = model->_(setScore)(model, u, set, setSz, NULL);
-      //set sim
-      setSim = model->_(setSimilarity)(self, set, setSz, NULL);   
- 
       diff = userSetPref - userSet->labels[s];
       
       //printf("\ndiff = %f userSetPref = %f setSim = %f", diff, userSetPref, setSim);
-      rmse += diff*diff*setSim;
-      avgSetSim += setSim;
+      rmse += diff*diff;
       nSets++;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
   }
-    
-  avgSetSim = avgSetSim/nSets;
-
+  
   uRegErr = uRegErr*model->_(regU);
 
   for (i = 0; i < data->nItems; i++) {
     iRegErr += dotProd(model->_(iFac)[i], model->_(iFac)[i], model->_(facDim)); 
   }
   iRegErr *= model->_(regI);
-  printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f avgSetSim: %f", (rmse+uRegErr+iRegErr),
-      rmse, uRegErr, iRegErr, avgSetSim);
-  return (rmse + uRegErr + iRegErr);
   
+  printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f ", (rmse+uRegErr+iRegErr),
+      rmse, uRegErr, iRegErr);
+
+  return (rmse + uRegErr + iRegErr);
 }
 
 
@@ -111,27 +123,10 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     for (u = 0; u < data->nUsers; u++) {
       userSet = data->userSets[u];
       isTestValSet = 0;
+
       //select a non-test non-val set for user
       s = rand() % userSet->numSets;
-      //check if set in test sets
-      for (i = 0; i < userSet->szTestSet; i++) {
-        if (s == userSet->testSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      //check if set in validation sets
-      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
-        if (s == userSet->valSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      
-      if (isTestValSet) {
-        continue;
-      }
-      
+     
       set       = userSet->uSets[s];
       setSz     = userSet->uSetsSize[s];
       r_us      = userSet->labels[s];
