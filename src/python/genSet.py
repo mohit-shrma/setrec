@@ -127,11 +127,13 @@ def getSetsForUser2(itemRats, nSetsPerUser, setSize, thresh):
       sm += setItemRat[i][0]
       nTopItems += 1
     avgTopRatItems = sm/nTopItems
-    
+   
+    """
     label = 1.0
     if avgTopRatItems < thresh:
       label = -1.0
-    
+    """
+
     tempList = map(str, list(tempSet))
     #TODO: ensure unique sets
     setLabels.add(( ' '.join(tempList), int(avgTopRatItems)))

@@ -1,4 +1,4 @@
-
+#include "modelMajority.h"
 
 int compItemRat(const void *elem1, const void *elem2) {
   ItemRat *item1Rat = *(ItemRat**)elem1;
@@ -15,7 +15,7 @@ float ModelMajority_setScore(void *self, int u, int *set, int setSz,
   int i, item, majSz;
   float r_us_est = 0;
   ModelMajority *model = self;
-  ItemRats **itemRats = (ItemRat**) malloc(sizeof(ItemRat*)*setSz);
+  ItemRat **itemRats = (ItemRat**) malloc(sizeof(ItemRat*)*setSz);
   for (i = 0; i < setSz; i++) {
     itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
     memset(itemRats[i], 0, sizeof(ItemRat));
@@ -109,7 +109,6 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float* uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   //TODO: hardcode
-  //TODO: free
   ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
   for (i = 0; i < 100; i++) {
     itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
@@ -158,6 +157,12 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < majSz; i++) {
         item = itemRats[i]->item;
+        
+        if (i > 0) {
+          //check if decreasing order
+          assert(itemRats[i]->rating <= itemRats[i-1]->rating);
+        }
+
         for (j = 0; j < model->_(facDim); j++) {
           sumItemLatFac[j] += model->_(iFac)[item][j];
         }
@@ -189,17 +194,18 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
 
     
     //objective check
+    /*
     if (iter % OBJ_ITER == 0) {
       printf("\nuserFacNorm:%f itemFacNorm:%f", model->_(userFacNorm)(self, data), model->_(itemFacNorm)(self, data));
-      //TODO:
       model->_(objective)(model, data, sim);
     }
+    */
 
     //validation check
     if (iter % VAL_ITER == 0) {
       //validation err
       valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
-      printf("\nIter:%d validation error: %f", iter, valTest[0]);
+      //printf("\nIter:%d validation error: %f", iter, valTest[0]);
       if (iter > 0) {
         if (fabs(prevVal - valTest[0]) < EPS) {
           //exit the model train procedure
@@ -213,6 +219,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     
   }
 
+  model->_(objective)(model, data, sim);
   
   //get train error
   //printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
@@ -222,18 +229,30 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
 
   //model->_(writeUserSetSim)(self, data, "userSetsSim.txt");
 
+  for (i = 0; i < 100; i++) {
+    free(itemRats[i]);
+  }
+  free(itemRats);
   free(sumItemLatFac);
   free(uGrad);
   free(iGrad);
 }
 
 
+Model ModelMajorityProto = {
+  .objective = ModelMajority_objective,
+  .setScore = ModelMajority_setScore,
+  .train     = ModelMajority_train
+};
+
+
 void modelMajority(Data *data, Params *params, float *valTest) {
   
-  ModelMajority *model = NEW(ModelMajority, "set prediction with majority score");  
-  model->_(init)(model, params->nUsers, params->nItems, params->facDim, params->regU, 
-    params->regI, params->learnRate);
- 
+  ModelMajority *model = NEW(ModelMajority, 
+                              "set prediction with majority score");  
+  model->_(init)(model, params->nUsers, params->nItems, params->facDim, 
+                  params->regU, params->regI, params->learnRate);
+
   //train model 
   model->_(train)(model, data,  params, NULL, valTest);
   

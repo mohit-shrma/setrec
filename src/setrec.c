@@ -64,13 +64,13 @@ void parse_cmd_line(int argc, char **argv) {
   
     //run baseline
     memset(tempValTest, 0, sizeof(float)*2);
-    //modelItemMatFac(data, params, tempValTest);  
+    modelItemMatFac(data, params, tempValTest);  
     baseValTest[0] += tempValTest[0];
     baseValTest[1] += tempValTest[1];  
 
     //learn model
     memset(tempValTest, 0, sizeof(float)*2);
-    modelAddSim(data, params, tempValTest);
+    modelMajority(data, params, tempValTest);
     simValTest[0] += tempValTest[0];
     simValTest[1] += tempValTest[1];
 
@@ -95,7 +95,7 @@ void parse_cmd_line(int argc, char **argv) {
 
   printf("\navg baseline validation: %f test: %f", baseValTest[0]/i, 
       baseValTest[1]/i);
-  printf("\navg non sim validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
+  printf("\navg majority validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
 
   printf("\nRE: %f %f %d %f %f %f %f %f", params->regU, params->regI, 
       params->facDim, params->learnRate, baseValTest[0]/i, 

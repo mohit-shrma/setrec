@@ -187,7 +187,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     //validation
     if (iter % VAL_ITER == 0) {
       valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
-      printf("\nIter:%d validation err:%f", iter, valTest[0]);
+      //printf("\nIter:%d validation err:%f", iter, valTest[0]);
       if (fabs(prevVal - valTest[0]) < EPS) {
         printf("\nConverged in iterations: %d currVal:%f prevVal:%f", iter, valTest[0], prevVal);
         break;
@@ -196,10 +196,11 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     }
 
     //objective check
+    /*
     if (iter % OBJ_ITER == 0) {
       model->_(objective) (model, data, sim);
     }
-
+    */
   }
 
   

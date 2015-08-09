@@ -21,7 +21,7 @@ CFLAGS = $(COPTIONS)
 #CFLAGS=  -I. $(OPTFLAGS) 
 
 
-setrec: model.o modelAddSim.o modelNoSim.o modelHingeProdSim.o modelCoOccSim.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o set.o util.o io.o datastruct.o setrec.o 
+setrec: model.o modelMajority.o  modelAddSim.o modelNoSim.o modelHingeProdSim.o modelCoOccSim.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o set.o util.o io.o datastruct.o setrec.o 
 	$(CC) $^ $(CFLAGS) $(LIBS) $(LIBSDIR) -o $@
 
 

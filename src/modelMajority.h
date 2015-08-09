@@ -7,8 +7,8 @@ typedef struct {
   Model proto;
 } ModelMajority;
 
-void ModelMajority_init(void *self, Params *params);
-void ModelMajority_free(void *self);
+float ModelMajority_setScore(void *self, int u, int *set, int setSz, 
+    float **sim);
 float ModelMajority_objective(void *self, Data *data, float **sim);
 void ModelMajority_train(void *self, Data *data, Params *params, float **sim, 
     float *valTest);
