@@ -5,6 +5,7 @@
 
 typedef struct {
   Model proto;
+  float constrainWt;
 } ModelMajority;
 
 float ModelMajority_setScore(void *self, int u, int *set, int setSz, 

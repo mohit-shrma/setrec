@@ -20,7 +20,7 @@ void parse_cmd_line(int argc, char **argv) {
   simValTest = (float*) malloc(sizeof(float)*2);
   memset(simValTest, 0, sizeof(float)*2);
 
-  if (argc < 17) {
+  if (argc < 18) {
     printf("\n Error: need args");
     exit(0);
   } else {
@@ -41,6 +41,7 @@ void parse_cmd_line(int argc, char **argv) {
     params->val_set_file    = argv[15];
     params->val_set_size    = atoi(argv[16]);
     params->ext_setSim_file = argv[17];
+    params->constrainWt     = atof(argv[18]);
   }
 
   //initialize random seed

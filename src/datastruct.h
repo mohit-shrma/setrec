@@ -32,6 +32,7 @@ typedef struct {
   int useSim;
   int maxIter;
   int seed;
+  float constrainWt;
 } Params;
 
 

@@ -1,5 +1,7 @@
 #include "modelMajority.h"
 
+
+
 int compItemRat(const void *elem1, const void *elem2) {
   ItemRat *item1Rat = *(ItemRat**)elem1;
   ItemRat *item2Rat = *(ItemRat**)elem2;
@@ -51,6 +53,50 @@ float ModelMajority_setScore(void *self, int u, int *set, int setSz,
 }
 
 
+void ModelMajority_setScoreWMaxRat(void *self, int u, int *set, int setSz, 
+    float *r_est, float *maxRat) {
+   
+  int i, item, majSz;
+  float r_us_est = 0;
+  ModelMajority *model = self;
+  ItemRat **itemRats = (ItemRat**) malloc(sizeof(ItemRat*)*setSz);
+  for (i = 0; i < setSz; i++) {
+    itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
+    memset(itemRats[i], 0, sizeof(ItemRat));
+  }
+
+  for (i = 0 ; i < setSz; i++) {
+    item = set[i];
+    itemRats[i]->item = item;
+    itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[item], 
+        model->_(facDim));
+  }
+
+  qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
+  
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
+  
+  for (i = 0; i < majSz; i++) {
+    r_us_est += itemRats[i]->rating;
+  }
+  r_us_est = r_us_est/majSz;
+
+  *r_est = r_us_est;
+  *maxRat = itemRats[0]->rating;
+
+  //free itemRats
+  for (i = 0; i < setSz; i++) {
+    free(itemRats[i]);
+  }
+  free(itemRats);
+
+}
+
+
 float ModelMajority_objective(void *self, Data *data, float **sim) {
  
   int u, i, s, item, setSz, isTestValSet;
@@ -59,6 +105,7 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
   float rmse = 0, diff = 0, userSetPref = 0;
   float uRegErr = 0, iRegErr = 0;
   ModelMajority *model = self;
+  float maxRat = 0;
 
   int nSets = 0;
 
@@ -69,13 +116,14 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
      
       set = userSet->uSets[s];
       setSz = userSet->uSetsSize[s];
-      
       //get preference over set
-      userSetPref = model->_(setScore)(model, u, set, setSz, NULL);
+      ModelMajority_setScoreWMaxRat(model, u, set, setSz, &userSetPref, 
+          &maxRat);
       diff = userSetPref - userSet->labels[s];
       
       //printf("\ndiff = %f userSetPref = %f setSim = %f", diff, userSetPref, setSim);
-      rmse += diff*diff;
+      rmse += diff*diff + 
+        model->constrainWt*(maxRat-userSetPref)*(maxRat-userSetPref);
       nSets++;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
@@ -145,6 +193,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
       }
       
       //TODO:verify whether sorted in descending order
+      //TODO: print rating and verify
       qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
 
       if (setSz % 2  == 0) {
@@ -173,6 +222,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
       //compute user gradient
       for (j = 0; j < model->_(facDim); j++) {
         uGrad[j] = 2.0*(r_us_est - r_us)*sumItemLatFac[j]*(1.0/majSz);
+        uGrad[j] += 2.0*params->constrainWt*(itemRats[0]->rating - r_us)*model->_(iFac)[itemRats[0]->item][j];
       }
      
       coeffUpdate(model->_(uFac)[u], uGrad, model->_(regU),
@@ -184,6 +234,9 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
         //get item gradient
         for (j = 0; j < model->_(facDim); j++) {
           iGrad[j] = 2.0*(r_us_est - r_us)*model->_(uFac)[u][j]*(1.0/majSz);
+          if (i == 0) {
+            iGrad[j] += 2.0*params->constrainWt*(itemRats[i]->rating - r_us);
+          }
         }
         //update item + reg
         coeffUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
@@ -252,7 +305,7 @@ void modelMajority(Data *data, Params *params, float *valTest) {
                               "set prediction with majority score");  
   model->_(init)(model, params->nUsers, params->nItems, params->facDim, 
                   params->regU, params->regI, params->learnRate);
-
+  model->constrainWt = params->constrainWt;
   //train model 
   model->_(train)(model, data,  params, NULL, valTest);
   
