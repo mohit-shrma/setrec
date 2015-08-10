@@ -98,7 +98,7 @@ void parse_cmd_line(int argc, char **argv) {
       baseValTest[1]/i);
   printf("\navg majority validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
 
-  printf("\nRE: %f %f %d %f %f %f %f %f", params->regU, params->regI, 
+  printf("\nRE: %f %f %f %d %f %f %f %f %f", params->regU, params->regI, params->constrainWt,
       params->facDim, params->learnRate, baseValTest[0]/i, 
       simValTest[0]/i, baseValTest[1]/i, simValTest[1]/i);
 

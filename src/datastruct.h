@@ -35,6 +35,8 @@ typedef struct {
   float constrainWt;
 } Params;
 
+void Params_display(Params *params);
+
 
 typedef struct {
   //index of item in parent array

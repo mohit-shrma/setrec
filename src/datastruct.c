@@ -1,6 +1,20 @@
 #include "datastruct.h"
 
 
+void Params_display(Params *params) {
+  printf("\nParameters:");
+  printf("\n%s %s", params->user_set_file, params->ext_setSim_file);
+  printf("\n%s %d", params->val_set_file, params->val_set_size);
+  printf("\n%s %d", params->test_set_file, params->test_set_size);
+  printf("\n%s %d", params->train_set_file, params->train_set_size);
+  printf("\n%d %d", params->nUsers, params->nItems);
+  printf("\n%d %f %f %f %f", params->facDim, params->regU, params->regI, 
+      params->learnRate, params->constrainWt);
+  printf("\n%d %d %d", params->useSim, params->maxIter, params->seed);
+}
+
+
+
 void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   int nUserItems) {
   

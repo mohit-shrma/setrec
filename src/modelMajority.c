@@ -11,6 +11,29 @@ int compItemRat(const void *elem1, const void *elem2) {
 }
 
 
+void testItemRat() {
+  int i, j;
+  ItemRat **itemRats = (ItemRat**) malloc(sizeof(ItemRat*)*5);
+  for (i = 0; i < 5; i++) {
+    itemRats[i] = (ItemRat*)malloc(sizeof(ItemRat));
+    memset(itemRats[i], 0, sizeof(ItemRat));
+    itemRats[i]->item = i;
+    itemRats[i]->rating = rand()/(1.0 + RAND_MAX);
+  }
+   
+  qsort(itemRats, 5, sizeof(ItemRat*), compItemRat);
+
+  for (i = 0; i < 5; i++) {
+    printf("\nitem: %d rat: %f", itemRats[i]->item, itemRats[i]->rating);
+  }
+
+  for (i = 0; i < 5; i++) {
+    free(itemRats[i]);
+  }
+  free(itemRats);
+}
+
+
 float ModelMajority_setScore(void *self, int u, int *set, int setSz, 
     float **sim) {
    
@@ -40,6 +63,9 @@ float ModelMajority_setScore(void *self, int u, int *set, int setSz,
   
   for (i = 0; i < majSz; i++) {
     r_us_est += itemRats[i]->rating;
+    if (i > 0) {
+      assert(itemRats[i]->rating <= itemRats[i-1]->rating);
+    }
   }
   r_us_est = r_us_est/majSz;
 
@@ -99,19 +125,18 @@ void ModelMajority_setScoreWMaxRat(void *self, int u, int *set, int setSz,
 
 float ModelMajority_objective(void *self, Data *data, float **sim) {
  
-  int u, i, s, item, setSz, isTestValSet;
+  int u, i, s, item, setSz;
   UserSets *userSet = NULL;
   int *set = NULL;
   float rmse = 0, diff = 0, userSetPref = 0;
   float uRegErr = 0, iRegErr = 0;
   ModelMajority *model = self;
   float maxRat = 0;
-
+  int constViolCt = 0;
   int nSets = 0;
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
-    isTestValSet = 0;
     for (s = 0; s < userSet->numSets; s++) {
      
       set = userSet->uSets[s];
@@ -122,8 +147,12 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
       diff = userSetPref - userSet->labels[s];
       
       //printf("\ndiff = %f userSetPref = %f setSim = %f", diff, userSetPref, setSim);
-      rmse += diff*diff + 
-        model->constrainWt*(maxRat-userSetPref)*(maxRat-userSetPref);
+      rmse += diff*diff;
+      if (userSet->labels[s] > maxRat) {
+        //constraint violated
+        rmse += model->constrainWt*(userSet->labels[s] - maxRat);
+        constViolCt++;
+      }
       nSets++;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
@@ -136,8 +165,8 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
   }
   iRegErr *= model->_(regI);
   
-  printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f ", (rmse+uRegErr+iRegErr),
-      rmse, uRegErr, iRegErr);
+  printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f Constraint violation count: %d", 
+      (rmse+uRegErr+iRegErr), rmse, uRegErr, iRegErr, constViolCt);
 
   return (rmse + uRegErr + iRegErr);
 }
@@ -148,7 +177,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
 
   int iter, u, i, j, k, s;
   UserSets *userSet;
-  int isTestValSet, setSz, item, majSz;
+  int setSz, item, majSz;
   int *set;
   float r_us, r_us_est, prevVal; //actual set preference
   float temp; 
@@ -156,6 +185,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float* uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
+  
   //TODO: hardcode
   ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
   for (i = 0; i < 100; i++) {
@@ -165,11 +195,15 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
 
   prevVal = 0.0;
 
+  //get train error
+  printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
+  
+  //get objective
   model->_(objective)(model, data, sim);
+  
   for (iter = 0; iter < params->maxIter; iter++) {
     for (u = 0; u < data->nUsers; u++) {
       userSet = data->userSets[u];
-      isTestValSet = 0;
 
       //select a non-test non-val set for user
       s = rand() % userSet->numSets;
@@ -208,8 +242,18 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
         item = itemRats[i]->item;
         
         if (i > 0) {
+          
+          if (itemRats[i]->rating > itemRats[i-1]->rating) {
+            printf("\nTrain:Not in decreasing order:  %f %f", 
+                itemRats[i]->rating, itemRats[i-1]->rating);
+            Params_display(params);
+            fflush(stdout);
+            exit(0);
+          }
+          
           //check if decreasing order
-          assert(itemRats[i]->rating <= itemRats[i-1]->rating);
+          //assert(itemRats[i]->rating <= itemRats[i-1]->rating);
+        
         }
 
         for (j = 0; j < model->_(facDim); j++) {
@@ -222,7 +266,10 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
       //compute user gradient
       for (j = 0; j < model->_(facDim); j++) {
         uGrad[j] = 2.0*(r_us_est - r_us)*sumItemLatFac[j]*(1.0/majSz);
-        uGrad[j] += 2.0*params->constrainWt*(itemRats[0]->rating - r_us)*model->_(iFac)[itemRats[0]->item][j];
+        if (itemRats[0]->rating < r_us) {
+          //constraint kicked in 
+          uGrad[j] += -1.0*params->constrainWt*model->_(iFac)[itemRats[0]->item][j];
+        }
       }
      
       coeffUpdate(model->_(uFac)[u], uGrad, model->_(regU),
@@ -234,8 +281,9 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
         //get item gradient
         for (j = 0; j < model->_(facDim); j++) {
           iGrad[j] = 2.0*(r_us_est - r_us)*model->_(uFac)[u][j]*(1.0/majSz);
-          if (i == 0) {
-            iGrad[j] += 2.0*params->constrainWt*(itemRats[i]->rating - r_us);
+          if (i == 0 && itemRats[0]->rating < r_us) {
+            //item with max rating and constraint kicked in 
+            iGrad[j] += -1.0*params->constrainWt*model->_(uFac)[u][j];
           }
         }
         //update item + reg
@@ -244,7 +292,6 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
       }
 
     }
-
     
     //objective check
     /*
@@ -275,7 +322,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   model->_(objective)(model, data, sim);
   
   //get train error
-  //printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
+  printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
 
   //get test eror
   valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
@@ -306,6 +353,9 @@ void modelMajority(Data *data, Params *params, float *valTest) {
   model->_(init)(model, params->nUsers, params->nItems, params->facDim, 
                   params->regU, params->regI, params->learnRate);
   model->constrainWt = params->constrainWt;
+  
+  //testItemRat();
+  
   //train model 
   model->_(train)(model, data,  params, NULL, valTest);
   
