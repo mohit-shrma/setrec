@@ -14,6 +14,31 @@ void Params_display(Params *params) {
 }
 
 
+void loadUserItemWtsFrmTrain(Data *data) {
+  int u, i, j;
+  UserSets *userSet = NULL;
+  ItemWtSets *itemWtSets = NULL;
+  RatingSet *trainSet = data->trainSet;
+  float rat = 0;
+  int notFoundCt = 0;
+  int foundCt = 0;
+  for (j = 0; j < trainSet->size; j++) {
+    u = trainSet->rats[j]->user;
+    i = trainSet->rats[j]->item;
+    rat = trainSet->rats[j]->rat;
+    userSet = data->userSets[u];
+    itemWtSets = UserSets_search(userSet, i);
+    if (NULL == itemWtSets) {
+      //printf("\nu:%d i:%d j:%d not found", u, i, j);
+      notFoundCt++;
+      continue;
+    }
+    foundCt++;
+    itemWtSets->wt = rat;
+  }
+  printf("\nfound:%d notFound: %d", foundCt, notFoundCt);
+}
+
 
 void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   int nUserItems) {
@@ -23,8 +48,8 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   self->userId     = user;
   self->numSets    = numSets;
   self->nUserItems = nUserItems;
-  self->szValSet   = 0;
-  self->szTestSet  = 0;
+  self->szValSet   = 1;
+  self->szTestSet  = 1;
 
   self->uSets = (int **) malloc(sizeof(int*)*numSets);
   memset(self->uSets, 0, sizeof(int*)*numSets);
@@ -546,5 +571,12 @@ void RatingSet_free(RatingSet *ratSet) {
 
 
 
+int compItemRat(const void *elem1, const void *elem2) {
+  ItemRat *item1Rat = *(ItemRat**)elem1;
+  ItemRat *item2Rat = *(ItemRat**)elem2;
+  if (item1Rat->rating > item2Rat->rating) return -1;
+  if (item1Rat->rating < item2Rat->rating) return 1;
+  return 0;
+}
 
 

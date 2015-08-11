@@ -13,6 +13,7 @@
 #include "modelCoOccSim.h"
 #include "modelHingeProdSim.h"
 #include "modelMajority.h"
+#include "modelItemMatFac.h"
 
 void parse_cmd_line(int argc, char **argv);
 

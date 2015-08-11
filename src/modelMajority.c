@@ -1,16 +1,6 @@
 #include "modelMajority.h"
 
 
-
-int compItemRat(const void *elem1, const void *elem2) {
-  ItemRat *item1Rat = *(ItemRat**)elem1;
-  ItemRat *item2Rat = *(ItemRat**)elem2;
-  if (item1Rat->rating > item2Rat->rating) return -1;
-  if (item1Rat->rating < item2Rat->rating) return 1;
-  return 0;
-}
-
-
 void testItemRat() {
   int i, j;
   ItemRat **itemRats = (ItemRat**) malloc(sizeof(ItemRat*)*5);
@@ -346,7 +336,8 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     //validation check
     if (iter % VAL_ITER == 0) {
       //validation err
-      valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
+      //valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
+      valTest[0] = model->_(validationErr) (model, data, NULL);
       //printf("\nIter:%d validation error: %f", iter, valTest[0]);
       if (iter > 0) {
         if (fabs(prevVal - valTest[0]) < EPS) {
@@ -364,8 +355,10 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   model->_(objective)(model, data, sim);
   
   //get train error
-  printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
-  printf("\nTest error: %f", model->_(testErr) (model, data, sim));
+  printf("\nTrain set error(modelMajority): %f", 
+      model->_(trainErr) (model, data, NULL));
+  printf("\nTest set error(modelMajority): %f", 
+      model->_(testErr) (model, data, NULL));
 
   //get test eror
   valTest[1] = model->_(indivItemSetErr) (model, data->testSet);

@@ -1,30 +1,5 @@
 #include "modelItemMatFac.h"
 
-void loadUserItemWtsFrmTrain(Data *data) {
-  int u, i, j;
-  UserSets *userSet = NULL;
-  ItemWtSets *itemWtSets = NULL;
-  RatingSet *trainSet = data->trainSet;
-  float rat = 0;
-  int notFoundCt = 0;
-  int foundCt = 0;
-  for (j = 0; j < trainSet->size; j++) {
-    u = trainSet->rats[j]->user;
-    i = trainSet->rats[j]->item;
-    rat = trainSet->rats[j]->rat;
-    userSet = data->userSets[u];
-    itemWtSets = UserSets_search(userSet, i);
-    if (NULL == itemWtSets) {
-      //printf("\nu:%d i:%d j:%d not found", u, i, j);
-      notFoundCt++;
-      continue;
-    }
-    foundCt++;
-    itemWtSets->wt = rat;
-  }
-  printf("\nfound:%d notFound: %d", foundCt, notFoundCt);
-}
-
 
 void initUserItemWeights(Data *data) {
 
@@ -144,6 +119,50 @@ void ModelItemMatFac_computeIGrad(ModelItemMatFac *model, int user, int item, fl
 }
 
 
+float ModelItemMatFac_majSetScore(void *self, int u, int *set, int setSz, 
+    float **sim) {
+   
+  int i, item, majSz;
+  float r_us_est = 0;
+  ModelItemMatFac *model = self;
+  ItemRat **itemRats = (ItemRat**) malloc(sizeof(ItemRat*)*setSz);
+  for (i = 0; i < setSz; i++) {
+    itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
+    memset(itemRats[i], 0, sizeof(ItemRat));
+  }
+
+  for (i = 0 ; i < setSz; i++) {
+    item = set[i];
+    itemRats[i]->item = item;
+    itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[item], 
+        model->_(facDim));
+  }
+  
+  qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
+  
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
+  
+  for (i = 0; i < majSz; i++) {
+    r_us_est += itemRats[i]->rating;
+    if (i > 0) {
+      assert(itemRats[i]->rating <= itemRats[i-1]->rating);
+    }
+  }
+  r_us_est = r_us_est/majSz;
+
+  //free itemRats
+  for (i = 0; i < setSz; i++) {
+    free(itemRats[i]);
+  }
+  free(itemRats);
+
+  return r_us_est;
+}
+
 void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     float *valTest) {
   
@@ -208,6 +227,8 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
   //printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
   
+  printf("\nTest set error(matfac): %f", model->_(testErr)(model, data, NULL));
+
   //get test eror
   valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
   
@@ -218,6 +239,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 
 Model ModelItemMatFacProto = {
   .objective               = ModelItemMatFac_objective,
+  .setScore                = ModelItemMatFac_majSetScore,
   .train                   = ModelItemMatFac_train,
   .validationErr           = ModelItemMatFac_validationErr
 };
