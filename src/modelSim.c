@@ -276,9 +276,9 @@ float ModelSim_objective(void *self, Data *data, float **sim) {
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
-    isTestValSet = 0;
     for (s = 0; s < userSet->numSets; s++) {
       
+      isTestValSet = 0;
       //check if set in test sets
       for (i = 0; i < userSet->szTestSet; i++) {
         if (s == userSet->testSets[i]) {

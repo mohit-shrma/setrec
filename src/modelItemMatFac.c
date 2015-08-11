@@ -203,6 +203,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     */
   }
 
+  model->_(objective) (model, data, sim);
   
   valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
   //printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);

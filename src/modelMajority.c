@@ -125,7 +125,7 @@ void ModelMajority_setScoreWMaxRat(void *self, int u, int *set, int setSz,
 
 float ModelMajority_objective(void *self, Data *data, float **sim) {
  
-  int u, i, s, item, setSz;
+  int u, i, s, item, setSz, isTestValSet;
   UserSets *userSet = NULL;
   int *set = NULL;
   float rmse = 0, diff = 0, userSetPref = 0;
@@ -138,7 +138,28 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     for (s = 0; s < userSet->numSets; s++) {
-     
+           
+      isTestValSet = 0;
+      //check if set in test sets
+      for (i = 0; i < userSet->szTestSet; i++) {
+        if (s == userSet->testSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+
+      //check if set in validation sets
+      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
+        if (s == userSet->valSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      if (isTestValSet) {
+        continue;
+      }
+ 
       set = userSet->uSets[s];
       setSz = userSet->uSetsSize[s];
       //get preference over set
@@ -177,7 +198,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
 
   int iter, u, i, j, k, s;
   UserSets *userSet;
-  int setSz, item, majSz;
+  int setSz, item, majSz, isTestValSet;
   int *set;
   float r_us, r_us_est, prevVal; //actual set preference
   float temp; 
@@ -204,10 +225,31 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   for (iter = 0; iter < params->maxIter; iter++) {
     for (u = 0; u < data->nUsers; u++) {
       userSet = data->userSets[u];
-
+      isTestValSet = 0;
       //select a non-test non-val set for user
       s = rand() % userSet->numSets;
-     
+      
+      //check if set in test sets
+      for (i = 0; i < userSet->szTestSet; i++) {
+        if (s == userSet->testSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      //check if set in validation sets
+      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
+        if (s == userSet->valSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      if (isTestValSet) {
+        continue;
+      }
+      
+  
       set       = userSet->uSets[s];
       setSz     = userSet->uSetsSize[s];
       r_us      = userSet->labels[s];
@@ -323,6 +365,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   
   //get train error
   printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
+  printf("\nTest error: %f", model->_(testErr) (model, data, sim));
 
   //get test eror
   valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
