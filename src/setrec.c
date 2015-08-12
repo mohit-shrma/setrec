@@ -30,18 +30,26 @@ void parse_cmd_line(int argc, char **argv) {
     params->facDim          = atoi(argv[4]);
     params->regU            = atof(argv[5]);
     params->regI            = atof(argv[6]);
-    params->learnRate       = atof(argv[7]);
-    params->useSim          = atoi(argv[8]);
-    params->maxIter         = atoi(argv[9]);
-    params->seed            = atoi(argv[10]);
-    params->train_set_file  = argv[11];
-    params->train_set_size  = atoi(argv[12]);
-    params->test_set_file   = argv[13];
-    params->test_set_size   = atoi(argv[14]);
-    params->val_set_file    = argv[15];
-    params->val_set_size    = atoi(argv[16]);
-    params->ext_setSim_file = argv[17];
-    params->constrainWt     = atof(argv[18]);
+    params->constrainWt     = atof(argv[7]);
+    params->learnRate       = atof(argv[8]);
+    params->useSim          = atoi(argv[9]);
+    params->maxIter         = atoi(argv[10]);
+    params->seed            = atoi(argv[11]);
+    
+    params->train_set_file  = argv[12];
+    params->train_set_size  = atoi(argv[13]);
+    
+    params->test_set_file   = argv[14];
+    params->test_set_size   = atoi(argv[15]);
+    
+    params->val_set_file    = argv[16];
+    params->val_set_size    = atoi(argv[17]);
+    
+    params->train_mat_file  = argv[18];
+    params->test_mat_file   = argv[19];
+    params->val_mat_file    = argv[20];
+    
+    params->ext_setSim_file = argv[21];
   }
 
   //initialize random seed

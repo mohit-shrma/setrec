@@ -1,19 +1,18 @@
 #include "modelCofiSet.h"
 
 //TODO: add threshold on rating value for sampling
-void samplePosSet(Data *data, int *posSet, int setSz) {
+void samplePosSet(Data *data, int u, int *posSet, int setSz) {
   
   int i, nItems, itemInd, item, found;
-  float rating;
-  UserSets *userSet = NULL;
- 
+  int nUserItems;
+  gk_csr_t *trainMat = data->trainMat;
+
   nItems = 0;
-  userSet = data->userSets[u];
+  nUserItems = trainMat->rowptr[u+1] - trainMat->rowptr[u];
   while (nItems < setSz) {
     found = 0;
-    itemInd = rand()%userSet->nUserItems;
-    item = userSet->itemWtSets[itemInd]->item;  
-    rating = userSet->itemWtSets[itemInd]->wt;  
+    itemInd = rand()%nUserItems;
+    item = trainMat->rowind[trainMat->rowptr[u] + itemInd];  
     for (i = 0; i < nItems; i++) {
       if (item == posSet[i]) {
         found = 1;
@@ -31,19 +30,18 @@ void samplePosSet(Data *data, int *posSet, int setSz) {
 }
 
 
-void sampleNegSet(Data *data, int *negSet, int setSz) {
+void sampleNegSet(Data *data, int u, int *negSet, int setSz) {
 
-  int i, nItems, itemInd, item, found;
-  float rating;
-  UserSets *userSet = NULL;
+  int ii, nItems, itemInd, item, found;
+  gk_csr_t *trainMat = data->trainMat;
+
   nItems = 0;
 
-  userSet = data->userSets[u];
   while (nItems < setSz) {
     found = 0;
-    item = rand()%data->nItems;
-    for (i = 0; i < userSet->nUserItems; i++) {
-      if (item == userSet->itemWtSets[i]->item) {
+    item = rand()%trainMat->ncols;
+    for (ii = trainMat->rowptr[u]; ii < trainMat->rowptr[u+1]; ii++) {
+      if (item == trainMat->rowind[ii]) {
         found = 1;
         break;
       }
@@ -63,10 +61,9 @@ void ModelCofi_train(void *self, Data *data, Params *params, float **sim,
     float *valTest) {
  
   int iter, u, i, j, k, s;
-  UserSets *userSet = NULL;
   ModelCofi *model = self;
   int setSz = 5, item;
-  float r_upa, expCoeff;
+  float r_upa, expCoeff, prevVal;
 
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float* uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -78,16 +75,15 @@ void ModelCofi_train(void *self, Data *data, Params *params, float **sim,
   
   for (iter = 0; iter < params->maxIter; iter++) {
     for (u = 0; u < data->nUsers; u++) {
-      userSet = data->userSets[u];
       memset(diffLatFac, 0, sizeof(float)*model->_(facDim));
       memset(posLatFac, 0, sizeof(float)*model->_(facDim));
       memset(negLatFac, 0, sizeof(float)*model->_(facDim));
 
       //sample a positive set for u
-      samplePosSet(data, posSet, setSz);
+      samplePosSet(data, u, posSet, setSz);
       
       //sample a negative set for u
-      sampleNegSet(data, negSet, setSz);
+      sampleNegSet(data, u, negSet, setSz);
 
       //sum lat fac from pos set
       for (i = 0; i < setSz; i++) {
@@ -142,23 +138,49 @@ void ModelCofi_train(void *self, Data *data, Params *params, float **sim,
       }
       
     }
+
+    //compute validation 
+    if (iter % VAL_ITER == 0) {
+      valTest[0] = model->_(hitRate)(model, data->trainMat, data->valMat);
+      if (iter > 0) {
+        if (fabs(prevVal - valTest[0]) < EPS) {
+          //exit the model train procedure
+          printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
+              prevVal, valTest[0], fabs(prevVal - valTest[0]));
+          break;
+        }
+      }
+      prevVal = valTest[0];
+    }
+
   }
 
-  
+  //get test hitrate
+  valTest[1] = model->_(hitRate)(model, data->trainMat, data->testMat);
+  printf("\nTest hit rate: %f", valTest[1]);
+
   free(iGrad);
   free(uGrad);
   free(diffLatFac);
   free(posLatFac);
   free(negLatFac);
   free(posSet);
-  free(negSet)
+  free(negSet);
 }
+
+
+Model ModelCofiProto = {
+  .train = ModelCofi_train
+};
 
 
 void modelCofi(Data *data, Params *params, float *valTest) {
   
-  loadUserItemWtsFrmTrain(data); 
-
+  ModelCofi *model = NEW(ModelCofi, "cofiset algo implementation");
+  model->_(init)(model, params->nUsers, params->nItems, params->facDim, 
+                  params->regU, params->regI, params->learnRate);
+  model->_(train)(model, data, params, NULL, valTest);
+  model->_(free);
 }
 
 

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "GKlib.h"
 #include "set.h"
 
 typedef struct {
@@ -23,6 +24,9 @@ typedef struct {
   int test_set_size;
   char *train_set_file;
   int train_set_size;
+  char *train_mat_file;
+  char *val_mat_file;
+  char *test_mat_file;
   int nUsers;
   int nItems;
   int facDim;
@@ -125,9 +129,15 @@ typedef struct {
   int nItems;
   
   UserSets **userSets;
+  
   RatingSet *testSet;
   RatingSet *valSet;  
   RatingSet *trainSet;
+  
+  gk_csr_t *trainMat;
+  gk_csr_t *valMat;
+  gk_csr_t *testMat;
+
 } Data;
 
 void Data_init(Data *self, int nUsers, int nItems);

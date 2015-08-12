@@ -255,6 +255,16 @@ void loadData(Data *data, Params *params) {
 
   //RatingSet_write(data->trainSet);
 
+  //read csr matrices
+  data->trainMat = gk_csr_Read(params->train_mat_file, GK_CSR_FMT_CSR, 1, 1);
+  gk_csr_CreateIndex(data->trainMat, GK_CSR_COL);
+
+  data->valMat = gk_csr_Read(params->val_mat_file, GK_CSR_FMT_CSR, 1, 1);
+  gk_csr_CreateIndex(data->valMat, GK_CSR_COL);
+  
+  data->testMat = gk_csr_Read(params->test_mat_file, GK_CSR_FMT_CSR, 1, 1);
+  gk_csr_CreateIndex(data->testMat, GK_CSR_COL);
+
   if (line) {
     free(line);
   }

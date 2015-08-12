@@ -51,6 +51,7 @@ typedef struct {
   float (*setSimilarity) (void *self, int *set, int setSz, float **sim);  
   void (*writeUserSetSim) (void *self, Data *data, float **sim, char *fName); 
   float (*indivItemSetErr) (void *self, RatingSet *ratSet);
+  float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
   void (*train) (void *self, Data *data, Params *params, float **Sim, float *valTest);
   void (*free) (void *self);
   void (*reset) (void *self);
@@ -78,6 +79,7 @@ float Model_trainClassLoss(void *self, Data *data, float **sim);
 float Model_userFacNorm(void *self, Data *data);
 float Model_itemFacNorm(void *Self, Data *data);
 float Model_indivItemSetErr(void *self, RatingSet *ratSet);
+float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 void *Model_new(size_t size, Model proto, char *description);
 
 #define NEW(T, N) Model_new(sizeof(T), T##Proto, N)

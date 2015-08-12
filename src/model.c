@@ -597,6 +597,59 @@ float Model_indivItemSetErr(void *self, RatingSet *ratSet) {
 }
 
 
+float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat) {
+  
+  int u, i, j, ii, jj;
+  int testItem;
+ 
+  int nItems            = trainMat->ncols;
+  float nHits           = 0;
+  Model *model          = self;
+  gk_fkv_t *itemPrefInd = gk_fkvmalloc(nItems, "hitrate on test");
+  int *isItemRated      = (int*) malloc(sizeof(int)*nItems);
+
+  for (u = 0; u < trainMat->nrows; u++) {
+    
+    //get test item
+    testItem = testMat->rowind[testMat->rowptr[u]];
+
+    //get items rated by user in train
+    memset(isItemRated, 0, sizeof(int)*nItems);
+    for (ii = trainMat->rowptr[u]; ii < trainMat->rowptr[u+1]; ii++) {
+      if (trainMat->rowval[ii]) {
+        isItemRated[trainMat->rowind[ii]] = 1;
+      }
+    }
+
+    //go over all items and predict rating
+    for (i = 0; i < nItems; i++) {
+      if (isItemRated[i]) {
+        itemPrefInd[i].key = 0;
+      } else {
+        itemPrefInd[i].key = dotProd(model->uFac[u], model->iFac[i], model->facDim);
+      }
+      itemPrefInd[i].val = i;
+    }
+
+    //put top-N largest in beginning of array
+    gk_dfkvkselect(nItems, 10, itemPrefInd);
+    
+    for (j = 0; j < 10; j++) {
+      if (itemPrefInd[j].val = testItem) {
+        //hit
+        nHits += 1.0;
+      }
+    }
+
+  }
+
+  gk_free((void **)&itemPrefInd, LTERM);
+  free(isItemRated);
+
+  return (nHits/trainMat->nrows);
+}
+
+
 void *Model_new(size_t size, Model proto, char *description) {
   
   //set up default methods if they are not set up
@@ -621,6 +674,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.setSimilarity) proto.setSimilarity             = Model_setSimilarity;
   if (!proto.indivItemSetErr) proto.indivItemSetErr         = Model_indivItemSetErr;
   if (!proto.writeUserSetSim) proto.writeUserSetSim         = Model_writeUserSetSim;
+  if (!proto.hitRate) proto.hitRate                         = Model_hitRate;
 
   //struct of one size
   Model *model = calloc(1, size);
