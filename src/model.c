@@ -616,7 +616,7 @@ float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat) {
     //get items rated by user in train
     memset(isItemRated, 0, sizeof(int)*nItems);
     for (ii = trainMat->rowptr[u]; ii < trainMat->rowptr[u+1]; ii++) {
-      if (trainMat->rowval[ii]) {
+      if (trainMat->rowval[ii] > 0) {
         isItemRated[trainMat->rowind[ii]] = 1;
       }
     }
@@ -635,7 +635,7 @@ float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat) {
     gk_dfkvkselect(nItems, 10, itemPrefInd);
     
     for (j = 0; j < 10; j++) {
-      if (itemPrefInd[j].val = testItem) {
+      if (itemPrefInd[j].val == testItem) {
         //hit
         nHits += 1.0;
       }

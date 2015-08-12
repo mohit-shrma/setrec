@@ -10,7 +10,10 @@ void ModelBPR_train(void *self, Data *data, Params *params, float **sim,
   gk_csr_t *trainMat   = data->trainMat;
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float* uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
-  
+ 
+  printf("\nValidation error: %f", model->_(hitRate)(model, 
+        data->trainMat, data->valMat));
+
   for (iter = 0; iter < params->maxIter; iter++) {
     for (u = 0; u < data->nUsers; u++) {
       nUserItems = trainMat->rowptr[u+1] - trainMat->rowptr[u];
@@ -40,6 +43,8 @@ void ModelBPR_train(void *self, Data *data, Params *params, float **sim,
       r_uij = dotProd(model->_(uFac)[u], model->_(iFac)[posItem], model->_(facDim)) -
               dotProd(model->_(uFac)[u], model->_(iFac)[negItem], model->_(facDim));
       expCoeff = -1.0/(1.0 + exp(r_uij));
+      
+      //printf("\nexpCoeff= %f", expCoeff);
 
       //compute user gradient
       for (j = 0; j < model->_(facDim); j++) {
@@ -74,15 +79,16 @@ void ModelBPR_train(void *self, Data *data, Params *params, float **sim,
     //compute validation 
     if (iter % VAL_ITER == 0) {
       valTest[0] = model->_(hitRate)(model, data->trainMat, data->valMat);
-      if (iter > 0) {
-        if (fabs(prevVal - valTest[0]) < EPS) {
+      //printf("\nIter: %d val err: %f val rmse Err: %f", iter, valTest[0], model->_(indivItemSetErr) (model, data->valSet));
+      if (iter % 100 == 0) {
+        if (iter > 0 && fabs(prevVal - valTest[0]) < EPS) {
           //exit the model train procedure
           printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
               prevVal, valTest[0], fabs(prevVal - valTest[0]));
           break;
         }
+        prevVal = valTest[0];
       }
-      prevVal = valTest[0];
     }
   
   }

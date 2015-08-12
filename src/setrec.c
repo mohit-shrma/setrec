@@ -20,7 +20,7 @@ void parse_cmd_line(int argc, char **argv) {
   simValTest = (float*) malloc(sizeof(float)*2);
   memset(simValTest, 0, sizeof(float)*2);
 
-  if (argc < 18) {
+  if (argc < 21) {
     printf("\n Error: need args");
     exit(0);
   } else {
@@ -73,13 +73,13 @@ void parse_cmd_line(int argc, char **argv) {
   
     //run baseline
     memset(tempValTest, 0, sizeof(float)*2);
-    modelItemMatFac(data, params, tempValTest);  
+    modelBPR(data, params, tempValTest);  
     baseValTest[0] += tempValTest[0];
     baseValTest[1] += tempValTest[1];  
 
     //learn model
     memset(tempValTest, 0, sizeof(float)*2);
-    modelMajority(data, params, tempValTest);
+    modelCofi(data, params, tempValTest);
     simValTest[0] += tempValTest[0];
     simValTest[1] += tempValTest[1];
 
@@ -102,9 +102,9 @@ void parse_cmd_line(int argc, char **argv) {
     Data_reset(data, params->nUsers, params->nItems);
   }
 
-  printf("\navg baseline validation: %f test: %f", baseValTest[0]/i, 
+  printf("\navg BPR validation: %f test: %f", baseValTest[0]/i, 
       baseValTest[1]/i);
-  printf("\navg majority validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
+  printf("\navg CofiSet validation: %f test: %f", simValTest[0]/i, simValTest[1]/i);
 
   printf("\nRE: %f %f %f %d %f %f %f %f %f", params->regU, params->regI, params->constrainWt,
       params->facDim, params->learnRate, baseValTest[0]/i, 

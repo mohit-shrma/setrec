@@ -142,15 +142,16 @@ void ModelCofi_train(void *self, Data *data, Params *params, float **sim,
     //compute validation 
     if (iter % VAL_ITER == 0) {
       valTest[0] = model->_(hitRate)(model, data->trainMat, data->valMat);
-      if (iter > 0) {
-        if (fabs(prevVal - valTest[0]) < EPS) {
+      //printf("\nIter: %d val err: %f val rmse Err: %f", iter, valTest[0], model->_(indivItemSetErr) (model, data->valSet));
+      if (iter % 100 == 0) {
+        if (iter > 0  && fabs(prevVal - valTest[0]) < EPS) {
           //exit the model train procedure
           printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
               prevVal, valTest[0], fabs(prevVal - valTest[0]));
           break;
         }
+        prevVal = valTest[0];
       }
-      prevVal = valTest[0];
     }
 
   }
@@ -180,7 +181,7 @@ void modelCofi(Data *data, Params *params, float *valTest) {
   model->_(init)(model, params->nUsers, params->nItems, params->facDim, 
                   params->regU, params->regI, params->learnRate);
   model->_(train)(model, data, params, NULL, valTest);
-  model->_(free);
+  model->_(free)(model);
 }
 
 

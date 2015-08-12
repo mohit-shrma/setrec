@@ -459,6 +459,9 @@ void Data_free(Data *self) {
   RatingSet_free(self->trainSet);
   RatingSet_free(self->testSet);
   RatingSet_free(self->valSet);
+  gk_csr_Free(&(self->trainMat));
+  gk_csr_Free(&(self->testMat));
+  gk_csr_Free(&(self->valMat));
   free(self);
 }
 
@@ -568,7 +571,6 @@ void RatingSet_free(RatingSet *ratSet) {
   free(ratSet->rats);
   free(ratSet);
 }
-
 
 
 int compItemRat(const void *elem1, const void *elem2) {
