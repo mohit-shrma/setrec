@@ -163,6 +163,7 @@ float ModelItemMatFac_majSetScore(void *self, int u, int *set, int setSz,
   return r_us_est;
 }
 
+
 void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     float *valTest) {
   
@@ -226,11 +227,93 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   
   valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
   //printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
-  
+ 
+  if (iter == params->maxIter) {
+    printf("\nNOT CONVERGED:Reached maximum iterations");
+  }
+
   printf("\nTest set error(matfac): %f", model->_(testErr)(model, data, NULL));
 
   //get test eror
   valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
+  
+  //printf("\nTest hit rate: %f", 
+  //    model->_(hitRate)(model, data->trainMat, data->testMat));
+  
+  free(iGrad);
+  free(uGrad);
+}
+
+
+void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **sim,
+    float *valTest) {
+  
+  int u, i, j, iter, item, nUserItems, itemInd;
+  ModelItemMatFac *model = self;
+  gk_csr_t *trainMat = data->trainMat;
+  float *iGrad = (float *) malloc(sizeof(float)*model->_(facDim));
+  float *uGrad = (float *) malloc(sizeof(float)*model->_(facDim));
+  float prevVal = 0, itemRat;
+
+  model->_(objective) (model, data, sim);
+
+  for (iter = 0; iter < params->maxIter; iter++) {
+    //update user and item latent factor pair
+    for (u = 0; u < data->nUsers; u++) {
+     
+      //sample item rated by user
+      nUserItems = trainMat->rowptr[u+1] - trainMat->rowptr[u];
+      itemInd = rand()%nUserItems; 
+      item = trainMat->rowind[trainMat->rowptr[u] + itemInd];
+      itemRat = trainMat->rowval[trainMat->rowptr[u] + itemInd]; 
+      
+      //user gradient
+      ModelItemMatFac_computeUGrad(model, u, item, itemRat, uGrad);
+
+      //update user
+      for (i = 0; i < model->_(facDim); i++) {
+        model->_(uFac)[u][i] -= model->_(learnRate)*uGrad[i];
+      }
+
+      //item gradient
+      ModelItemMatFac_computeIGrad(model, u, item, itemRat, iGrad);
+
+      //update item
+      for (i = 0; i < model->_(facDim); i++) {
+        model->_(iFac)[item][i] -= model->_(learnRate)*iGrad[i];
+      }
+
+    }
+
+    //validation
+    if (iter % VAL_ITER == 0) {
+      valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
+      //printf("\nIter:%d validation err:%f", iter, valTest[0]);
+      if (fabs(prevVal - valTest[0]) < EPS) {
+        printf("\nConverged in iterations: %d currVal:%f prevVal:%f", iter, valTest[0], prevVal);
+        break;
+      }
+      prevVal = valTest[0];
+    }
+
+  }
+
+  model->_(objective) (model, data, sim);
+  
+  valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
+  //printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
+ 
+  if (iter == params->maxIter) {
+    printf("\nNOT CONVERGED:Reached maximum iterations");
+  }
+
+  printf("\nTest set error(matfac): %f", model->_(testErr)(model, data, NULL));
+
+  //get test eror
+  valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
+  
+  //printf("\nTest hit rate: %f", 
+  //    model->_(hitRate)(model, data->trainMat, data->testMat));
   
   free(iGrad);
   free(uGrad);

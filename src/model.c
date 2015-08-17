@@ -584,6 +584,7 @@ float Model_indivItemSetErr(void *self, RatingSet *ratSet) {
     diff = rat - estRat;
 
     if (estRat != estRat) {
+      //nan check
       printf("\nu:%d i:%d estRat: %f rat:%f", user, item, estRat, rat);
       printf("\nuserFac Norm: %f itemFac Norm: %f", norm(model->uFac[user], model->facDim), norm(model->iFac[item], model->facDim));
       fflush(stdout);

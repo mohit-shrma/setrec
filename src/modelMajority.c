@@ -54,7 +54,12 @@ float ModelMajority_setScore(void *self, int u, int *set, int setSz,
   for (i = 0; i < majSz; i++) {
     r_us_est += itemRats[i]->rating;
     if (i > 0) {
-      assert(itemRats[i]->rating <= itemRats[i-1]->rating);
+      if (itemRats[i]->rating > itemRats[i-1]->rating) {
+        printf("\nTrain:Not in decreasing order:  %f %f", 
+            itemRats[i]->rating, itemRats[i-1]->rating);
+        fflush(stdout);
+        exit(0);
+      }
     }
   }
   r_us_est = r_us_est/majSz;
@@ -126,7 +131,7 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
   int nSets = 0;
   
   FILE *fp = NULL;
-  fp = fopen("constrVilOff.txt", "w");
+  //fp = fopen("constrVilOff.txt", "w");
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
@@ -166,7 +171,7 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
         //constraint violated
         rmse += model->constrainWt*(userSet->labels[s] - maxRat);
         constViolCt++;
-        fprintf(fp, "%f\n", userSet->labels[s]-maxRat);
+        //fprintf(fp, "%f\n", userSet->labels[s]-maxRat);
       }
       nSets++;
     }
@@ -183,7 +188,7 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
   printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f Constraint violation count: %d", 
       (rmse+uRegErr+iRegErr), rmse, uRegErr, iRegErr, constViolCt);
   
-  fclose(fp);
+  //fclose(fp);
   return (rmse + uRegErr + iRegErr);
 }
 
@@ -358,7 +363,11 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   }
 
   model->_(objective)(model, data, sim);
-  
+
+  if (iter == params->maxIter) {
+    printf("\nNOT CONVERGED:Reached maximum iterations");
+  }
+
   //get train error
   printf("\nTrain set error(modelMajority): %f", 
       model->_(trainErr) (model, data, NULL));
@@ -368,8 +377,8 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   //get test eror
   valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
 
-  printf("\nTest hit rate: %f", 
-      model->_(hitRate)(model, data->trainMat, data->testMat));
+  //printf("\nTest hit rate: %f", 
+  //    model->_(hitRate)(model, data->trainMat, data->testMat));
 
   //model->_(writeUserSetSim)(self, data, "userSetsSim.txt");
 
@@ -448,12 +457,17 @@ void ModelMajority_trainSampMedian(void *self, Data *data, Params *params,
   ModelMajority *model = self;
   int setSz = 5, item, majSz;
   float estPosRat, expCoeff, prevVal, posRat;
+  float uFacNorm, iFacNorm;
 
+  float* itemFac      = (float*) malloc(sizeof(float)*model->_(facDim));
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float* uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float* posLatFac     = (float*) malloc(sizeof(float)*model->_(facDim));
   int *posSet          = (int*) malloc(sizeof(int)*setSz);
   ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
+
+  memset(itemFac, 0, sizeof(float)*model->_(facDim));
+
   for (i = 0; i < 100; i++) {
     itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
     memset(itemRats[i], 0, sizeof(ItemRat));
@@ -527,6 +541,15 @@ void ModelMajority_trainSampMedian(void *self, Data *data, Params *params,
       //update user 
       coeffUpdate(model->_(uFac)[u], uGrad, model->_(regU),
           model->_(learnRate), model->_(facDim));
+      /*uFacNorm = norm(model->_(uFac)[u], model->_(facDim));
+      
+      if (uFacNorm != uFacNorm) {
+        //nan check
+        printf("\nuFac Norm: %f", uFacNorm);
+        fflush(stdout);
+        exit(0);
+      }
+      */
 
       //update items in  set
       for (i = 0; i < majSz; i++) {
@@ -538,8 +561,32 @@ void ModelMajority_trainSampMedian(void *self, Data *data, Params *params,
             iGrad[j] += -1.0*params->constrainWt*model->_(uFac)[u][j];
           }
         }
+        //check if gradient norm is nan
+        /*
+        iFacNorm = norm(iGrad, model->_(facDim));
+        if (iFacNorm != iFacNorm) {
+          //null check
+          printf("\nitem:%d iGrad Norm: %f ", item, iFacNorm);
+          fflush(stdout);
+          exit(0);
+        }
+        */
+        //memcpy(itemFac, model->_(iFac)[item], sizeof(float)*model->_(facDim));
+
         coeffUpdate(model->_(iFac)[item], iGrad, model->_(regI),
           model->_(learnRate), model->_(facDim));
+        /*
+        iFacNorm = norm(model->_(iFac)[item], model->_(facDim));
+        if (iFacNorm != iFacNorm) {
+          writeFloatVector(itemFac, model->_(facDim), "pre_fac.txt");
+          writeFloatVector(model->_(iFac)[item], model->_(facDim), "post_fac.txt");
+          writeFloatVector(iGrad, model->_(facDim), "igrad.txt");
+          //null check
+          printf("\nitem:%d iFac Norm: %f ", item, iFacNorm);
+          fflush(stdout);
+          exit(0);
+        }
+        */
       }
 
     }
@@ -576,6 +623,7 @@ void ModelMajority_trainSampMedian(void *self, Data *data, Params *params,
     free(itemRats[i]);
   }
   free(itemRats);
+  free(itemFac);
   free(iGrad);
   free(uGrad);
   free(posLatFac);
@@ -716,7 +764,7 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
 Model ModelMajorityProto = {
   .objective = ModelMajority_objective,
   .setScore = ModelMajority_setScore,
-  .train     = ModelMajority_trainSampMedian
+  .train     = ModelMajority_train
 };
 
 
