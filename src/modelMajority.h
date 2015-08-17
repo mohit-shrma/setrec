@@ -12,7 +12,7 @@ float ModelMajority_setScore(void *self, int u, int *set, int setSz,
     float **sim);
 float ModelMajority_objective(void *self, Data *data, float **sim);
 void ModelMajority_train(void *self, Data *data, Params *params, float **sim, 
-    float *valTest);
-void modelMajority(Data *data, Params *params, float *valTest);
+    ValTestRMSE *valTest);
+void modelMajority(Data *data, Params *params, ValTestRMSE *valTest);
 
 #endif

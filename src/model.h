@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define EPS 0.00000001
+#define EPS 0.000001
 #define OBJ_ITER 1
 #define VAL_CONV 1
 #define OBJ_CONV 1
@@ -52,13 +52,14 @@ typedef struct {
   void (*writeUserSetSim) (void *self, Data *data, float **sim, char *fName); 
   float (*indivItemSetErr) (void *self, RatingSet *ratSet);
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
-  void (*train) (void *self, Data *data, Params *params, float **Sim, float *valTest);
+  void (*train) (void *self, Data *data, Params *params, float **Sim, ValTestRMSE *valTest);
   void (*free) (void *self);
   void (*reset) (void *self);
   
 } Model;
 
-void Model_init(void *self, int nUsers, int nItems, int facDim, float regU, float regI, float learnRate);
+void Model_init(void *self, int nUsers, int nItems, int facDim, float regU, 
+    float regI, float learnRate);
 void Model_reset(void *self);
 void Model_free(void *self);
 void Model_describe(void *self);
@@ -67,7 +68,7 @@ float Model_objective(void *self, Data *data, float **sim);
 float Model_setScore(void *self, int user, int *set, int setSz, float **sim);
 float Model_setSimilarity(void *self, int *set, int setSz, float **sim);
 void Model_writeUserSetSim(void *self, Data *data, float **sim, char *fName);
-void Model_train(void *self, Data *data, Params *params, float **Sim, float *valTest);
+void Model_train(void *self, Data *data, Params *params, float **Sim, ValTestRMSE *valTest);
 float Model_validationErr(void *self, Data *data, float **sim);
 float Model_hingeValErr(void *self, Data *data, float **sim);
 float Model_validationClassLoss(void *self, Data *data, float **sim);

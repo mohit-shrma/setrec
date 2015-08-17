@@ -194,7 +194,7 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
 
 
 void ModelMajority_train(void *self, Data *data, Params *params, float **sim, 
-    float *valTest) {
+    ValTestRMSE *valTest) {
 
   int iter, u, i, j, k, s;
   UserSets *userSet;
@@ -346,18 +346,16 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     //validation check
     if (iter % VAL_ITER == 0) {
       //validation err
-      //valTest[0] = model->_(indivItemSetErr) (model, data->valSet);
-      valTest[0] = model->_(validationErr) (model, data, NULL);
-      //printf("\nIter:%d validation error: %f", iter, valTest[0]);
+      valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
       if (iter > 0) {
-        if (fabs(prevVal - valTest[0]) < EPS) {
+        if (fabs(prevVal - valTest->valSetRMSE) < EPS) {
           //exit the model train procedure
           printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
-              prevVal, valTest[0], fabs(prevVal - valTest[0]));
+              prevVal, valTest->valSetRMSE, fabs(prevVal - valTest->valSetRMSE));
           break;
         }
       }
-      prevVal = valTest[0];
+      prevVal = valTest->valSetRMSE;
     }
     
   }
@@ -369,13 +367,13 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   }
 
   //get train error
-  printf("\nTrain set error(modelMajority): %f", 
-      model->_(trainErr) (model, data, NULL));
-  printf("\nTest set error(modelMajority): %f", 
-      model->_(testErr) (model, data, NULL));
+  valTest->trainSetRMSE = model->_(trainErr)(model, data, NULL); 
+  printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
+  valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
+  printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
 
   //printf("\nTest hit rate: %f", 
   //    model->_(hitRate)(model, data->trainMat, data->testMat));
@@ -768,7 +766,7 @@ Model ModelMajorityProto = {
 };
 
 
-void modelMajority(Data *data, Params *params, float *valTest) {
+void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
   
   ModelMajority *model = NEW(ModelMajority, 
                               "set prediction with majority score");  

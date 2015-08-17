@@ -25,7 +25,7 @@ LIBS = $(STDLIBS) $(EXT_LIBS)
 CFLAGS = $(COPTIONS) -I$(GKINCHOME)  
 #CFLAGS=  -I. $(OPTFLAGS) 
 
-setrec: model.o modelCofiSet.o modelBPR.o modelMajority.o modelAddSim.o modelNoSim.o modelHingeProdSim.o modelCoOccSim.o modelItemMatFac.o modelRand.o modelBaseline.o modelSim.o modelWOSim.o set.o util.o io.o datastruct.o setrec.o 
+setrec: model.o modelMajority.o modelItemMatFac.o set.o util.o io.o datastruct.o setrec.o 
 	$(CC) $^ $(CFLAGS) $(LIBS) $(LIBSDIR) $(EXT_LIBS_DIR) -o $@
 
 

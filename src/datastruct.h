@@ -9,6 +9,16 @@
 #include "GKlib.h"
 #include "set.h"
 
+
+typedef struct {
+  float valItemsRMSE;
+  float testItemsRMSE;
+  float valSetRMSE;
+  float testSetRMSE;
+  float trainSetRMSE;
+} ValTestRMSE;
+
+
 typedef struct {
   float corr;
   float misClassLoss;

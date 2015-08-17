@@ -108,7 +108,7 @@ float Model_setScore(void *self, int user, int *set, int setSz, float **sim) {
 }
 
 
-void Model_train(void *self, Data *data, Params *params, float **Sim, float *valTest) {
+void Model_train(void *self, Data *data, Params *params, float **Sim, ValTestRMSE *valTest) {
   printf("\nModel specific training procedure");
 }
 
