@@ -217,12 +217,12 @@ def writeMap(m, opName):
 
 
 def main():
-  ratFileName = sys.argv[1]
-  setSize = int(sys.argv[2])
-  thresh = float(sys.argv[3])
+  ratFileName  = sys.argv[1]
+  setSize      = int(sys.argv[2])
+  thresh       = float(sys.argv[3])
   nSetsPerUser = int(sys.argv[4])
-  seed = int(sys.argv[5])
-  opFileName = sys.argv[6]
+  seed         = int(sys.argv[5])
+  opFileName   = sys.argv[6]
 
   random.seed(seed)
 
