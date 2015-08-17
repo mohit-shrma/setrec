@@ -13,6 +13,7 @@
 typedef struct {
   float valItemsRMSE;
   float testItemsRMSE;
+  float trainItemsRMSE;
   float valSetRMSE;
   float testSetRMSE;
   float trainSetRMSE;

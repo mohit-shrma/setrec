@@ -76,9 +76,11 @@ void parse_cmd_line(int argc, char **argv) {
   //srand(params->seed + (i+1));
   //Data_reset(data, params->nUsers, params->nItems);
 
-  printf("\nRE: %f %f %f %d %f %f %f %f %f", 
+  printf("\nRE: %f %f %f %d %f %f %f %f %f %f %f %f %f", 
       params->regU, params->regI, params->constrainWt, params->facDim, params->learnRate, 
+      baseValTest->trainItemsRMSE, modelValTest->trainItemsRMSE,
       baseValTest->testItemsRMSE, modelValTest->testItemsRMSE,
+      baseValTest->trainSetRMSE, modelValTest->trainSetRMSE,
       baseValTest->testSetRMSE, modelValTest->testSetRMSE);
 
   Data_free(data);  

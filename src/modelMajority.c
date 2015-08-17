@@ -366,14 +366,18 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     printf("\nNOT CONVERGED:Reached maximum iterations");
   }
 
-  //get train error
+  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
+  printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
+
   valTest->trainSetRMSE = model->_(trainErr)(model, data, NULL); 
   printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
+  
   valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
   valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
   //    model->_(hitRate)(model, data->trainMat, data->testMat));
@@ -773,6 +777,10 @@ void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
   model->_(init)(model, params->nUsers, params->nItems, params->facDim, 
                   params->regU, params->regI, params->learnRate);
   model->constrainWt = params->constrainWt;
+  
+  //load user item weights from train: needed to compute training on indiv items
+  //in training sets
+  loadUserItemWtsFrmTrain(data);
   
   //testItemRat();
   

@@ -231,13 +231,21 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   if (iter == params->maxIter) {
     printf("\nNOT CONVERGED:Reached maximum iterations");
   }
-  
+ 
+  valTest->trainSetRMSE = model->_(trainErr) (model, data, NULL);
+  printf("\nTrain set error(matfac): %f", valTest->trainSetRMSE);
+
   valTest->testSetRMSE = model->_(testErr)(model, data, NULL); 
   printf("\nTest set error(matfac): %f", valTest->testSetRMSE);
 
   //get test eror
   valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
-  
+  printf("\nTest items error(matfac): %f", valTest->testItemsRMSE);
+ 
+  //get train error
+  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
+  printf("\nTrain set indiv error(matfac): %f", valTest->trainItemsRMSE);
+
   //printf("\nTest hit rate: %f", 
   //    model->_(hitRate)(model, data->trainMat, data->testMat));
   

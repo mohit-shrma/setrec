@@ -598,6 +598,33 @@ float Model_indivItemSetErr(void *self, RatingSet *ratSet) {
 }
 
 
+float Model_indivTrainSetsErr(void *self, Data *data) {
+  
+  int u, i, item;
+  UserSets *userSet = NULL;
+  Model *model = self;
+  float rmse = 0, diff; 
+  int nItems = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->nUserItems; i++) {
+      item = userSet->itemWtSets[i]->item;
+      //NOTE: following assumes that their actual ratings are loaded in
+      //itemWtSets->wt
+      diff = (userSet->itemWtSets[i]->wt - 
+          dotProd(model->uFac[u], model->iFac[item], model->facDim));
+      rmse += diff*diff;
+      nItems++;
+    }
+  }
+  
+  rmse = sqrt(rmse/(nItems*1.0)); 
+
+  return rmse;
+}
+
+
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat) {
   
   int u, i, j, ii, jj;
@@ -676,7 +703,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.indivItemSetErr) proto.indivItemSetErr         = Model_indivItemSetErr;
   if (!proto.writeUserSetSim) proto.writeUserSetSim         = Model_writeUserSetSim;
   if (!proto.hitRate) proto.hitRate                         = Model_hitRate;
-
+  if (!proto.indivTrainSetsErr) proto.indivTrainSetsErr     = Model_indivTrainSetsErr;                         
   //struct of one size
   Model *model = calloc(1, size);
   //copy from proto to model or point a different pointer to cast it
