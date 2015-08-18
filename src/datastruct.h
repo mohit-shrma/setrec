@@ -17,6 +17,7 @@ typedef struct {
   float valSetRMSE;
   float testSetRMSE;
   float trainSetRMSE;
+  float setObj;
 } ValTestRMSE;
 
 
@@ -38,6 +39,8 @@ typedef struct {
   char *train_mat_file;
   char *val_mat_file;
   char *test_mat_file;
+  char *uFacFileName;
+  char *iFacFileName;
   int nUsers;
   int nItems;
   int facDim;
@@ -135,10 +138,9 @@ void RatingSet_free(RatingSet *self);
 
 
 typedef struct {
-  
   int nUsers;
   int nItems;
-  
+
   UserSets **userSets;
   
   RatingSet *testSet;
@@ -149,6 +151,9 @@ typedef struct {
   gk_csr_t *valMat;
   gk_csr_t *testMat;
 
+  int facDim;
+  float **uFac;
+  float **iFac;
 } Data;
 
 void Data_init(Data *self, int nUsers, int nItems);

@@ -47,6 +47,8 @@ void parse_cmd_line(int argc, char **argv) {
     params->val_mat_file    = argv[20];
     
     params->ext_setSim_file = argv[21];
+    params->uFacFileName = NULL;
+    params->iFacFileName = NULL;
   }
 
   //initialize random seed

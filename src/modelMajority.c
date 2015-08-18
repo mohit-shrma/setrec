@@ -185,8 +185,8 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
   }
   iRegErr *= model->_(regI);
   
-  printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f Constraint violation count: %d", 
-      (rmse+uRegErr+iRegErr), rmse, uRegErr, iRegErr, constViolCt);
+  //printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f Constraint violation count: %d", 
+  //    (rmse+uRegErr+iRegErr), rmse, uRegErr, iRegErr, constViolCt);
   
   //fclose(fp);
   return (rmse + uRegErr + iRegErr);
@@ -200,7 +200,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   UserSets *userSet;
   int setSz, item, majSz, isTestValSet;
   int *set;
-  float r_us, r_us_est, prevVal; //actual set preference
+  float r_us, r_us_est, prevVal, prevObj; //actual set preference
   float temp; 
   ModelMajority *model = self;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -220,7 +220,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
   
   //get objective
-  model->_(objective)(model, data, sim);
+  printf("\nInit Obj: %f", model->_(objective)(model, data, sim));
   
   for (iter = 0; iter < params->maxIter; iter++) {
     for (u = 0; u < data->nUsers; u++) {
@@ -338,8 +338,16 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     //objective check
     /*
     if (iter % OBJ_ITER == 0) {
-      printf("\nuserFacNorm:%f itemFacNorm:%f", model->_(userFacNorm)(self, data), model->_(itemFacNorm)(self, data));
-      model->_(objective)(model, data, sim);
+      valTest->setObj = model->_(objective)(model, data, sim);
+      if (iter > 0) {
+        if (fabs(prevObj - valTest->setObj) < EPS) {
+          //exit train procedure
+          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+              prevObj, valTest->setObj);
+          break;
+        }
+      }
+      prevObj = valTest->setObj;
     }
     */
 
@@ -360,7 +368,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     
   }
 
-  model->_(objective)(model, data, sim);
+  printf("\nEnd Obj: %f", model->_(objective)(model, data, sim));
 
   if (iter == params->maxIter) {
     printf("\nNOT CONVERGED:Reached maximum iterations");
@@ -635,7 +643,7 @@ void ModelMajority_trainSampMedian(void *self, Data *data, Params *params,
 
 
 void ModelMajority_trainSamp(void *self, Data *data, Params *params, 
-    float **sim, float *valTest) {
+    float **sim, ValTestRMSE *valTest) {
    
   int iter, u, i, j, k, s;
   ModelMajority *model = self;
@@ -726,32 +734,30 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
     //validation check
     if (iter % VAL_ITER == 0) {
       //validation err
-      valTest[0] = model->_(validationErr) (model, data, NULL);
+      valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
       //printf("\nIter:%d validation error: %f", iter, valTest[0]);
       if (iter > 0) {
-        if (fabs(prevVal - valTest[0]) < EPS) {
+        if (fabs(prevVal - valTest->valSetRMSE) < EPS) {
           //exit the model train procedure
           printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
-              prevVal, valTest[0], fabs(prevVal - valTest[0]));
+              prevVal, valTest->valSetRMSE, fabs(prevVal - valTest->valSetRMSE));
           break;
         }
       }
-      prevVal = valTest[0];
+      prevVal = valTest->valSetRMSE;
     }
 
   }
-  
-  //get test error on set
-  printf("\nTest set error(modelMajority): %f", 
-      model->_(testErr) (model, data, NULL));
+ 
+  valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
+  printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest[1] = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
-  printf("\nTest hit rate: %f", 
-      model->_(hitRate)(model, data->trainMat, data->testMat));
-
-  for (i = 0; i < 100; i++) {
+ 
+   for (i = 0; i < 100; i++) {
     free(itemRats[i]);
   }
   free(itemRats);

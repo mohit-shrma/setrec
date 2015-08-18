@@ -434,7 +434,9 @@ void Data_init(Data *self, int nUsers, int nItems) {
   for (i = 0; i < nUsers; i++) {
     self->userSets[i] = (UserSets*) malloc(sizeof(UserSets));
   }
-  
+ 
+  self->uFac = NULL;
+  self->iFac = NULL;
 }
 
 
@@ -462,6 +464,18 @@ void Data_free(Data *self) {
   gk_csr_Free(&(self->trainMat));
   gk_csr_Free(&(self->testMat));
   gk_csr_Free(&(self->valMat));
+  if (self->uFac) {
+    for (i = 0; i < self->nUsers; i++) {
+      free(self->uFac[i]);
+    }
+    free(self->uFac);
+  }
+  if (self->iFac) {
+    for (i = 0; i < self->nItems; i++) {
+      free(self->iFac[i]);
+    }
+    free(self->iFac);
+  }
   free(self);
 }
 

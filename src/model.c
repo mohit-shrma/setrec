@@ -678,6 +678,31 @@ float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat) {
 }
 
 
+float Model_cmpLoadedFac(void *self, Data *data) {
+  int u, i, j;
+  Model *model = self;
+  float uSumSqFacDiff = 0.0;
+  float iSumSqFacDiff = 0.0;
+  
+  for (u = 0; u < data->nUsers; u++) {
+    for (j = 0; j < model->facDim; j++) {
+      uSumSqFacDiff += pow(model->uFac[u][j] - data->uFac[u][j], 2);    
+    }
+  }
+ 
+  for (i = 0; i < data->nItems; i++) {
+    for (j = 0; j < model->facDim; j++) {
+      iSumSqFacDiff += pow(model->iFac[i][j] - data->iFac[i][j], 2);
+    }
+  }
+
+  printf("\nuFacNormDiff = %f, iFacNormDiff = %f", sqrt(uSumSqFacDiff), 
+      sqrt(iSumSqFacDiff));
+  
+  return (uSumSqFacDiff + iSumSqFacDiff) / 2.0;
+}
+
+
 void *Model_new(size_t size, Model proto, char *description) {
   
   //set up default methods if they are not set up
@@ -703,7 +728,9 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.indivItemSetErr) proto.indivItemSetErr         = Model_indivItemSetErr;
   if (!proto.writeUserSetSim) proto.writeUserSetSim         = Model_writeUserSetSim;
   if (!proto.hitRate) proto.hitRate                         = Model_hitRate;
-  if (!proto.indivTrainSetsErr) proto.indivTrainSetsErr     = Model_indivTrainSetsErr;                         
+  if (!proto.indivTrainSetsErr) proto.indivTrainSetsErr     = Model_indivTrainSetsErr;
+  if (!proto.cmpLoadedFac) proto.cmpLoadedFac               = Model_cmpLoadedFac;
+    
   //struct of one size
   Model *model = calloc(1, size);
   //copy from proto to model or point a different pointer to cast it

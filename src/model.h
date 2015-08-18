@@ -53,6 +53,7 @@ typedef struct {
   float (*indivItemSetErr) (void *self, RatingSet *ratSet);
   float (*indivTrainSetsErr) (void *self, Data *data);
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
+  float (*cmpLoadedFac) (void *self, Data *data);
   void (*train) (void *self, Data *data, Params *params, float **Sim, ValTestRMSE *valTest);
   void (*free) (void *self);
   void (*reset) (void *self);
@@ -83,6 +84,7 @@ float Model_itemFacNorm(void *Self, Data *data);
 float Model_indivItemSetErr(void *self, RatingSet *ratSet);
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 float Model_indivTrainSetsErr(void *self, Data *data);
+float Model_cmpLoadedFac(void *self, Data *data);
 void *Model_new(size_t size, Model proto, char *description);
 
 #define NEW(T, N) Model_new(sizeof(T), T##Proto, N)
