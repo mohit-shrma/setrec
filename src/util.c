@@ -104,6 +104,12 @@ void writeMat(float **mat, int nrows, int ncols, char *fileName) {
   FILE *fp = NULL;
   int i, j;
   fp = fopen(fileName, "w");
+
+  if (fp == NULL) {
+    printf("\nCan't open file %s", fileName);
+    exit(0);
+  }
+  
   for (i = 0; i < nrows; i++) {
     for (j = 0; j < ncols; j++) {
       fprintf(fp, "%f ", mat[i][j]);
@@ -111,6 +117,19 @@ void writeMat(float **mat, int nrows, int ncols, char *fileName) {
     fprintf(fp, "\n");
   }
   fclose(fp);
+}
+
+
+void copyMat(float **fromMat, float **toMat, int nrows, int ncols) {
+  
+  int i, j;
+  for (i = 0; i < nrows; i++) {
+    for (j = 0; j < ncols; j++) {
+      toMat[i][j] = fromMat[i][j];
+    }
+    //memcpy(toMat[i], fromMat[i], sizeof(float)*ncols);
+  }
+
 }
 
 

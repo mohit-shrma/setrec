@@ -625,6 +625,39 @@ float Model_indivTrainSetsErr(void *self, Data *data) {
 }
 
 
+float Model_indivItemCSRErr(void *self, gk_csr_t *mat, char *opFName) {
+  int u, ii, i, jj, j, item;
+  float diff = 0, itemRat, estItemRat;
+  int nnz = 0;
+  Model *model = self;
+  FILE *fp = NULL;
+  
+  if (opFName) {
+    fp = fopen(opFName, "w");
+  }
+
+  for (u = 0; u < mat->nrows; u++) {
+    for (ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      item = mat->rowind[ii];
+      itemRat = mat->rowval[ii];
+      estItemRat = dotProd(model->uFac[u], model->iFac[item], model->facDim);
+      if (fp) {
+        fprintf(fp, "%d,%d,%f,%f\n", u, item, itemRat, estItemRat);
+      }
+
+      diff += (itemRat - estItemRat)*(itemRat - estItemRat);
+      nnz++;
+    }
+  }
+  if (fp) {
+    fclose(fp);
+  }
+
+  return sqrt(diff/nnz);
+
+}
+
+
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat) {
   
   int u, i, j, ii, jj;
@@ -730,7 +763,8 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.hitRate) proto.hitRate                         = Model_hitRate;
   if (!proto.indivTrainSetsErr) proto.indivTrainSetsErr     = Model_indivTrainSetsErr;
   if (!proto.cmpLoadedFac) proto.cmpLoadedFac               = Model_cmpLoadedFac;
-    
+  if (!proto.indivItemCSRErr) proto.indivItemCSRErr         = Model_indivItemCSRErr;
+
   //struct of one size
   Model *model = calloc(1, size);
   //copy from proto to model or point a different pointer to cast it

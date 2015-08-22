@@ -196,11 +196,11 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
 void ModelMajority_train(void *self, Data *data, Params *params, float **sim, 
     ValTestRMSE *valTest) {
 
-  int iter, u, i, j, k, s;
+  int iter, subIter, u, i, j, k, s, numAllSets;
   UserSets *userSet;
   int setSz, item, majSz, isTestValSet;
   int *set;
-  float r_us, r_us_est, prevVal, prevObj; //actual set preference
+  float r_us, r_us_est, prevObj; //actual set preference
   float temp; 
   ModelMajority *model = self;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -214,7 +214,12 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     memset(itemRats[i], 0, sizeof(ItemRat));
   }
 
-  prevVal = 0.0;
+  numAllSets = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    numAllSets += data->userSets[u]->numSets;
+  }
+
+  printf("\nnumAllSets: %d", numAllSets);
 
   //get train error
   printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
@@ -223,7 +228,11 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   printf("\nInit Obj: %f", model->_(objective)(model, data, sim));
   
   for (iter = 0; iter < params->maxIter; iter++) {
-    for (u = 0; u < data->nUsers; u++) {
+    for (subIter = 0; subIter < numAllSets; subIter++) {
+      
+      //sample u
+      u = rand() % data->nUsers;
+      
       userSet = data->userSets[u];
       isTestValSet = 0;
       //select a non-test non-val set for user
@@ -248,7 +257,6 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
       if (isTestValSet) {
         continue;
       }
-      
   
       set       = userSet->uSets[s];
       setSz     = userSet->uSetsSize[s];
@@ -336,7 +344,6 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     }
     
     //objective check
-    /*
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
       if (iter > 0) {
@@ -349,9 +356,10 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
       }
       prevObj = valTest->setObj;
     }
-    */
+    
 
     //validation check
+    /*
     if (iter % VAL_ITER == 0) {
       //validation err
       valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
@@ -365,10 +373,11 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
       }
       prevVal = valTest->valSetRMSE;
     }
+    */
     
   }
 
-  printf("\nEnd Obj: %f", model->_(objective)(model, data, sim));
+  printf("\nEnd Obj: %f", valTest->setObj);
 
   if (iter == params->maxIter) {
     printf("\nNOT CONVERGED:Reached maximum iterations");
@@ -647,7 +656,7 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
    
   int iter, u, i, j, k, s;
   ModelMajority *model = self;
-  int setSz = 5, item, majSz;
+  int setSz = 5, item, majSz, subIter;
   float estPosRat, expCoeff, prevVal, posRat;
 
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -661,7 +670,9 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
   }
 
   for (iter = 0; iter < params->maxIter; iter++) {
-    for (u = 0; u < data->nUsers; u++) {
+    for (subIter = 0; subIter < 50000; subIter++) {
+
+      u = rand() % data->nUsers;
 
       //sample a positive set for u
       samplePosSetNRat(data, u, posSet, setSz, &posRat);
@@ -792,7 +803,14 @@ void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
   
   //train model 
   model->_(train)(model, data,  params, NULL, valTest);
-  
+ 
+  //compare model with loaded latent factors if any
+  //model->_(cmpLoadedFac)(model, data);
+
+  //save model latent factors
+  //writeMat(model->_(uFac), params->nUsers, model->_(facDim), "modelMajUFac.txt");
+  //writeMat(model->_(iFac), params->nItems, model->_(facDim), "modelMajIFac.txt");
+
   model->_(free)(model);
 }
 

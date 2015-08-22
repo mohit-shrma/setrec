@@ -17,5 +17,6 @@ void writeFloatVector(float *vec, int n, char *fileName);
 void writeMat(float **mat, int nrows, int ncols, char *fileName);
 double generateGaussianNoise(double mu, double sigma);
 void writeUpperMat(float **mat, int nrows, int ncols, char *fileName);
+void copyMat(float **fromMat, float **toMat, int nrows, int ncols);
 
 #endif

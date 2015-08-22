@@ -17,7 +17,7 @@ void parse_cmd_line(int argc, char **argv) {
   memset(baseValTest, 0, sizeof(ValTestRMSE));
   memset(modelValTest, 0, sizeof(ValTestRMSE));
 
-  if (argc < 21) {
+  if (argc < 23) {
     printf("\n Error: need args");
     exit(0);
   } else {
@@ -47,8 +47,8 @@ void parse_cmd_line(int argc, char **argv) {
     params->val_mat_file    = argv[20];
     
     params->ext_setSim_file = argv[21];
-    params->uFacFileName = NULL;
-    params->iFacFileName = NULL;
+    params->uFacFileName    = NULL;//argv[22];
+    params->iFacFileName    = NULL;//argv[23];
   }
 
   //initialize random seed
@@ -78,12 +78,13 @@ void parse_cmd_line(int argc, char **argv) {
   //srand(params->seed + (i+1));
   //Data_reset(data, params->nUsers, params->nItems);
 
-  printf("\nRE: %f %f %f %d %f %f %f %f %f %f %f %f %f", 
+  printf("\nRE: %f %f %f %d %f %f %f %f %f %f %f %f %f %f %f", 
       params->regU, params->regI, params->constrainWt, params->facDim, params->learnRate, 
       baseValTest->trainItemsRMSE, modelValTest->trainItemsRMSE,
       baseValTest->testItemsRMSE, modelValTest->testItemsRMSE,
       baseValTest->trainSetRMSE, modelValTest->trainSetRMSE,
-      baseValTest->testSetRMSE, modelValTest->testSetRMSE);
+      baseValTest->testSetRMSE, modelValTest->testSetRMSE,
+      baseValTest->setObj, modelValTest->setObj);
 
   Data_free(data);  
   free(params);

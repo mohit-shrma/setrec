@@ -12,7 +12,7 @@
 #define OBJ_CONV 1
 #define VAL_ITER 1
 
-typedef struct {
+typedef struct { 
   int nUsers;
   int nItems;
   
@@ -52,6 +52,7 @@ typedef struct {
   void (*writeUserSetSim) (void *self, Data *data, float **sim, char *fName); 
   float (*indivItemSetErr) (void *self, RatingSet *ratSet);
   float (*indivTrainSetsErr) (void *self, Data *data);
+  float (*indivItemCSRErr) (void *self, gk_csr_t *mat, char *opName); 
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
   float (*cmpLoadedFac) (void *self, Data *data);
   void (*train) (void *self, Data *data, Params *params, float **Sim, ValTestRMSE *valTest);
@@ -84,6 +85,7 @@ float Model_itemFacNorm(void *Self, Data *data);
 float Model_indivItemSetErr(void *self, RatingSet *ratSet);
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 float Model_indivTrainSetsErr(void *self, Data *data);
+float Model_indivItemCSRErr(void *self, gk_csr_t *mat, char *opName);
 float Model_cmpLoadedFac(void *self, Data *data);
 void *Model_new(size_t size, Model proto, char *description);
 

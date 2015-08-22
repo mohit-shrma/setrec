@@ -79,7 +79,39 @@ float ModelItemMatFac_objective(void *self, Data *data, float **sim) {
   
   obj = rmse + uRegErr + iRegErr;
 
-  printf("\nObj: %f SE: %f uRegEr: %f iRegErr:%f", obj, rmse, uRegErr, iRegErr);
+  //printf("\nObj: %f SE: %f uRegEr: %f iRegErr:%f", obj, rmse, uRegErr, iRegErr);
+
+  return obj;
+}
+
+
+float ModelItemMatFac_objectiveSamp(void *self, Data *data, float **sim) {
+  
+  int u, i, ii, item, itemInd;
+  gk_csr_t *trainMat = data->trainMat;
+  ModelItemMatFac *model = self;
+  float rmse = 0, uRegErr = 0, iRegErr = 0, obj = 0, diff;
+  float itemRat;
+
+  for (u = 0; u < data->nUsers; u++) {
+    for (ii = trainMat->rowptr[u]; ii < trainMat->rowptr[u+1]; ii++) {
+      item = trainMat->rowind[ii];
+      itemRat = trainMat->rowval[ii];
+      diff = itemRat - dotProd(model->_(uFac)[u], model->_(iFac)[item], model->_(facDim));
+      rmse += diff*diff;
+    }
+    uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
+  }
+  uRegErr = uRegErr*model->_(regU);
+
+  for (i = 0; i < data->nItems; i++) {
+    iRegErr += dotProd(model->_(iFac)[i], model->_(iFac)[i], model->_(facDim));
+  }
+  iRegErr = iRegErr*model->_(regI);
+  
+  obj = rmse + uRegErr + iRegErr;
+
+  //printf("\nObj: %f SE: %f uRegEr: %f iRegErr:%f", obj, rmse, uRegErr, iRegErr);
 
   return obj;
 }
@@ -173,7 +205,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   ItemWtSets *itemWtSets = NULL;
   float *iGrad = (float *) malloc(sizeof(float)*model->_(facDim));
   float *uGrad = (float *) malloc(sizeof(float)*model->_(facDim));
-  float prevVal = 0;
+  float prevVal = 0, prevObj = 0;
 
   model->_(objective) (model, data, sim);
 
@@ -205,6 +237,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     }
 
     //validation
+    /*
     if (iter % VAL_ITER == 0) {
       valTest->valItemsRMSE = model->_(indivItemSetErr) (model, data->valSet);
       //printf("\nIter:%d validation err:%f", iter, valTest->valItemsRMSE);
@@ -215,17 +248,24 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
       }
       prevVal = valTest->valItemsRMSE;
     }
+    */
 
     //objective check
-    /*
     if (iter % OBJ_ITER == 0) {
-      model->_(objective) (model, data, sim);
+      valTest->setObj = model->_(objective)(model, data, sim);
+      if (iter > 0) {
+        if (fabs(prevObj - valTest->setObj) < EPS) {
+          //exit train procedure
+          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+              prevObj, valTest->setObj);
+          break;
+        }
+      }
+      prevObj = valTest->setObj;
     }
-    */
+    
   }
 
-  model->_(objective) (model, data, sim);
-  
   valTest->valItemsRMSE = model->_(indivItemSetErr) (model, data->valSet);
  
   if (iter == params->maxIter) {
@@ -257,19 +297,29 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **sim,
     ValTestRMSE *valTest) {
   
-  int u, i, j, iter, item, nUserItems, itemInd;
+  int u, i, j, iter, subIter, item, nUserItems, itemInd;
+  int nnz = 0;
   ModelItemMatFac *model = self;
   gk_csr_t *trainMat = data->trainMat;
   float *iGrad = (float *) malloc(sizeof(float)*model->_(facDim));
   float *uGrad = (float *) malloc(sizeof(float)*model->_(facDim));
-  float prevVal = 0, itemRat;
+  float prevVal = 0, prevObj = 0, itemRat;
 
-  model->_(objective) (model, data, sim);
+  //find nnz
+  for (u = 0; u < params->nUsers; u++) {
+    nnz += trainMat->rowptr[u+1] - trainMat->rowptr[u]; 
+  }
+  printf("\nTrain nnz = %d", nnz);
+
+  printf("\nInit Obj: %f", model->_(objective) (model, data, sim));
 
   for (iter = 0; iter < params->maxIter; iter++) {
     //update user and item latent factor pair
-    for (u = 0; u < data->nUsers; u++) {
+    for (subIter = 0; subIter < nnz; subIter++) {
      
+      //sample u
+      u = rand() % params->nUsers;
+      
       //sample item rated by user
       nUserItems = trainMat->rowptr[u+1] - trainMat->rowptr[u];
       itemInd = rand()%nUserItems; 
@@ -295,6 +345,7 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
     }
 
     //validation
+    /*
     if (iter % VAL_ITER == 0) {
       valTest->valItemsRMSE = model->_(indivItemSetErr) (model, data->valSet);
       //printf("\nIter:%d validation err:%f", iter, valTest[0]);
@@ -304,10 +355,24 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
       }
       prevVal = valTest->valItemsRMSE;
     }
+    */
 
+    //objective check
+    if (iter % OBJ_ITER == 0) {
+      valTest->setObj = model->_(objective)(model, data, sim);
+      if (iter > 0) {
+        if (fabs(prevObj - valTest->setObj) < EPS) {
+          //exit train procedure
+          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+              prevObj, valTest->setObj);
+          break;
+        }
+      }
+      prevObj = valTest->setObj;
+    }
   }
 
-  model->_(objective) (model, data, sim);
+  printf("\nFinal Obj: %f", model->_(objective) (model, data, sim));
   
   valTest->valItemsRMSE = model->_(indivItemSetErr) (model, data->valSet);
   //printf("\nIter:%d ErrToMat ratio:%f", iter, valTest[0]);
@@ -315,16 +380,31 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
   if (iter == params->maxIter) {
     printf("\nNOT CONVERGED:Reached maximum iterations");
   }
+  
+  //valTest->trainSetRMSE = model->_(trainErr) (model, data, NULL);
+  //printf("\nTrain set error(matfac): %f", valTest->trainSetRMSE);
 
-
-  valTest->testSetRMSE = model->_(testErr)(model, data, NULL); 
-  printf("\nTest set error(matfac): %f", valTest->testSetRMSE);
+  //valTest->testSetRMSE = model->_(testErr)(model, data, NULL); 
+  //printf("\nTest set error(matfac): %f", valTest->testSetRMSE);
 
   //get test eror
   valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
   printf("\nTest items error(matfac): %f", valTest->testItemsRMSE);
+ 
+  //get train error
+  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
+  printf("\nTrain set indiv error(matfac): %f", valTest->trainItemsRMSE);
 
-  
+  //valTest->trainItemsRMSE = model->_(indivItemCSRErr)(model, data->trainMat, NULL);
+  //printf("\nTrain items indiv error(matfac): %f", valTest->trainItemsRMSE);
+
+  //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
+  //writeMat(model->_(uFac), data->nUsers, data->facDim, "copyUFac.txt");
+  //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
+  //writeMat(model->_(iFac), data->nItems, data->facDim, "copyIFac.txt");
+  //printf("\nTrain items indiv error(matfac orig): %f", 
+  //    model->_(indivItemCSRErr)(model, data->trainMat, "origMatfacRes.txt"));
+
   //printf("\nTest hit rate: %f", 
   //    model->_(hitRate)(model, data->trainMat, data->testMat));
   
@@ -344,9 +424,9 @@ Model ModelItemMatFacProto = {
 void modelItemMatFac(Data *data, Params *params, ValTestRMSE *valTest) {
   
   //allocate storage for model
-  ModelItemMatFac *modelItemMatFac = NEW(ModelItemMatFac, 
+  ModelItemMatFac *model = NEW(ModelItemMatFac, 
       "mat fac model for user-item ratings");
-  modelItemMatFac->_(init) (modelItemMatFac, params->nUsers, params->nItems, 
+  model->_(init) (model, params->nUsers, params->nItems, 
       params->facDim, params->regU, params->regI, params->learnRate); 
 
   //initialize user-item weights
@@ -356,9 +436,16 @@ void modelItemMatFac(Data *data, Params *params, ValTestRMSE *valTest) {
   loadUserItemWtsFrmTrain(data);
 
   //train model
-  modelItemMatFac->_(train)(modelItemMatFac, data, params, NULL, valTest);  
+  model->_(train)(model, data, params, NULL, valTest);  
+ 
+  //compare model with loaded latent factors if any
+  //model->_(cmpLoadedFac)(model, data);
 
-  modelItemMatFac->_(free)(modelItemMatFac);
+  //save model latent factors
+  //writeMat(model->_(uFac), params->nUsers, model->_(facDim), "modelMatfacUFac.txt");
+  //writeMat(model->_(iFac), params->nItems, model->_(facDim), "modelMatfacIFac.txt");
+
+  model->_(free)(model);
 }
 
 

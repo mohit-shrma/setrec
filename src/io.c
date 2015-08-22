@@ -26,8 +26,8 @@ void loadMat(float **mat, int nrows, int ncols, char *fileName) {
     
     //tokenize the line
     token = strtok(line, " ");
-    
-    for (j = 0; j < ncols; j++) {
+    mat[i][0] = atof(token);   
+    for (j = 1; j < ncols; j++) {
       //read mat[i][j]
       mat[i][j] = atof(strtok(NULL, " "));
     }
@@ -317,6 +317,7 @@ void loadData(Data *data, Params *params) {
       memset(data->uFac[i], 0, sizeof(float)*data->facDim);
     }
     loadMat(data->uFac, data->nUsers, data->facDim, params->uFacFileName);
+    writeMat(data->uFac, data->nUsers, data->facDim, "loadedUFac.txt");
   }
 
   if (params->iFacFileName) {
@@ -327,6 +328,7 @@ void loadData(Data *data, Params *params) {
       memset(data->iFac[i], 0, sizeof(float)*data->facDim);
     }
     loadMat(data->iFac, data->nItems, data->facDim, params->iFacFileName);
+    writeMat(data->iFac, data->nUsers, data->facDim, "loadedIFac.txt");
   }
 
 
