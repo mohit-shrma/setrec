@@ -162,7 +162,7 @@ float ModelItemMatFac_majSetScore(void *self, int u, int *set, int setSz,
     itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
     memset(itemRats[i], 0, sizeof(ItemRat));
   }
-
+  
   for (i = 0 ; i < setSz; i++) {
     item = set[i];
     itemRats[i]->item = item;
@@ -180,6 +180,7 @@ float ModelItemMatFac_majSetScore(void *self, int u, int *set, int setSz,
   
   for (i = 0; i < majSz; i++) {
     r_us_est += itemRats[i]->rating;
+
     if (i > 0) {
       assert(itemRats[i]->rating <= itemRats[i-1]->rating);
     }
@@ -199,7 +200,7 @@ float ModelItemMatFac_majSetScore(void *self, int u, int *set, int setSz,
 void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     ValTestRMSE *valTest) {
   
-  int u, i, j, iter, item;
+  int u, i, j, iter, item, subIter, nnz;
   UserSets *userSet = NULL;
   ModelItemMatFac *model = self;
   ItemWtSets *itemWtSets = NULL;
@@ -209,9 +210,19 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 
   model->_(objective) (model, data, sim);
 
+  nnz = 0;
+  for (u = 0; u < params->nUsers; u++) {
+    nnz += data->userSets[u]->nUserItems;
+  }
+  
+  printf("\nNNZ = %d", nnz);
+
   for (iter = 0; iter < params->maxIter; iter++) {
     //update user and item latent factor pair
-    for (u = 0; u < data->nUsers; u++) {
+    for (subIter = 0; subIter < nnz; subIter++) {
+     
+      //sample u
+      u = rand() % params->nUsers;
       
       userSet = data->userSets[u];
       
@@ -267,7 +278,8 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   }
 
   valTest->valItemsRMSE = model->_(indivItemSetErr) (model, data->valSet);
- 
+  printf("\nValidation items error: %f", valTest->valItemsRMSE);
+
   if (iter == params->maxIter) {
     printf("\nNOT CONVERGED:Reached maximum iterations");
   }
@@ -429,6 +441,12 @@ void modelItemMatFac(Data *data, Params *params, ValTestRMSE *valTest) {
   model->_(init) (model, params->nUsers, params->nItems, 
       params->facDim, params->regU, params->regI, params->learnRate); 
 
+  //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
+  //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
+  
+  //valTest->testSetRMSE = model->_(testErr)(model, data, NULL); 
+  //printf("\nTest set error(matfac): %f", valTest->testSetRMSE);
+  
   //initialize user-item weights
   //initUserItemWeights(data);
 

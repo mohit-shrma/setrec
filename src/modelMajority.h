@@ -6,6 +6,8 @@
 typedef struct {
   Model proto;
   float constrainWt;
+  float rhoRMS; //AdaDelta
+  float epsRMS; //AdaDelta
 } ModelMajority;
 
 float ModelMajority_setScore(void *self, int u, int *set, int setSz, 

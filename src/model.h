@@ -58,7 +58,7 @@ typedef struct {
   void (*train) (void *self, Data *data, Params *params, float **Sim, ValTestRMSE *valTest);
   void (*free) (void *self);
   void (*reset) (void *self);
-  
+  void (*copy) (void *self, void *dest);  
 } Model;
 
 void Model_init(void *self, int nUsers, int nItems, int facDim, float regU, 
@@ -87,6 +87,7 @@ float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 float Model_indivTrainSetsErr(void *self, Data *data);
 float Model_indivItemCSRErr(void *self, gk_csr_t *mat, char *opName);
 float Model_cmpLoadedFac(void *self, Data *data);
+void  Model_copy (void *self, void *dest);
 void *Model_new(size_t size, Model proto, char *description);
 
 #define NEW(T, N) Model_new(sizeof(T), T##Proto, N)

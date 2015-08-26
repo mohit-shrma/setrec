@@ -293,7 +293,17 @@ float Model_testErr(void *self, Data *data, float **sim) {
       testModelScores[j] =  model->setScore(model, u, userSet->uSets[userSet->testSets[i]], 
           userSet->uSetsSize[userSet->testSets[i]], sim);
       testLabels[j] = userSet->labels[userSet->testSets[i]];
+      /*
+      int *set = userSet->uSets[userSet->testSets[i]];
+      int setSz = userSet->uSetsSize[userSet->testSets[i]];
+      int k;
+      printf("\nQ:%f:%f: ", testModelScores[j], testLabels[j]);
+      for (k = 0; k < setSz; k++) {
+        printf("%d ", set[k]);
+      }
+      */
       j++;
+
     }
   }
 
@@ -736,6 +746,34 @@ float Model_cmpLoadedFac(void *self, Data *data) {
 }
 
 
+void Model_copy(void *self, void *dest) {
+  
+  int i, j;
+
+  Model *frmModel = self;
+  Model *toModel = dest;
+
+  //copy to model
+  toModel->nUsers    = frmModel->nUsers;
+  toModel->nItems    = frmModel->nItems;
+  toModel->regU      = frmModel->regU;
+  toModel->regI      = frmModel->regI;
+  toModel->facDim    = frmModel->facDim;
+  toModel->learnRate = frmModel->learnRate;
+  
+  //TODO: copy model description
+
+  for (i = 0; i < frmModel->nUsers; i++) {
+    memcpy(toModel->uFac[i], frmModel->uFac[i], sizeof(float)*frmModel->facDim);
+  }
+  
+  for (i = 0; i < frmModel->nItems; i++) {
+    memcpy(toModel->iFac[i], frmModel->iFac[i], sizeof(float)*frmModel->facDim);
+  }
+
+}
+
+
 void *Model_new(size_t size, Model proto, char *description) {
   
   //set up default methods if they are not set up
@@ -764,7 +802,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.indivTrainSetsErr) proto.indivTrainSetsErr     = Model_indivTrainSetsErr;
   if (!proto.cmpLoadedFac) proto.cmpLoadedFac               = Model_cmpLoadedFac;
   if (!proto.indivItemCSRErr) proto.indivItemCSRErr         = Model_indivItemCSRErr;
-
+  if (!proto.copy) proto.copy                               = Model_copy;
   //struct of one size
   Model *model = calloc(1, size);
   //copy from proto to model or point a different pointer to cast it
