@@ -1468,85 +1468,6 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
 }
 
 
-float ModelMajority_learnRateSearch(void *self, Data *data) {
-
-  int u, i, j, k, s;
-  int isTestValSet;
-  float bestLearnRate = -1;
-  float bestObj = -1;
-  float candLearnRates[] = {0.00005, 0.0001, 0.0005, 0.001}; 
-  int candSz = 4;
-  float origObj, modelObj;  
-  
-  UserSets *userSet = NULL;
-  ModelMajority *model = self;
-  ModelMajority *dupModel = NEW(ModelMajority, 
-                              "set prediction with majority score");  
-  origObj = model->_(objective)(model, data, NULL);
-
-  for (j = 0; j < candSz; j++) {
-    
-    //copy original model i.e. lat facs
-    model->_(copy)(model, dupModel);
-
-    //modify learn rate of dupModel
-    dupModel->learnRate = candLearnRates[j];
-
-    //do few samples update using the learn rate
-    for (k = 0; k < 5000; k++) {
-      
-      u = rand() % data->nUsers;
-      userSet = data->userSets[u];
-      isTestValSet = 0;
-      s = rand() % userSet->numSets;
-          
-      //check if set in test sets
-      for (i = 0; i < userSet->szTestSet; i++) {
-        if (s == userSet->testSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      
-      //check if set in validation sets
-      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
-        if (s == userSet->valSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      
-      if (isTestValSet) {
-        continue;
-      }
-
-      ModelMajority_update(dupModel, userSet, s, itemRats, sumItemLatFac, iGrad, 
-          uGrad);
-    }
-
-    //compute objective after updates
-    modelObj = dupModel->_(objective) (dupModel, data, NULL);
-
-    //find learn rates
-    //TODO: NAN check
-    if (bestLearnRate < 0) {
-      bestLearnRate = dupModel->learnRate;
-      bestObj = modelObj;
-    } else {
-      if (modelObj < bestObj) {
-        bestObj = modelObj;
-        bestLearnRate = dupModel->learnRate;
-      }
-    }
-
-  }
-
-  dupModel->_(free)(dupModel);
-
-  return bestLearnRate;
-}
-
-
 void ModelMajority_update(void *self, UserSets *userSet, int setInd, 
     ItemRat **itemRats, float *sumItemLatFac, float *iGrad, float *uGrad) {
 
@@ -1556,6 +1477,7 @@ void ModelMajority_update(void *self, UserSets *userSet, int setInd,
   float r_us, r_us_est;
   ModelMajority *model = self;
 
+  u         = userSet->userId;
   set       = userSet->uSets[setInd];
   setSz     = userSet->uSetsSize[setInd];
   r_us      = userSet->labels[setInd];
@@ -1629,6 +1551,96 @@ void ModelMajority_update(void *self, UserSets *userSet, int setInd,
 }
 
 
+float ModelMajority_learnRateSearch(void *self, Data *data, ItemRat **itemRats,
+    float *sumItemLatFac, float *iGrad, float *uGrad) {
+
+  int u, i, j, k, s;
+  int isTestValSet;
+  float bestLearnRate = -1;
+  float bestObj = -1;
+  float origObj, modelObj;  
+ 
+  float learnRate = 0.00001;
+
+  UserSets *userSet = NULL;
+  ModelMajority *model = self;
+  ModelMajority *dupModel = NEW(ModelMajority, 
+                              "set prediction with majority score"); 
+  dupModel->_(init)(model, model->_(nUsers), model->_(nItems), model->_(facDim),
+      model->_(regU), model->_(regI), model->_(learnRate));
+  origObj = model->_(objective)(model, data, NULL);
+
+  while (learnRate <= 0.01) {
+    
+    //copy original model i.e. lat facs
+    model->_(copy)(model, dupModel);
+
+    //modify learn rate of dupModel
+    dupModel->_(learnRate) = learnRate;
+
+    //do few samples update using the learn rate
+    for (k = 0; k < 5000; k++) {
+      
+      u = rand() % data->nUsers;
+      userSet = data->userSets[u];
+      isTestValSet = 0;
+      s = rand() % userSet->numSets;
+          
+      //check if set in test sets
+      for (i = 0; i < userSet->szTestSet; i++) {
+        if (s == userSet->testSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      //check if set in validation sets
+      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
+        if (s == userSet->valSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      if (isTestValSet) {
+        continue;
+      }
+
+      ModelMajority_update(dupModel, userSet, s, itemRats, sumItemLatFac, iGrad, 
+          uGrad);
+    }
+
+    //compute objective after updates
+    modelObj = dupModel->_(objective) (dupModel, data, NULL);
+
+    if (modelObj != modelObj) {
+      //NAN check
+      printf("\nObjective is NAN for learn rate %f", dupModel->_(learnRate));
+      continue;
+    }
+
+    //find learn rates
+    if (bestLearnRate < 0) {
+      bestLearnRate = dupModel->_(learnRate);
+      bestObj = modelObj;
+    } else {
+      if (modelObj < bestObj) {
+        bestObj = modelObj;
+        bestLearnRate = dupModel->_(learnRate);
+      }
+    }
+
+    learnRate = learnRate*2;
+  }
+
+  printf("\nBest obj: %f learnRate: %f", bestObj, bestLearnRate);
+
+  dupModel->_(free)(dupModel);
+
+  return bestLearnRate;
+}
+
+
 void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **sim, 
     ValTestRMSE *valTest) {
 
@@ -1671,7 +1683,8 @@ void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **
     fail = 0;
 
     //find opt learn rate based on training error of few samples
-    //TODO:
+    model->_(learnRate) = ModelMajority_learnRateSearch(model, data, itemRats, 
+        sumItemLatFac, iGrad, uGrad);
 
     for (subIter = 0; subIter < numAllSets; subIter++) {
       
@@ -1706,7 +1719,6 @@ void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **
       ModelMajority_update(model, userSet, s, itemRats, sumItemLatFac, iGrad, 
           uGrad);
     }
-    
 
     //objective check
     if (iter % OBJ_ITER == 0) {
@@ -1721,7 +1733,6 @@ void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **
       }
       prevObj = valTest->setObj;
     }
-    
 
     //validation check
     /*
@@ -2158,7 +2169,7 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
 Model ModelMajorityProto = {
   .objective = ModelMajority_objective,
   .setScore = ModelMajority_setScore,
-  .train     = ModelMajority_trainAdaDelta
+  .train     = ModelMajority_trainSGDSamp
 };
 
 

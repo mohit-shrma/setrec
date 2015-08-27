@@ -3,8 +3,10 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include "stdlib.h"
 #include "datastruct.h"
+#include "util.h"
 
 void loadData(Data *data, Params *params);
 void writeData(Data *data);

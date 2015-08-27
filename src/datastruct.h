@@ -161,6 +161,8 @@ void Data_free(Data *self);
 void Data_reset(Data *self, int nUsers, int nItems);
 void Data_jaccSim(Data *self, float **sim);
 
+void loadUserItemWtsFrmTrain(Data *data);
+
 
 typedef struct {
   int item;
