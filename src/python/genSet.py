@@ -68,18 +68,28 @@ def getUserItemsNMap(ratFileName, setSize):
   itemMap = {}
   u = 0
   i = 0 
-  
+  obsItemIds = set([])
   with open(ratFileName, 'r') as f:
     for line in f:
       cols = line.strip().split(',')
       user = int(cols[0])
       item = int(cols[1])
       rat = float(cols[2])
+      obsItemIds.add(item)
       if user not in userItemsRat:
         userItemsRat[user] = {}
       userItemsRat[user][item] = rat
   
   userKeys = userItemsRat.keys()
+  userKeys.sort()
+
+  minItemId = min(list(obsItemIds))
+  maxItemId = max(list(obsItemIds))
+  if minItemId ==0 and maxItemId - minItemId + 1 == len(obsItemIds):
+    #found all items in order
+    for itemId in list(obsItemIds):
+      itemMap[itemId] = itemId
+
   for user in userKeys:
     itemRats = userItemsRat[user]
     #TODO: hard coded 
@@ -118,15 +128,17 @@ def getSetsForUser2(itemRats, nSetsPerUser, setSize, thresh):
     setItemRat = [] 
     for item in tempSet:
       setItemRat.append((itemRats[item], item))
-    setItemRat.sort()
+    setItemRat.sort(reverse=True)
     
     #get avg of top items
     sm = 0.0
-    nTopItems = 0.0
-    for i in range(setSize/2, setSize):
+    majSz = setSize/2
+    if setSize %2 != 0:
+      majSz = setSize/2 + 1
+
+    for i in range(majSz):
       sm += setItemRat[i][0]
-      nTopItems += 1
-    avgTopRatItems = sm/nTopItems
+    avgTopRatItems = sm/(majSz*1.0)
    
     """
     label = 1.0
@@ -136,7 +148,7 @@ def getSetsForUser2(itemRats, nSetsPerUser, setSize, thresh):
 
     tempList = map(str, list(tempSet))
     #TODO: ensure unique sets
-    setLabels.add(( ' '.join(tempList), int(avgTopRatItems)))
+    setLabels.add(( ' '.join(tempList), float(avgTopRatItems)))
 
   setLabels = list(setLabels)
   for i in range(len(setLabels)):

@@ -12,22 +12,22 @@ def saveMat(mat, opFileName):
   np.savetxt(opFileName, mat, fmt="%f")
 
 
-def createData(nUsers, nItems, uFac, iFac, opFileName, density=0.1):
+def createData(nUsers, nItems, uFac, iFac, opFileName, density=0.2):
   
   userItemsRat = {}
   nRats = nUsers * nItems * density
   
-  #for each user write ratings for 20 items
+  #for each user write ratings for 40 items
   for u in range(nUsers):
     userItemsRat[u] = {}
-    while (len(userItemsRat[u]) < 20):
+    while (len(userItemsRat[u]) < 40):
       item = np.random.randint(0, nItems)
       if item not in userItemsRat[u]:
         userItemsRat[u][item] = np.dot(uFac[u], iFac[item])
       
-  #for each item make sure there are 20 users
+  #for each item make sure there are 40 users
   for item in range(nItems):
-    for j in range(20):
+    for j in range(40):
       u = np.random.randint(0, nUsers)
       if item not in userItemsRat[u]:
         userItemsRat[u][item] = np.dot(uFac[u], iFac[item])
