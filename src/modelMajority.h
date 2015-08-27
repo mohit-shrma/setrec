@@ -17,5 +17,5 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
     ValTestRMSE *valTest);
 void modelMajority(Data *data, Params *params, ValTestRMSE *valTest);
 float ModelMajority_learnRateSearch(void *self, Data *data, ItemRat **itemrats,
-    float *sumitemlatfac, float *igrad, float *ugrad);
+    float *sumitemlatfac, float *igrad, float *ugrad, int seed);
 #endif

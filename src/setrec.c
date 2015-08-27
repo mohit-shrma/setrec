@@ -47,8 +47,12 @@ void parse_cmd_line(int argc, char **argv) {
     params->val_mat_file    = argv[20];
     
     params->ext_setSim_file = argv[21];
-    params->uFacFileName    = NULL;//argv[22];
-    params->iFacFileName    = NULL;//argv[23];
+    
+    params->rhoRMS = atof(argv[22]);
+    params->epsRMS = atof(argv[23]);
+    
+    params->uFacFileName    = NULL;//argv[24];
+    params->iFacFileName    = NULL;//argv[25];
   }
 
   //initialize random seed
@@ -69,7 +73,7 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   //run baseline
-  modelItemMatFac(data, params, baseValTest);  
+  //modelItemMatFac(data, params, baseValTest);  
 
   //learn model
   modelMajority(data, params, modelValTest);
@@ -78,12 +82,13 @@ void parse_cmd_line(int argc, char **argv) {
   //srand(params->seed + (i+1));
   //Data_reset(data, params->nUsers, params->nItems);
 
-  printf("\nRE: %f %f %f %d %f %f %f %f %f %f %f %f %f %f %f", 
-      params->regU, params->regI, params->constrainWt, params->facDim, params->learnRate, 
+  printf("\nRE: %f %f %f %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f", 
+      params->regU, params->regI, params->constrainWt, params->facDim, params->learnRate, params->rhoRMS, 
       baseValTest->trainItemsRMSE, modelValTest->trainItemsRMSE,
       baseValTest->testItemsRMSE, modelValTest->testItemsRMSE,
       baseValTest->trainSetRMSE, modelValTest->trainSetRMSE,
       baseValTest->testSetRMSE, modelValTest->testSetRMSE,
+      baseValTest->valItemsRMSE, modelValTest->valSetRMSE,
       baseValTest->setObj, modelValTest->setObj);
 
   Data_free(data);  

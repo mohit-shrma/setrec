@@ -243,8 +243,8 @@ float ModelMajority_objective(void *self, Data *data, float **sim) {
   }
   iRegErr *= model->_(regI);
   
-  printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f Constraint violation count: %d", 
-      (rmse+uRegErr+iRegErr), rmse, uRegErr, iRegErr, constViolCt);
+  //printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f Constraint violation count: %d", 
+  //    (rmse+uRegErr+iRegErr), rmse, uRegErr, iRegErr, constViolCt);
   
   //fclose(fp);
   return (rmse + uRegErr + iRegErr);
@@ -1551,96 +1551,6 @@ void ModelMajority_update(void *self, UserSets *userSet, int setInd,
 }
 
 
-float ModelMajority_learnRateSearch(void *self, Data *data, ItemRat **itemRats,
-    float *sumItemLatFac, float *iGrad, float *uGrad) {
-
-  int u, i, j, k, s;
-  int isTestValSet;
-  float bestLearnRate = -1;
-  float bestObj = -1;
-  float origObj, modelObj;  
- 
-  float learnRate = 0.00001;
-
-  UserSets *userSet = NULL;
-  ModelMajority *model = self;
-  ModelMajority *dupModel = NEW(ModelMajority, 
-                              "set prediction with majority score"); 
-  dupModel->_(init)(model, model->_(nUsers), model->_(nItems), model->_(facDim),
-      model->_(regU), model->_(regI), model->_(learnRate));
-  origObj = model->_(objective)(model, data, NULL);
-
-  while (learnRate <= 0.01) {
-    
-    //copy original model i.e. lat facs
-    model->_(copy)(model, dupModel);
-
-    //modify learn rate of dupModel
-    dupModel->_(learnRate) = learnRate;
-
-    //do few samples update using the learn rate
-    for (k = 0; k < 5000; k++) {
-      
-      u = rand() % data->nUsers;
-      userSet = data->userSets[u];
-      isTestValSet = 0;
-      s = rand() % userSet->numSets;
-          
-      //check if set in test sets
-      for (i = 0; i < userSet->szTestSet; i++) {
-        if (s == userSet->testSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      
-      //check if set in validation sets
-      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
-        if (s == userSet->valSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      
-      if (isTestValSet) {
-        continue;
-      }
-
-      ModelMajority_update(dupModel, userSet, s, itemRats, sumItemLatFac, iGrad, 
-          uGrad);
-    }
-
-    //compute objective after updates
-    modelObj = dupModel->_(objective) (dupModel, data, NULL);
-
-    if (modelObj != modelObj) {
-      //NAN check
-      printf("\nObjective is NAN for learn rate %f", dupModel->_(learnRate));
-      continue;
-    }
-
-    //find learn rates
-    if (bestLearnRate < 0) {
-      bestLearnRate = dupModel->_(learnRate);
-      bestObj = modelObj;
-    } else {
-      if (modelObj < bestObj) {
-        bestObj = modelObj;
-        bestLearnRate = dupModel->_(learnRate);
-      }
-    }
-
-    learnRate = learnRate*2;
-  }
-
-  printf("\nBest obj: %f learnRate: %f", bestObj, bestLearnRate);
-
-  dupModel->_(free)(dupModel);
-
-  return bestLearnRate;
-}
-
-
 void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **sim, 
     ValTestRMSE *valTest) {
 
@@ -1678,13 +1588,9 @@ void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **
   printf("\nInit Constraint violation: %d", ModelMajority_constViol(model, data));
   
   for (iter = 0; iter < params->maxIter; iter++) {
-    epochDiff = 0;
-    succ = 0;
-    fail = 0;
-
     //find opt learn rate based on training error of few samples
     model->_(learnRate) = ModelMajority_learnRateSearch(model, data, itemRats, 
-        sumItemLatFac, iGrad, uGrad);
+        sumItemLatFac, iGrad, uGrad, params->seed + iter);
 
     for (subIter = 0; subIter < numAllSets; subIter++) {
       
@@ -1723,6 +1629,7 @@ void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
+      printf("\nIter: %d Obj: %f", iter, valTest->setObj);
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -2167,10 +2074,110 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
 
 
 Model ModelMajorityProto = {
-  .objective = ModelMajority_objective,
-  .setScore = ModelMajority_setScore,
-  .train     = ModelMajority_trainSGDSamp
+  .objective             = ModelMajority_objective,
+  .setScore              = ModelMajority_setScore,
+  .train                 = ModelMajority_trainSGDSamp
 };
+
+
+float ModelMajority_learnRateSearch(void *self, Data *data, ItemRat **itemRats,
+    float *sumItemLatFac, float *iGrad, float *uGrad, int seed) {
+
+  int u, i, j, k, s;
+  int isTestValSet;
+  float bestLearnRate = -1;
+  float bestObj = -1;
+  float modelObj;  
+ 
+  float learnRate = 0.00001;
+
+  UserSets *userSet = NULL;
+  ModelMajority *model = self;
+  ModelMajority *dupModel = NEW(ModelMajority, 
+                              "set prediction with majority score"); 
+  dupModel->_(init)(dupModel, model->_(nUsers), model->_(nItems), model->_(facDim),
+      model->_(regU), model->_(regI), model->_(learnRate));
+
+  while (learnRate <= 0.1) {
+    
+    //copy original model i.e. lat facs
+    model->_(copy)(model, dupModel);
+
+    //modify learn rate of dupModel
+    dupModel->_(learnRate) = learnRate;
+    
+    //NOTE: make sure rand() deals with same samples for learning rate
+    //computation
+    srand(seed);
+    //do few samples update using the learn rate
+    for (k = 0; k < 5000; k++) {
+  
+      u = rand() % data->nUsers;
+      userSet = data->userSets[u];
+      isTestValSet = 0;
+      s = rand() % userSet->numSets;
+          
+      //check if set in test sets
+      for (i = 0; i < userSet->szTestSet; i++) {
+        if (s == userSet->testSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      //check if set in validation sets
+      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
+        if (s == userSet->valSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      if (isTestValSet) {
+        continue;
+      }
+
+      ModelMajority_update(dupModel, userSet, s, itemRats, sumItemLatFac, iGrad, 
+          uGrad);
+    }
+
+    //compute objective after updates
+    modelObj = dupModel->_(objective) (dupModel, data, NULL);
+    printf("\nlearnRate:%f obj:%f", dupModel->_(learnRate), modelObj);
+
+    if (modelObj != modelObj) {
+      //NAN check
+      printf("\nObjective is NAN for learn rate %f", dupModel->_(learnRate));
+      continue;
+    }
+
+    //find learn rates
+    if (bestLearnRate < 0) {
+      bestLearnRate = dupModel->_(learnRate);
+      bestObj = modelObj;
+    } else {
+      if (modelObj < bestObj) {
+        bestObj = modelObj;
+        bestLearnRate = dupModel->_(learnRate);
+      } else {
+        //found same or bigger objective then best, after this point objective
+        //will only increase
+        break;
+      }
+    }
+
+    learnRate = learnRate*2;
+  }
+
+  //reset the seed so that 5000 samples chosen above  are updated in the 
+  //main model updates again to get the observed decrease in these samples
+  srand(seed);
+  printf("\nBest obj: %f learnRate: %f", bestObj, bestLearnRate);
+
+  dupModel->_(free)(dupModel);
+
+  return bestLearnRate;
+}
 
 
 void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
@@ -2180,8 +2187,8 @@ void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
   model->_(init)(model, params->nUsers, params->nItems, params->facDim, 
                   params->regU, params->regI, params->learnRate);
   model->constrainWt = params->constrainWt;
-  model->rhoRMS = 0.85;
-  model->epsRMS = 0.000001;
+  model->rhoRMS      = params->rhoRMS;
+  model->epsRMS      = params->epsRMS;
 
   //load user item weights from train: needed to compute training on indiv items
   //in training sets

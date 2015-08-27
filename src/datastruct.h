@@ -51,6 +51,8 @@ typedef struct {
   int maxIter;
   int seed;
   float constrainWt;
+  float rhoRMS;
+  float epsRMS;
 } Params;
 
 void Params_display(Params *params);
