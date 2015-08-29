@@ -649,7 +649,7 @@ void ModelMajority_trainAdaDelta(void *self, Data *data, Params *params, float *
   float *updDelta = (float*) malloc(sizeof(float)*model->_(facDim));
   memset(updDelta, 0, sizeof(float)*model->_(facDim));
   
-  float  deltaRMS = 0.0, gradRMS = 0.0;
+  float  deltaRMS = 0.0, gradRMS = 0.0, prevVal;
 
   //TODO: hardcode
   ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
@@ -851,12 +851,13 @@ void ModelMajority_trainAdaDelta(void *self, Data *data, Params *params, float *
       epochDiff += fabs(r_us_est_aftr_upd - r_us);
     }
     
-    printf("\nEpoch: %d  succ = %d fail = %d avg diff = %f", 
-        iter, succ, fail, epochDiff/subIter);
+    //printf("\nEpoch: %d  succ = %d fail = %d avg diff = %f", 
+    //    iter, succ, fail, epochDiff/subIter);
 
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
+      printf("\nIter: %d obj:%f", iter, valTest->setObj);
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -870,10 +871,11 @@ void ModelMajority_trainAdaDelta(void *self, Data *data, Params *params, float *
     
 
     //validation check
-    /*
     if (iter % VAL_ITER == 0) {
       //validation err
       valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+      printf("\nValidation sets RMSE: %f", valTest->valSetRMSE);
+      /*
       if (iter > 0) {
         if (fabs(prevVal - valTest->valSetRMSE) < EPS) {
           //exit the model train procedure
@@ -882,9 +884,9 @@ void ModelMajority_trainAdaDelta(void *self, Data *data, Params *params, float *
           break;
         }
       }
+      */
       prevVal = valTest->valSetRMSE;
     }
-    */
     
   }
 
@@ -1629,6 +1631,11 @@ void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
+      if (valTest->setObj != valTest->setObj) {
+        //NAN check
+        printf("\nComputed objective is NAN: %f", valTest->setObj);
+        break;
+      }
       printf("\nIter: %d Obj: %f", iter, valTest->setObj);
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
@@ -1664,8 +1671,8 @@ void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **
 
   printf("\nFinal Constraint violation: %d", ModelMajority_constViol(model, data));
   
-  if (iter == params->maxIter) {
-    printf("\nNOT CONVERGED:Reached maximum iterations");
+  if (iter == params->maxIter || valTest->setObj != valTest->setObj) {
+    printf("\nNOT CONVERGED:Reached maximum iterations or NAN objective");
   }
 
   valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
@@ -2076,7 +2083,7 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
 Model ModelMajorityProto = {
   .objective             = ModelMajority_objective,
   .setScore              = ModelMajority_setScore,
-  .train                 = ModelMajority_trainSGDSamp
+  .train                 = ModelMajority_trainAdaDelta
 };
 
 
@@ -2087,9 +2094,9 @@ float ModelMajority_learnRateSearch(void *self, Data *data, ItemRat **itemRats,
   int isTestValSet;
   float bestLearnRate = -1;
   float bestObj = -1;
-  float modelObj;  
+  float modelObj, initObj;  
  
-  float learnRate = 0.00001;
+  float learnRate = 0.000001;
 
   UserSets *userSet = NULL;
   ModelMajority *model = self;
@@ -2097,8 +2104,9 @@ float ModelMajority_learnRateSearch(void *self, Data *data, ItemRat **itemRats,
                               "set prediction with majority score"); 
   dupModel->_(init)(dupModel, model->_(nUsers), model->_(nItems), model->_(facDim),
       model->_(regU), model->_(regI), model->_(learnRate));
+  initObj = model->_(objective)(model, data, NULL);
 
-  while (learnRate <= 0.1) {
+  while (learnRate <= 0.01) {
     
     //copy original model i.e. lat facs
     model->_(copy)(model, dupModel);
@@ -2147,7 +2155,7 @@ float ModelMajority_learnRateSearch(void *self, Data *data, ItemRat **itemRats,
 
     if (modelObj != modelObj) {
       //NAN check
-      printf("\nObjective is NAN for learn rate %f", dupModel->_(learnRate));
+      printf("\nObjective is NAN = %f for learn rate %f", modelObj, dupModel->_(learnRate));
       continue;
     }
 
@@ -2159,14 +2167,21 @@ float ModelMajority_learnRateSearch(void *self, Data *data, ItemRat **itemRats,
       if (modelObj < bestObj) {
         bestObj = modelObj;
         bestLearnRate = dupModel->_(learnRate);
-      } else {
+      } else if (modelObj > bestObj) {
         //found same or bigger objective then best, after this point objective
         //will only increase
+        printf("\nFound bigger objective. bestObj: %f currObj: %f", 
+            bestObj, modelObj);
         break;
       }
     }
 
     learnRate = learnRate*2;
+  }
+
+  if (initObj < bestObj) {
+    printf("\nLearning rate is not optimal, initObj: %f bestObj: %f", 
+        initObj, bestObj);
   }
 
   //reset the seed so that 5000 samples chosen above  are updated in the 
@@ -2197,8 +2212,11 @@ void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
   //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
   //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
 
-  printf("\nTest Error: %f", model->_(testErr) (model, data, NULL));  
+  //printf("\nTest Error: %f", model->_(testErr) (model, data, NULL));  
   //testItemRat();
+  
+  //get objective
+  //printf("\nModelMaj Init Obj: %f", model->_(objective)(model, data, NULL));
   
   //train model 
   model->_(train)(model, data,  params, NULL, valTest);
