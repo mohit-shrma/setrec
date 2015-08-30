@@ -8,6 +8,7 @@ typedef struct {
   float constrainWt;
   float rhoRMS; //AdaDelta
   float epsRMS; //AdaDelta
+  float momentum; //SGD w momentum
 } ModelMajority;
 
 float ModelMajority_setScore(void *self, int u, int *set, int setSz, 
