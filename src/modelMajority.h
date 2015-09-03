@@ -9,6 +9,8 @@ typedef struct {
   float rhoRMS; //AdaDelta
   float epsRMS; //AdaDelta
   float momentum; //SGD w momentum
+  float beta1;
+  float beta2;
 } ModelMajority;
 
 float ModelMajority_setScore(void *self, int u, int *set, int setSz, 
