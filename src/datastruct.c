@@ -44,7 +44,8 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   int nUserItems) {
   
   int i, j, setInd;
-  
+  int found; 
+
   self->userId     = user;
   self->numSets    = numSets;
   self->nUserItems = nUserItems;
@@ -78,14 +79,23 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   self->valSets = (int *) malloc(sizeof(int)*self->szValSet);
   memset(self->valSets, 0, sizeof(int)*self->szValSet);
   i = 0;
+  
   while (i < self->szValSet) {
     setInd = rand()%numSets;
     //make sure set is not present already in validation set
+    found = 0;
+    
     for (j = 0; j < i; j++) {
       if (setInd == self->valSets[j]) {
-        continue; 
+        found  = 1; 
+        break;
       }
     }
+
+    if (found) {
+      continue;
+    }
+
     self->valSets[i++] = setInd;
   }
 
@@ -95,18 +105,26 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   i = 0;
   while (i < self->szTestSet) {
     setInd = rand()%numSets;
+    found = 0;
     //make sure set is not present already in test set
     for (j = 0; j < i; j++) {
       if (setInd == self->testSets[j]) {
-        continue;
+        found = 1;
+        break;
       }
     }
     //make sure set is not present in validation set
     for (j = 0; j < self->szValSet; j++) {
       if (setInd == self->valSets[j]) {
-        continue;
+        found = 1;
+        break;
       }
     }
+    
+    if (found) {
+      continue;
+    }
+
     self->testSets[i++] = setInd;
   }
 
