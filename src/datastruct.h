@@ -125,6 +125,19 @@ ItemWtSets* UserSets_search(UserSets *self, int item);
 
 
 typedef struct {
+
+  //item x users
+  int **itemUsers;
+
+  int nItems;
+  int nUsers;
+
+} ItemSets;
+
+void ItemSets_init(ItemSets *itemSets, Data *data);
+void ItemSets_free(ItemSets *self);
+
+typedef struct {
   int user;
   int item;
   float rat;
@@ -156,6 +169,8 @@ typedef struct {
   int facDim;
   float **uFac;
   float **iFac;
+
+  ItemSets *itemSets;
 } Data;
 
 void Data_init(Data *self, int nUsers, int nItems);

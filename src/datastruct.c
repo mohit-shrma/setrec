@@ -398,6 +398,27 @@ void UserSets_free(UserSets * const self) {
 }
 
 
+int UserSets_isSetTestVal(UserSets *self, int s) {
+  int i;
+  
+  //check if in test
+  for (i = 0; i < self->szTestSet; i++) {
+    if (s == self->testSets[i]) {
+      return 1;
+    }
+  }
+
+  //check if in val
+  for (i = 0; i < self->szValSet; i++) {
+    if (s == self->valSets[i]) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+
 int comp (const void * elem1, const void * elem2) {
   ItemWtSets *f = *(ItemWtSets**)elem1;
   ItemWtSets *s = *(ItemWtSets**)elem2;
@@ -409,6 +430,44 @@ int comp (const void * elem1, const void * elem2) {
 
 void UserSets_sortItems(UserSets *self) {
   qsort(self->itemWtSets, self->nUserItems, sizeof(ItemWtSets*), comp);
+}
+
+
+void ItemSets_init(ItemSets *itemSets, Data *data) {
+  
+  int i, u, item;
+  int **itemUsers;
+  UserSets *userSet = NULL;
+
+  itemSets->nItems = data->nItems;
+  itemSets->nUsers = data->nUsers;
+
+  itemUsers= (int**) malloc(sizeof(int*)*data->nItems);
+  itemSets->itemUsers = itemUsers;
+  for (i = 0; i < itemSets->nItems; i++) {
+    itemUsers[i] = (int*) malloc(sizeof(int)*data->nUsers);
+    memset(itemUsers[i], 0, sizeof(int)*data->nUsers);
+  }
+
+  //go through all user sets and mark items which occur in those users
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->nUserItems; i++) {
+      item = userSet->itemWtSets[i]->item;
+      itemUsers[item][u] = 1
+    }
+  }
+
+}
+
+
+void ItemSets_free(ItemSets *self) {
+  int i;
+  for (i = 0; i < self->nItems; i++) {
+    free(self->itemUsers[i]);
+  }
+  free(self->itemUsers);
+  free(self);
 }
 
 
@@ -452,7 +511,10 @@ void Data_init(Data *self, int nUsers, int nItems) {
   for (i = 0; i < nUsers; i++) {
     self->userSets[i] = (UserSets*) malloc(sizeof(UserSets));
   }
- 
+
+  self->itemSets = (ItemSets *) malloc(sizeof(ItemSets));
+  ItemSets_init(self->itemSets, self);
+
   self->uFac = NULL;
   self->iFac = NULL;
 }
@@ -494,6 +556,7 @@ void Data_free(Data *self) {
     }
     free(self->iFac);
   }
+  ItemSets_free(self->itemSets);
   free(self);
 }
 

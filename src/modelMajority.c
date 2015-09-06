@@ -110,6 +110,40 @@ float ModelMajority_setScoreAvg(void *self, int u, int *set, int setSz,
 }
 
 
+void ModelMajority_setMajFac(void *self, int u, int *set, int setSz,
+    ItemRat **itemRats, float *majFac) {
+  int i, item, majSz;
+  
+  for (i = 0; i < setSz; i++) {
+    memset(itemRats[i], 0, sizeof(ItemRat));
+  }
+
+  for (i = 0 i < setSz; i++) {
+    item = set[i];
+    itemRats[i]->item  = item;
+    itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[item], 
+        model->_(facDim));
+  }
+
+  qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
+  
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
+
+  memset(majFac, 0, model->_(facDim));
+  for (i = 0; i < majSz; i++) {
+    item = itemRats[i]->item;
+    for (j = 0; j < model->_(facDim); j++) {
+      majFac[j] += model->_(iFac)[item][j];
+    }
+  }
+
+}
+
+
 void ModelMajority_setScoreWMaxRat(void *self, int u, int *set, int setSz, 
     float *r_est, float *maxRat) {
    
@@ -805,9 +839,15 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
   int setSz, item, isTestValSet;
   int *set;
   float r_us, r_us_est, r_us_est_aftr_upd, prevObj; //actual set preference
-  float temp, majSz; 
+  float temp, majSz, num, denom; 
   ModelMajority *model = self;
-  float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
+  //TODO: hard code
+  int nSetsPerUser = 50;
+  float** setSumItemLatFac = (float**) malloc(sizeof(float*)*nSetsPerUser);
+  for (i = 0; i < nSetsPerUser; i++) {
+    setSumItemLatFac[i] = (float*) malloc(sizeof(float)*model->_(facDim));
+    memset(setSumItemLatFac[i], 0, sizeof(float)*model->_(facDim));
+  }
   
   //TODO: hardcode
   ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
@@ -833,7 +873,60 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
  
   for (iter = 0; iter < params->maxIter; iter++) {
 
-    
+    //update users
+    for (u = 0; u < model->nUsers; u++) {
+      userSet = data->userSets[u];
+      
+      //go through over all sets to compute sum of lat fac in sets
+      for (s = 0; s < userSet->numSets; s++) {
+        //check if set in test or validation
+        if (UserSets_isSetTestVal(userSet, s)) {
+         continue;
+        }
+        memset(setSumItemLatFac[s], 0, sizeof(float)*model->_(facDim));
+        ModelMajority_setMajFac(model, u, userSet->uSets[s], userSet->uSetsSize[s], 
+            itemRats, setSumItemLatFac[s]);
+      }
+
+      //update user's lat fac
+      for (j = 0; j < model->_(facDim); j++) {
+        //go over all sets
+        num = 0;
+        denom = 0;
+        for (s = 0; s < userSet->numSets; s++) {
+          //compute numerator
+          r_us = userSet->labels[s];
+          r_us_est = dotProd(model->_(uFac)[u], setSumItemLatFac[s], 
+              model->_(facDim));
+          temp = r_us - r_us_est;
+          temp += (model->_(uFac)[u][j]*setSumItemLatFac[s][j])/userSet->uSetsSize[s];
+          temp = temp*(setSumItemLatFac[s][j]/userSet->uSetsSize[s]);
+          
+          //update numerator
+          num += temp;
+          
+          //compute denominator
+          denom += (setSumItemLatFac[s][j]*setSumItemLatFac[s][j])/(userSet->uSetsSize[s]*userSet->uSetsSize[s]);
+        }
+        
+        //add regularization to denominator
+        denom += model->_(regU);
+
+        //update user component
+        model->_(uFac)[u][j] = num/denom;
+      }
+
+      //TODO: in above can compute top lat fac after every update of lat fac
+      //component of user
+    }
+
+    //update items
+    for (item = 0; item < model->nItems; item++) {
+      
+      
+    }
+
+
     
     for (subIter = 0; subIter <  numAllSets; subIter++) {
       
@@ -845,26 +938,6 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
       //select a non-test non-val set for user
       s = rand() % userSet->numSets;
       
-      //check if set in test sets
-      for (i = 0; i < userSet->szTestSet; i++) {
-        if (s == userSet->testSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      
-      //check if set in validation sets
-      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
-        if (s == userSet->valSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      
-      if (isTestValSet) {
-        continue;
-      }
-  
       set       = userSet->uSets[s];
       setSz     = userSet->uSetsSize[s];
       r_us      = userSet->labels[s];
@@ -1007,7 +1080,10 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
     free(itemRats[i]);
   }
   free(itemRats);
-  free(sumItemLatFac);
+  for (i = 0; i < nSetsPerUser; i++) {
+    free(setSumItemLatFac[i]);
+  }
+  free(setSumItemLatFac);
 }
 
 
