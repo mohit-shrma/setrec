@@ -134,7 +134,7 @@ typedef struct {
 
 } ItemSets;
 
-void ItemSets_init(ItemSets *itemSets, Data *data);
+void ItemSets_init(ItemSets *itemSets, UserSets **userSets, int nUsers, int nItems);
 void ItemSets_free(ItemSets *self);
 
 typedef struct {

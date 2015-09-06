@@ -433,31 +433,32 @@ void UserSets_sortItems(UserSets *self) {
 }
 
 
-void ItemSets_init(ItemSets *itemSets, Data *data) {
+void ItemSets_init(ItemSets *itemSets, UserSets **userSets, int nUsers, 
+    int nItems) {
   
   int i, u, item;
   int **itemUsers;
   UserSets *userSet = NULL;
 
-  itemSets->nItems = data->nItems;
-  itemSets->nUsers = data->nUsers;
+  itemSets->nItems = nItems;
+  itemSets->nUsers = nUsers;
 
-  itemUsers= (int**) malloc(sizeof(int*)*data->nItems);
+  itemUsers= (int**) malloc(sizeof(int*)*nItems);
   itemSets->itemUsers = itemUsers;
-  for (i = 0; i < itemSets->nItems; i++) {
-    itemUsers[i] = (int*) malloc(sizeof(int)*data->nUsers);
-    memset(itemUsers[i], 0, sizeof(int)*data->nUsers);
+  for (i = 0; i < nItems; i++) {
+    itemUsers[i] = (int*) malloc(sizeof(int)*nUsers);
+    memset(itemUsers[i], 0, sizeof(int)*nUsers);
   }
 
   //go through all user sets and mark items which occur in those users
-  for (u = 0; u < data->nUsers; u++) {
-    userSet = data->userSets[u];
+  for (u = 0; u < nUsers; u++) {
+    userSet = userSets[u];
     for (i = 0; i < userSet->nUserItems; i++) {
       item = userSet->itemWtSets[i]->item;
-      itemUsers[item][u] = 1
+      itemUsers[item][u] = 1;
     }
   }
-
+  writeIMat(itemUsers, nItems, nUsers, "itemUser.txt");
 }
 
 
@@ -513,7 +514,6 @@ void Data_init(Data *self, int nUsers, int nItems) {
   }
 
   self->itemSets = (ItemSets *) malloc(sizeof(ItemSets));
-  ItemSets_init(self->itemSets, self);
 
   self->uFac = NULL;
   self->iFac = NULL;
