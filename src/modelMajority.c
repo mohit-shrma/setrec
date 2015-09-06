@@ -112,13 +112,14 @@ float ModelMajority_setScoreAvg(void *self, int u, int *set, int setSz,
 
 void ModelMajority_setMajFac(void *self, int u, int *set, int setSz,
     ItemRat **itemRats, float *majFac) {
-  int i, item, majSz;
-  
+  int i, j, item, majSz;
+  ModelMajority *model = self;
+
   for (i = 0; i < setSz; i++) {
     memset(itemRats[i], 0, sizeof(ItemRat));
   }
 
-  for (i = 0 i < setSz; i++) {
+  for (i = 0; i < setSz; i++) {
     item = set[i];
     itemRats[i]->item  = item;
     itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[item], 
@@ -141,6 +142,48 @@ void ModelMajority_setMajFac(void *self, int u, int *set, int setSz,
     }
   }
 
+}
+
+
+int ModelMajority_isSetMajFac(void *self, int u, int *set, int setSz,
+    ItemRat **itemRats, float *majFac, int qItem) {
+  int i, j, item, majSz;
+  int found = 0;
+  ModelMajority *model = self;
+  
+  memset(majFac, 0, sizeof(float)*model->_(facDim));
+
+  for (i = 0; i < setSz; i++) {
+    memset(itemRats[i], 0, sizeof(ItemRat));
+  }
+
+  for (i = 0; i < setSz; i++) {
+    item = set[i];
+    itemRats[i]->item  = item;
+    itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[item], 
+        model->_(facDim));
+  }
+
+  qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
+  
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
+
+  memset(majFac, 0, model->_(facDim));
+  for (i = 0; i < majSz; i++) {
+    item = itemRats[i]->item;
+    if (item == qItem) {
+      found = 1;
+    }
+    for (j = 0; j < model->_(facDim); j++) {
+      majFac[j] += model->_(iFac)[item][j];
+    }
+  }
+
+  return found;
 }
 
 
@@ -841,8 +884,11 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
   float r_us, r_us_est, r_us_est_aftr_upd, prevObj; //actual set preference
   float temp, majSz, num, denom; 
   ModelMajority *model = self;
+  
   //TODO: hard code
   int nSetsPerUser = 50;
+  setSz = 5;
+
   float** setSumItemLatFac = (float**) malloc(sizeof(float*)*nSetsPerUser);
   for (i = 0; i < nSetsPerUser; i++) {
     setSumItemLatFac[i] = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -855,6 +901,12 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
     itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
     memset(itemRats[i], 0, sizeof(ItemRat));
   }
+
+  float *numAr, *denomAr;
+  numAr = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(numAr, 0, sizeof(float)*model->_(facDim));
+  denomAr = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(denomAr, 0, sizeof(float)*model->_(facDim));
 
   numAllSets = 0;
   for (u = 0; u < data->nUsers; u++) {
@@ -870,26 +922,36 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
   printf("\nInit Obj: %f", model->_(objective)(model, data, sim));
   
   printf("\nInit Constraint violation: %d", ModelMajority_constViol(model, data));
- 
-  for (iter = 0; iter < params->maxIter; iter++) {
+  
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
 
+  ItemWtSets *itemWtSet = NULL;
+
+  for (iter = 0; iter < params->maxIter; iter++) {
+    
+    /*
     //update users
-    for (u = 0; u < model->nUsers; u++) {
+    for (u = 0; u < model->_(nUsers); u++) {
       userSet = data->userSets[u];
       
-      //go through over all sets to compute sum of lat fac in sets
-      for (s = 0; s < userSet->numSets; s++) {
-        //check if set in test or validation
-        if (UserSets_isSetTestVal(userSet, s)) {
-         continue;
-        }
-        memset(setSumItemLatFac[s], 0, sizeof(float)*model->_(facDim));
-        ModelMajority_setMajFac(model, u, userSet->uSets[s], userSet->uSetsSize[s], 
-            itemRats, setSumItemLatFac[s]);
-      }
-
       //update user's lat fac
       for (j = 0; j < model->_(facDim); j++) {
+      
+        //go through over all sets to compute sum of lat fac in sets
+        for (s = 0; s < userSet->numSets; s++) {
+          //check if set in test or validation
+          if (UserSets_isSetTestVal(userSet, s)) {
+           continue;
+          }
+          memset(setSumItemLatFac[s], 0, sizeof(float)*model->_(facDim));
+          ModelMajority_setMajFac(model, u, userSet->uSets[s], userSet->uSetsSize[s], 
+              itemRats, setSumItemLatFac[s]);
+        }
+
         //go over all sets
         num = 0;
         denom = 0;
@@ -897,131 +959,68 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
           //compute numerator
           r_us = userSet->labels[s];
           r_us_est = dotProd(model->_(uFac)[u], setSumItemLatFac[s], 
-              model->_(facDim));
+              model->_(facDim))/majSz;
           temp = r_us - r_us_est;
-          temp += (model->_(uFac)[u][j]*setSumItemLatFac[s][j])/userSet->uSetsSize[s];
-          temp = temp*(setSumItemLatFac[s][j]/userSet->uSetsSize[s]);
+          temp += (model->_(uFac)[u][j]*setSumItemLatFac[s][j])/majSz;
+          temp = temp*(setSumItemLatFac[s][j]/majSz);
           
           //update numerator
           num += temp;
           
           //compute denominator
-          denom += (setSumItemLatFac[s][j]*setSumItemLatFac[s][j])/(userSet->uSetsSize[s]*userSet->uSetsSize[s]);
+          denom += (setSumItemLatFac[s][j]*setSumItemLatFac[s][j])/(majSz*majSz);
         }
-        
         //add regularization to denominator
         denom += model->_(regU);
 
         //update user component
         model->_(uFac)[u][j] = num/denom;
       }
-
-      //TODO: in above can compute top lat fac after every update of lat fac
-      //component of user
     }
+    */
 
     //update items
-    for (item = 0; item < model->nItems; item++) {
-      
-      
-    }
+    for (item = 0; item < model->_(nItems); item++) {
+      for (j = 0; j < model->_(facDim); j++) { 
+        num = 0;
+        denom = 0;
+        for (u = 0; u < model->_(nUsers); u++) {
+          if (data->itemSets->itemUsers[item][u]) {
+            //u has item
+            userSet = data->userSets[u];
 
+            //find sets which contains the item
+            itemWtSet = UserSets_search(userSet, item);
 
-    
-    for (subIter = 0; subIter <  numAllSets; subIter++) {
-      
-      //sample u
-      u = rand() % data->nUsers;
-      
-      userSet = data->userSets[u];
-      isTestValSet = 0;
-      //select a non-test non-val set for user
-      s = rand() % userSet->numSets;
-      
-      set       = userSet->uSets[s];
-      setSz     = userSet->uSetsSize[s];
-      r_us      = userSet->labels[s];
-      r_us_est  = 0.0;
-
-      assert(setSz <= 100);
-
-      //dont update no. of items if set is 1
-      if (setSz == 1) {
-        continue;
-      }
-      
-      for (i = 0; i < setSz; i++) {
-        itemRats[i]->item = set[i];
-        itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[set[i]],
-                                        model->_(facDim));
-      }
-      
-      qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
-
-      if (setSz % 2  == 0) {
-        majSz = setSz/2;
-      } else {
-        majSz = setSz/2 + 1;
-      }
-      
-      majSz = (float)setSz;
-
-      //update user and item latent factor
-      memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
-      for (i = 0; i < majSz; i++) {
-        item = itemRats[i]->item;
-        if (i > 0) {
-          if (itemRats[i]->rating > itemRats[i-1]->rating) {
-            printf("\nTrain:Not in decreasing order:  %f %f", 
-                itemRats[i]->rating, itemRats[i-1]->rating);
-            Params_display(params);
-            fflush(stdout);
-            exit(0);
+            if (itemWtSet != NULL) {
+              for (i = 0; i < itemWtSet->szItemSets; i++) {
+                s = itemWtSet->itemSets[i];
+                set = userSet->uSets[s];
+                setSz = userSet->uSetsSize[s];
+                if (ModelMajority_isSetMajFac(model, u, set, setSz, itemRats, 
+                      setSumItemLatFac[0], item)) {
+                  r_us = userSet->labels[s];
+                  r_us_est = dotProd(model->_(uFac)[u], setSumItemLatFac[0],
+                      model->_(facDim))/majSz;
+                  temp = r_us - r_us_est;
+                  num += (temp + (model->_(uFac)[u][j]*model->_(iFac)[item][j])/majSz)*(model->_(uFac)[u][j]/majSz);
+                  denom += (model->_(uFac)[u][j]*model->_(uFac)[u][j])/(majSz*majSz);
+                }
+              }
+            } else {
+              printf("\nERROR: u %d item %d not found", u, item);
+            }
           }
-        }
-        for (j = 0; j < model->_(facDim); j++) {
-          sumItemLatFac[j] += model->_(iFac)[item][j];
-        }
-        r_us_est += itemRats[i]->rating;
+        }//end u
+        model->_(iFac)[item][j] = num/(denom + model->_(regI));
       }
-      r_us_est = r_us_est/majSz;
-
-      //printf("\nu: %d norm: %f", u, norm(model->_(uFac)[u], model->_(facDim)));
-      
-      //update user
-      for (j = 0; j < model->_(facDim); j++) {
-        temp = r_us + (model->_(uFac)[u][j]*sumItemLatFac[j])/majSz;
-        temp = temp - dotProd(model->_(uFac)[u], sumItemLatFac, model->_(facDim))/majSz;
-        temp = temp * sumItemLatFac[j]/majSz;
-        temp = temp / (((sumItemLatFac[j]*sumItemLatFac[j])/(majSz*majSz)) 
-            + model->_(regU));
-        model->_(uFac)[u][j] = temp;
-       }
-      
-      //printf("\nu: %d norm: %f", u, norm(model->_(uFac)[u], model->_(facDim)));
-        
-      //update items' latent factor in sets
-      for (i = 0; i < majSz; i++) {
-        item = itemRats[i]->item;
-        //update item
-        for (j = 0; j < model->_(facDim); j++) {
-          temp = r_us + (model->_(uFac)[u][j]*model->_(iFac)[item][j])/majSz;
-          temp = temp - dotProd(model->_(uFac)[u], sumItemLatFac, model->_(facDim))/majSz;
-          temp = temp * model->_(uFac)[u][j]/majSz;
-          temp = temp / (((model->_(uFac)[u][j]*model->_(uFac)[u][j])/(majSz*majSz)) 
-              + model->_(regI));
-          sumItemLatFac[j] = sumItemLatFac[j] - model->_(iFac)[item][j] + temp;
-          model->_(iFac)[item][j] = temp;
-        }
-      }
-    }
-    
+    } //end item
+     
     //objective check
-    if (iter % OBJ_ITER == 0) {
+    if (iter % OBJ_ITER == 0 && iter % 50 == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-      if (iter % 50 == 0) {
-        printf("\nIter: %d obj: %f", iter, valTest->setObj);
-      }
+        printf("\nIter: %d obj: %f test items rmse: %f", iter, valTest->setObj, 
+            model->_(indivItemSetErr) (model, data->testSet));
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -1031,6 +1030,7 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
         }
       }
       prevObj = valTest->setObj;
+      fflush(stdout);
     }
 
     //validation check
@@ -1084,6 +1084,8 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
     free(setSumItemLatFac[i]);
   }
   free(setSumItemLatFac);
+  free(numAr);
+  free(denomAr);
 }
 
 
@@ -4353,7 +4355,7 @@ Model ModelMajorityProto = {
   //.objective             = ModelMajority_objectiveAvg,
   .setScore              = ModelMajority_setScore,
   //.setScore              = ModelMajority_setScoreAvg,
-  .train                 = ModelMajority_trainRMSPropSampSets
+  .train                 = ModelMajority_trainCD
 };
 
 
@@ -4482,7 +4484,7 @@ void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
   //in training sets
   loadUserItemWtsFrmTrain(data);
   
-  //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
+  copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
   //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
 
   printf("\nTest Error: %f", model->_(testErr) (model, data, NULL));  
