@@ -1,5 +1,36 @@
 #include "io.h"
 
+void loadVec(float *vec, char *fName, int sz) {
+  
+  FILE *fp   = NULL;
+  char *line = NULL;
+  size_t len = 100;
+  int i, j, read;
+  float val;
+
+  fp = fopen(fName, "r");
+  if (fp == NULL) {
+    printf("\nError reading file %s", fName);
+    exit(0);
+  }
+
+  line = (char*) malloc(len);
+  memset(line, 0, len);
+  
+  i = 0;
+  while((read = getline(&line, &len, fp)) != -1) {
+    if (read >= len) {
+      printf("\nErr: line > specified capacity");
+    }
+    vec[i++] = atof(line);
+  }
+
+  assert(i == sz);
+  fclose(fp);
+  free(line);
+}
+
+
 //read matrice from a file into variable mat
 void loadMat(float **mat, int nrows, int ncols, char *fileName) {
   FILE *fp = NULL;
@@ -331,6 +362,12 @@ void loadData(Data *data, Params *params) {
     writeMat(data->iFac, data->nUsers, data->facDim, "loadedIFac.txt");
   }
 
+  //read usermidps
+  if (params->uMidPFName) {
+    data->userMidps = (float *) malloc(sizeof(float)*params->nUsers);
+    memset(data->userMidps, 0, sizeof(float)*params->nUsers);
+    loadVec(data->userMidps, params->uMidPFName, params->nUsers);
+  }
 
   if (line) {
     free(line);

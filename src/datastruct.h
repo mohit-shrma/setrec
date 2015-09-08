@@ -30,26 +30,37 @@ typedef struct {
 typedef struct {
   char *user_set_file;
   char *ext_setSim_file;
+  
   char *val_set_file;
   int val_set_size;
+  
   char *test_set_file;
   int test_set_size;
+  
   char *train_set_file;
   int train_set_size;
+  
   char *train_mat_file;
   char *val_mat_file;
   char *test_mat_file;
+  
   char *uFacFileName;
   char *iFacFileName;
+ 
+  char *uMidPFName;
+
   int nUsers;
   int nItems;
   int facDim;
+  
   float regU;
   float regI;
   float learnRate;
+  
   int useSim;
   int maxIter;
   int seed;
+  
   float constrainWt;
   float rhoRMS;
   float epsRMS;
@@ -121,8 +132,9 @@ void UserSets_updWt_avgItemPairSim(UserSets *self, float **sim);
 void UserSets_sortItems(UserSets *self);
 void UserSets_dispWt(UserSets *self);
 void UserSets_writeWt(UserSets *self, char *fileName);
+int UserSets_isSetTestVal(UserSets *self, int s);
 ItemWtSets* UserSets_search(UserSets *self, int item);
-
+void UserSets_transToBin(UserSets *self, float *userMidps);
 
 typedef struct {
 
@@ -171,6 +183,8 @@ typedef struct {
   float **iFac;
 
   ItemSets *itemSets;
+
+  float *userMidps;
 } Data;
 
 void Data_init(Data *self, int nUsers, int nItems);

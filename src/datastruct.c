@@ -398,6 +398,18 @@ void UserSets_free(UserSets * const self) {
 }
 
 
+void UserSets_transToBin(UserSets *self, float *userMidps) {
+  int i, u, s;
+
+  u = self->userId;
+  for (s = 0; s < self->numSets; s++) {
+    if (self->labels[s] >= userMidps[u]) {
+      self->labels[s] = 1.0;
+    }
+  }
+}
+
+
 int UserSets_isSetTestVal(UserSets *self, int s) {
   int i;
   

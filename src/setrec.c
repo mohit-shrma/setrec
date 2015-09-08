@@ -17,7 +17,7 @@ void parse_cmd_line(int argc, char **argv) {
   memset(baseValTest, 0, sizeof(ValTestRMSE));
   memset(modelValTest, 0, sizeof(ValTestRMSE));
 
-  if (argc < 23) {
+  if (argc < 26) {
     printf("\n Error: need args");
     exit(0);
   } else {
@@ -51,8 +51,9 @@ void parse_cmd_line(int argc, char **argv) {
     params->rhoRMS = atof(argv[22]);
     params->epsRMS = atof(argv[23]);
     
-    params->uFacFileName    = NULL;//argv[24];
-    params->iFacFileName    = NULL;//argv[25];
+    params->uFacFileName    = argv[24];
+    params->iFacFileName    = argv[25];
+    params->uMidPFName      = argv[26];
   }
 
   //initialize random seed
@@ -64,7 +65,9 @@ void parse_cmd_line(int argc, char **argv) {
 
   //printf("\nloading data...");
   loadData(data, params);
-  
+  ItemSets_init(data->itemSets, data->userSets, params->nUsers, 
+      params->nItems);
+
   //load external similarities
   //loadSims(data, params);
   //writeSims(data);
@@ -76,7 +79,7 @@ void parse_cmd_line(int argc, char **argv) {
   //modelItemMatFac(data, params, baseValTest);  
 
   //learn model
-  modelMajority(data, params, modelValTest);
+  modelAvgSigmoid(data, params, modelValTest);
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));

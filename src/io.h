@@ -8,6 +8,8 @@
 #include "datastruct.h"
 #include "util.h"
 
+void loadVec(float *vec, char *fName, int sz);
+void loadMat(float **mat, int nrows, int ncols, char *fileName);
 void loadData(Data *data, Params *params);
 void writeData(Data *data);
 void RatingSet_load(RatingSet *ratSet, char *ip, int setSize);
