@@ -28,6 +28,7 @@ float ModelAvgSigmoid_setScore(void *self, int u, int *set, int setSz,
 float ModelAvgSigmoid_objective(void *self, Data *data, float **sim) {
   
   int u, i, s;
+  int setSz;
   UserSets *userSet = NULL;
   int *set = NULL;
   float se = 0, diff = 0, userSetPref = 0;
@@ -41,7 +42,7 @@ float ModelAvgSigmoid_objective(void *self, Data *data, float **sim) {
     uSets = 0;
     for (s = 0; s < userSet->numSets; s++) {
       if (UserSets_isSetTestVal(self, s)) {
-        continue
+        continue;
       }
       uSets++;
       set = userSet->uSets[s];
@@ -111,7 +112,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params, float 
       //select a non-test non-val set for user
       s = rand() % userSet->numSets;
       if (UserSets_isSetTestVal(self, s)) {
-        continue
+        continue;
       }
        
       set       = userSet->uSets[s];
@@ -172,11 +173,11 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params, float 
       umGrad = commGradCoeff*-1.0;
       
       //accumulate gradients square
-      umGradAcc[u] = params->rhoRMS*umGradAcc[u][j] + (1.0 - params->rhoRMS)*umGrad*umGrad;
+      umGradAcc[u] = params->rhoRMS*umGradAcc[u] + (1.0 - params->rhoRMS)*umGrad*umGrad;
 
       //update
       //TODO: init
-      model->u_m[u] -= (model->_(learnRate)/(sqrt(umGradAcc[u][j]) + 0.0000001))*umGrad;
+      model->u_m[u] -= (model->_(learnRate)/(sqrt(umGradAcc[u]) + 0.0000001))*umGrad;
 
     }
 
@@ -226,7 +227,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params, float 
     free(iGradsAcc[i]);
   }
   free(iGradsAcc);
-
+  free(umGradAcc);
   free(sumItemLatFac);
   free(uGrad);
   free(iGrad);
@@ -264,7 +265,7 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
     UserSets_transToBin(userSet, data->userMidps);
   }
   
-  model->_(train) (model, data, params, NULL); 
+  model->_(train) (model, data, params, NULL, valTest); 
   
   model->_(free)(model);
 }
