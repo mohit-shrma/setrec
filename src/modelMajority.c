@@ -1215,6 +1215,219 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
 }
 
 
+void ModelMajority_trainCDAlt(void *self, Data *data, Params *params, float **sim, 
+    ValTestRMSE *valTest) {
+
+  int iter, subIter, u, i, j, k, s, numAllSets;
+  UserSets *userSet;
+  int setSz, item, isTestValSet;
+  int *set;
+  float r_us, r_us_est, r_us_est_aftr_upd, prevObj; //actual set preference
+  float temp, majSz, num, denom; 
+  ModelMajority *model = self;
+  
+  //TODO: hard code
+  int nSetsPerUser = 50;
+  setSz = 5;
+
+  float** setSumItemLatFac = (float**) malloc(sizeof(float*)*nSetsPerUser);
+  for (i = 0; i < nSetsPerUser; i++) {
+    setSumItemLatFac[i] = (float*) malloc(sizeof(float)*model->_(facDim));
+    memset(setSumItemLatFac[i], 0, sizeof(float)*model->_(facDim));
+  }
+  
+  //TODO: hardcode
+  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
+  for (i = 0; i < 100; i++) {
+    itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
+    memset(itemRats[i], 0, sizeof(ItemRat));
+  }
+
+  float *numAr, *denomAr;
+  numAr = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(numAr, 0, sizeof(float)*model->_(facDim));
+  denomAr = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(denomAr, 0, sizeof(float)*model->_(facDim));
+
+  numAllSets = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    numAllSets += data->userSets[u]->numSets;
+  }
+
+  printf("\nnumAllSets: %d", numAllSets);
+
+  //get train error
+  printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
+  
+  //get objective
+  printf("\nInit Obj: %f", model->_(objective)(model, data, sim));
+  
+  printf("\nInit Constraint violation: %d", ModelMajority_constViol(model, data));
+  
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
+
+  ItemWtSets *itemWtSet = NULL;
+
+  for (iter = 0; iter < params->maxIter; iter++) {
+    for (subIter = 0; subIter < 2000; subIter++) {
+      
+      u = rand() % model->_(nUsers);
+      
+      //update users
+      userSet = data->userSets[u];
+      
+      //update user's lat fac
+      for (j = 0; j < model->_(facDim); j++) {
+      
+        //go through over all sets to compute sum of lat fac in sets
+        for (s = 0; s < userSet->numSets; s++) {
+          //check if set in test or validation
+          if (UserSets_isSetTestVal(userSet, s)) {
+           continue;
+          }
+          memset(setSumItemLatFac[s], 0, sizeof(float)*model->_(facDim));
+          ModelMajority_setMajFac(model, u, userSet->uSets[s], userSet->uSetsSize[s], 
+              itemRats, setSumItemLatFac[s]);
+        }
+
+        //go over all sets
+        num = 0;
+        denom = 0;
+        for (s = 0; s < userSet->numSets; s++) {
+          //compute numerator
+          r_us = userSet->labels[s];
+          r_us_est = dotProd(model->_(uFac)[u], setSumItemLatFac[s], 
+              model->_(facDim))/majSz;
+          temp = r_us - r_us_est;
+          temp += (model->_(uFac)[u][j]*setSumItemLatFac[s][j])/majSz;
+          temp = temp*(setSumItemLatFac[s][j]/majSz);
+          
+          //update numerator
+          num += temp;
+          
+          //compute denominator
+          denom += (setSumItemLatFac[s][j]*setSumItemLatFac[s][j])/(majSz*majSz);
+        }
+        //add regularization to denominator
+        denom += model->_(regU);
+
+        //update user component
+        model->_(uFac)[u][j] = num/denom;
+      }
+
+      //update items
+      item = rand() % model->_(nItems);
+      for (j = 0; j < model->_(facDim); j++) { 
+        num = 0;
+        denom = 0;
+        for (u = 0; u < model->_(nUsers); u++) {
+          if (data->itemSets->itemUsers[item][u]) {
+            //u has item
+            userSet = data->userSets[u];
+
+            //find sets which contains the item
+            itemWtSet = UserSets_search(userSet, item);
+
+            if (itemWtSet != NULL) {
+              for (i = 0; i < itemWtSet->szItemSets; i++) {
+                s = itemWtSet->itemSets[i];
+                set = userSet->uSets[s];
+                setSz = userSet->uSetsSize[s];
+                if (ModelMajority_isSetMajFac(model, u, set, setSz, itemRats, 
+                      setSumItemLatFac[0], item)) {
+                  r_us = userSet->labels[s];
+                  r_us_est = dotProd(model->_(uFac)[u], setSumItemLatFac[0],
+                      model->_(facDim))/majSz;
+                  temp = r_us - r_us_est;
+                  num += (temp + (model->_(uFac)[u][j]*model->_(iFac)[item][j])/majSz)*(model->_(uFac)[u][j]/majSz);
+                  denom += (model->_(uFac)[u][j]*model->_(uFac)[u][j])/(majSz*majSz);
+                }
+              }
+            } else {
+              printf("\nERROR: u %d item %d not found", u, item);
+            }
+          }
+        }//end u
+        model->_(iFac)[item][j] = num/(denom + model->_(regI));
+      }
+       
+      //objective check
+      if (iter % OBJ_ITER == 0) {
+        valTest->setObj = model->_(objective)(model, data, sim);
+          printf("\nIter: %d obj: %f test items rmse: %f", iter, valTest->setObj, 
+              model->_(indivItemSetErr) (model, data->testSet));
+        if (iter > 0) {
+          if (fabs(prevObj - valTest->setObj) < EPS) {
+            //exit train procedure
+            printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+                prevObj, valTest->setObj);
+            break;
+          }
+        }
+        prevObj = valTest->setObj;
+        fflush(stdout);
+      }
+
+      //validation check
+      /*
+      if (iter % VAL_ITER == 0) {
+        //validation err
+        valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+        if (iter > 0) {
+          if (fabs(prevVal - valTest->valSetRMSE) < EPS) {
+            //exit the model train procedure
+            printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
+                prevVal, valTest->valSetRMSE, fabs(prevVal - valTest->valSetRMSE));
+            break;
+          }
+        }
+        prevVal = valTest->valSetRMSE;
+      }
+      */
+    }
+  }
+
+  printf("\nEnd Obj: %f", valTest->setObj);
+
+  printf("\nFinal Constraint violation: %d", ModelMajority_constViol(model, data));
+  
+  if (iter == params->maxIter) {
+    printf("\nNOT CONVERGED:Reached maximum iterations");
+  }
+
+  valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+  printf("\nValidation set err: %f", valTest->valSetRMSE);
+  
+  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
+  printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
+
+  valTest->trainSetRMSE = model->_(trainErr)(model, data, NULL); 
+  printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
+  
+  valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
+  printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
+
+  //get test eror
+  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
+
+  for (i = 0; i < 100; i++) {
+    free(itemRats[i]);
+  }
+  free(itemRats);
+  for (i = 0; i < nSetsPerUser; i++) {
+    free(setSumItemLatFac[i]);
+  }
+  free(setSumItemLatFac);
+  free(numAr);
+  free(denomAr);
+}
+
+
 void ModelMajority_trainAdaDelta(void *self, Data *data, Params *params, float **sim, 
     ValTestRMSE *valTest) {
 
@@ -4741,7 +4954,7 @@ Model ModelMajorityProto = {
   //.objective             = ModelMajority_objectiveAvg,
   .setScore              = ModelMajority_setScore,
   //.setScore              = ModelMajority_setScoreAvg,
-  .train                 = ModelMajority_trainCD
+  .train                 = ModelMajority_trainCDAlt
 };
 
 
