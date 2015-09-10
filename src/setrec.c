@@ -79,7 +79,7 @@ void parse_cmd_line(int argc, char **argv) {
   //modelItemMatFac(data, params, baseValTest);  
 
   //learn model
-  modelAvgSigmoid(data, params, modelValTest);
+  modelMajority(data, params, modelValTest);
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));
