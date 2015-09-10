@@ -1355,40 +1355,40 @@ void ModelMajority_trainCDAlt(void *self, Data *data, Params *params, float **si
         model->_(iFac)[item][j] = num/(denom + model->_(regI));
       }
        
-      //objective check
-      if (iter % OBJ_ITER == 0) {
-        valTest->setObj = model->_(objective)(model, data, sim);
-          printf("\nIter: %d obj: %f test items rmse: %f", iter, valTest->setObj, 
-              model->_(indivItemSetErr) (model, data->testSet));
-        if (iter > 0) {
-          if (fabs(prevObj - valTest->setObj) < EPS) {
-            //exit train procedure
-            printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
-                prevObj, valTest->setObj);
-            break;
-          }
-        }
-        prevObj = valTest->setObj;
-        fflush(stdout);
-      }
-
-      //validation check
-      /*
-      if (iter % VAL_ITER == 0) {
-        //validation err
-        valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
-        if (iter > 0) {
-          if (fabs(prevVal - valTest->valSetRMSE) < EPS) {
-            //exit the model train procedure
-            printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
-                prevVal, valTest->valSetRMSE, fabs(prevVal - valTest->valSetRMSE));
-            break;
-          }
-        }
-        prevVal = valTest->valSetRMSE;
-      }
-      */
     }
+    //objective check
+    if (iter % OBJ_ITER == 0) {
+      valTest->setObj = model->_(objective)(model, data, sim);
+      printf("\nIter: %d obj: %f test items rmse: %f", iter, valTest->setObj, 
+      model->_(indivItemSetErr) (model, data->testSet));
+      if (iter > 0) {
+        if (fabs(prevObj - valTest->setObj) < EPS) {
+          //exit train procedure
+          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+              prevObj, valTest->setObj);
+          break;
+        }
+      }
+      prevObj = valTest->setObj;
+      fflush(stdout);
+    }
+
+    //validation check
+    /*
+    if (iter % VAL_ITER == 0) {
+      //validation err
+      valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+      if (iter > 0) {
+        if (fabs(prevVal - valTest->valSetRMSE) < EPS) {
+          //exit the model train procedure
+          printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
+              prevVal, valTest->valSetRMSE, fabs(prevVal - valTest->valSetRMSE));
+          break;
+        }
+      }
+      prevVal = valTest->valSetRMSE;
+    }
+    */
   }
 
   printf("\nEnd Obj: %f", valTest->setObj);
@@ -5083,7 +5083,7 @@ void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
   //in training sets
   loadUserItemWtsFrmTrain(data);
   
-  copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
+  //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
   //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
 
   printf("\nTest Error: %f", model->_(testErr) (model, data, NULL));  
