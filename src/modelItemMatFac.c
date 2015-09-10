@@ -58,14 +58,15 @@ float ModelItemMatFac_objective(void *self, Data *data, float **sim) {
   int u, i, item;
   UserSets *userSet = NULL;
   ModelItemMatFac *model = self;
-  float rmse = 0, uRegErr = 0, iRegErr = 0, obj = 0, diff;
+  float rmse = 0, uRegErr = 0, iRegErr = 0, obj = 0, diff, rat;
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     for (i = 0; i < userSet->nUserItems; i++) {
       item = userSet->itemWtSets[i]->item;
-      diff = (userSet->itemWtSets[i]->wt - 
-          dotProd(model->_(uFac)[u], model->_(iFac)[item], model->_(facDim)));
+      rat = dotProd(model->_(uFac)[u], model->_(iFac)[item], model->_(facDim)); 
+      diff = (userSet->itemWtSets[i]->wt - rat);
+      //printf("\nU %d %d %f %f %f", u, item, rat, userSet->itemWtSets[i]->wt, diff);
       rmse += diff*diff;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
@@ -234,7 +235,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 
       //update user
       for (i = 0; i < model->_(facDim); i++) {
-        model->_(uFac)[u][i] -= model->_(learnRate)*uGrad[i];
+        model->_(uFac)[u][i] -= (model->_(learnRate)/(1.0 + model->_(learnRate)*model->_(regI)*iter))*uGrad[i];
       }
 
       //item gradient
@@ -242,8 +243,9 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 
       //update item
       for (i = 0; i < model->_(facDim); i++) {
-        model->_(iFac)[itemWtSets->item][i] -= model->_(learnRate)*iGrad[i];
+        model->_(iFac)[itemWtSets->item][i] -= (model->_(learnRate)/(1.0 + model->_(learnRate)*model->_(regI)*iter))*iGrad[i];
       }
+      
 
     }
 
@@ -264,6 +266,9 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
+      if (iter % 50 == 0) {
+        printf("\nIter: %d Obj: %f", iter, valTest->setObj);
+      }
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -306,6 +311,132 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 }
 
 
+void ModelItemMatFac_trainWMajObj(void *self, Data *data, Params *params, float **sim,
+    ValTestRMSE *valTest) {
+  
+  int u, i, j, iter, item, subIter, nnz;
+  UserSets *userSet = NULL;
+  ModelItemMatFac *model = self;
+  ItemWtSets *itemWtSets = NULL;
+  float *iGrad = (float *) malloc(sizeof(float)*model->_(facDim));
+  float *uGrad = (float *) malloc(sizeof(float)*model->_(facDim));
+  float prevVal = 0, prevObj = 0;
+
+  ModelMajority *modelMaj = NEW(ModelMajority, 
+                              "set prediction with majority score");  
+  
+  modelMaj->_(init)(modelMaj, params->nUsers, params->nItems, params->facDim, 
+                  params->regU, params->regI, params->learnRate);
+  modelMaj->constrainWt = params->constrainWt;
+
+  copyMat(model->_(uFac), modelMaj->_(uFac), model->_(nUsers), model->_(facDim));
+  copyMat(model->_(iFac), modelMaj->_(iFac), model->_(nUsers), model->_(facDim));
+  printf("\nObj matfac: %f modelMaj: %f", model->_(objective) (model, data, NULL),
+      modelMaj->_(objective)(modelMaj, data, NULL));
+
+  nnz = 0;
+  for (u = 0; u < params->nUsers; u++) {
+    nnz += data->userSets[u]->nUserItems;
+  }
+  
+  printf("\nNNZ = %d", nnz);
+
+  for (iter = 0; iter < params->maxIter; iter++) {
+    //update user and item latent factor pair
+    for (subIter = 0; subIter < nnz; subIter++) {
+     
+      //sample u
+      u = rand() % params->nUsers;
+      
+      userSet = data->userSets[u];
+      
+      //select an item from users' preferences
+      itemWtSets = userSet->itemWtSets[rand()%userSet->nUserItems];
+     
+      //user gradient
+      ModelItemMatFac_computeUGrad(model, u, itemWtSets->item, itemWtSets->wt, uGrad);
+
+      //update user
+      for (i = 0; i < model->_(facDim); i++) {
+        model->_(uFac)[u][i] -= model->_(learnRate)*uGrad[i];
+      }
+
+      //item gradient
+      ModelItemMatFac_computeIGrad(model, u, itemWtSets->item, itemWtSets->wt, iGrad);
+
+      //update item
+      for (i = 0; i < model->_(facDim); i++) {
+        model->_(iFac)[itemWtSets->item][i] -= model->_(learnRate)*iGrad[i];
+      }
+
+    }
+
+    //validation
+    /*
+    if (iter % VAL_ITER == 0) {
+      valTest->valItemsRMSE = model->_(indivItemSetErr) (model, data->valSet);
+      //printf("\nIter:%d validation err:%f", iter, valTest->valItemsRMSE);
+      if (fabs(prevVal - valTest->valItemsRMSE) < EPS) {
+        printf("\nConverged in iterations: %d currVal:%f prevVal:%f", iter, 
+            valTest->valItemsRMSE, prevVal);
+        break;
+      }
+      prevVal = valTest->valItemsRMSE;
+    }
+    */
+
+    //objective check
+    if (iter % OBJ_ITER == 0) {
+      
+      valTest->setObj = model->_(objective)(model, data, sim);
+      copyMat(model->_(uFac), modelMaj->_(uFac), model->_(nUsers), model->_(facDim));
+      copyMat(model->_(iFac), modelMaj->_(iFac), model->_(nUsers), model->_(facDim));
+      printf("\nObj matfac: %f modelMaj: %f", valTest->setObj, 
+          modelMaj->_(objective)(modelMaj, data, NULL));
+
+      if (iter > 0) {
+        if (fabs(prevObj - valTest->setObj) < EPS) {
+          //exit train procedure
+          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+              prevObj, valTest->setObj);
+          break;
+        }
+      }
+      prevObj = valTest->setObj;
+    }
+    
+  }
+
+  valTest->valItemsRMSE = model->_(indivItemSetErr) (model, data->valSet);
+  printf("\nValidation items error: %f", valTest->valItemsRMSE);
+
+  if (iter == params->maxIter) {
+    printf("\nNOT CONVERGED:Reached maximum iterations");
+  }
+ 
+  valTest->trainSetRMSE = model->_(trainErr) (model, data, NULL);
+  printf("\nTrain set error(matfac): %f", valTest->trainSetRMSE);
+
+  valTest->testSetRMSE = model->_(testErr)(model, data, NULL); 
+  printf("\nTest set error(matfac): %f", valTest->testSetRMSE);
+
+  //get test eror
+  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  printf("\nTest items error(matfac): %f", valTest->testItemsRMSE);
+ 
+  //get train error
+  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
+  printf("\nTrain set indiv error(matfac): %f", valTest->trainItemsRMSE);
+
+  //printf("\nTest hit rate: %f", 
+  //    model->_(hitRate)(model, data->trainMat, data->testMat));
+  
+  free(iGrad);
+  free(uGrad);
+  modelMaj->_(free)(modelMaj);
+}
+
+
 void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **sim,
     ValTestRMSE *valTest) {
   
@@ -339,19 +470,21 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
       itemRat = trainMat->rowval[trainMat->rowptr[u] + itemInd]; 
       
       //user gradient
-      ModelItemMatFac_computeUGrad(model, u, item, itemRat, uGrad);
+      //ModelItemMatFac_computeUGrad(model, u, item, itemRat, uGrad);
 
       //update user
+      /*
       for (i = 0; i < model->_(facDim); i++) {
         model->_(uFac)[u][i] -= model->_(learnRate)*uGrad[i];
       }
+      */
 
       //item gradient
       ModelItemMatFac_computeIGrad(model, u, item, itemRat, iGrad);
 
       //update item
       for (i = 0; i < model->_(facDim); i++) {
-        model->_(iFac)[item][i] -= model->_(learnRate)*iGrad[i];
+        model->_(iFac)[item][i] -= (model->_(learnRate)/(1.0 + model->_(learnRate)*model->_(regI)*iter))*iGrad[i];
       }
 
     }
@@ -452,6 +585,11 @@ void modelItemMatFac(Data *data, Params *params, ValTestRMSE *valTest) {
 
   //load user item weights from train
   loadUserItemWtsFrmTrain(data);
+  
+  printf("\nmodel mat fac Init obj: %f", model->_(objective)(model, data, NULL));
+  //get train error
+  //valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
+  //printf("\nTrain set indiv error(matfac): %f", valTest->trainItemsRMSE);
 
   //train model
   model->_(train)(model, data, params, NULL, valTest);  

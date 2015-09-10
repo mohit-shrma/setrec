@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define EPS 0.000001
-#define OBJ_ITER 1
+#define OBJ_ITER 50
 #define VAL_CONV 1
 #define OBJ_CONV 1
 #define VAL_ITER 1
