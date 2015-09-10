@@ -1,5 +1,9 @@
 #include "util.h"
 
+float sigmoid(float x) {
+  return 1.0/(1.0 + exp(-x));
+}
+
 
 void coeffUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
 

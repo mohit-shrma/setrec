@@ -17,7 +17,7 @@ void parse_cmd_line(int argc, char **argv) {
   memset(baseValTest, 0, sizeof(ValTestRMSE));
   memset(modelValTest, 0, sizeof(ValTestRMSE));
 
-  if (argc < 26) {
+  if (argc < 27) {
     printf("\n Error: need args");
     exit(0);
   } else {

@@ -7,6 +7,7 @@ typedef struct {
   Model proto;
   float *u_m;
   float rhoRMS; //rmsProp
+  float regUm;
 } ModelAvgSigmoid;
 
 

@@ -403,9 +403,7 @@ void UserSets_transToBin(UserSets *self, float *userMidps) {
 
   u = self->userId;
   for (s = 0; s < self->numSets; s++) {
-    if (self->labels[s] >= userMidps[u]) {
-      self->labels[s] = 1.0;
-    }
+    self->labels[s] = sigmoid(self->labels[s] - userMidps[u]);
   }
 }
 
@@ -529,6 +527,7 @@ void Data_init(Data *self, int nUsers, int nItems) {
 
   self->uFac = NULL;
   self->iFac = NULL;
+  self->userMidps = NULL;
 }
 
 
@@ -569,6 +568,9 @@ void Data_free(Data *self) {
     free(self->iFac);
   }
   ItemSets_free(self->itemSets);
+  if (self->userMidps) {
+    free(self->userMidps);
+  }
   free(self);
 }
 

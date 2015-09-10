@@ -1,6 +1,132 @@
 #include "modelMajority.h"
 
 
+float ModelMajority_estScoreNSumFac(void *self, int u, int *set, int setSz, 
+    float *sumItemFac, ItemRat **itemRats) {
+  
+  int i, j, item, majSz;
+  float r_us_est = 0, temp;
+  ModelMajority *model = self;
+  for (i = 0; i < setSz; i++) {
+    item = set[i];
+    itemRats[i]->item = item;
+    itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[item], 
+        model->_(facDim));
+  }
+
+  //sort in decreasing order
+  qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
+
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
+
+  memset(sumItemFac, 0, sizeof(float)*model->_(facDim));
+  for (i = 0; i < majSz; i++) {
+    r_us_est += itemRats[i]->rating;
+    if (i > 0) {
+      if (itemRats[i]->rating > itemRats[i-1]->rating) {
+        printf("\nNot in decreasing order:  %f %f", 
+            itemRats[i]->rating, itemRats[i-1]->rating);
+        fflush(stdout);
+        exit(0);
+      }
+    }
+    item = itemRats[i]->item;
+    for (j = 0; j < model->_(facDim); j++) {
+      sumItemFac[j] += model->_(iFac)[item][j];
+    }
+  }
+  r_us_est = r_us_est/majSz;
+
+  temp = dotProd(model->_(uFac)[u], sumItemFac, model->_(facDim))/majSz; 
+  if (fabs(r_us_est - temp) > 0.00001) {
+    printf("\nERR: Rating mismatch for set %f %f", r_us_est, temp);
+    exit(0);
+  }
+
+  return r_us_est;
+}
+
+
+void ModelMajority_gradientCheck(void *self, int u, int *set, int setSz, 
+    float r_us, ItemRat **itemRats) {
+
+  int i, j, item, majSz;
+  ModelMajority *model = self;
+  float *sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
+  float *uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
+  float *iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
+  float *fac           = (float*) malloc(sizeof(float)*model->_(facDim));
+  float lossRight, lossLeft, gradE, r_us_est, rat_s;
+  
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
+  
+  r_us_est = ModelMajority_estScoreNSumFac(model, u, set, setSz, sumItemLatFac,
+      itemRats);
+
+  //sample item
+  item = itemRats[rand()%majSz]->item;
+  //item gradient
+  memset(iGrad, 0, sizeof(float)*model->_(facDim));
+  for (j = 0; j < model->_(facDim); j++) {
+    iGrad[j] = (2.0*(r_us_est - r_us)*model->_(uFac)[u][j])/majSz;
+    //if (itemRats[0]->item == item && itemRats[0]->rating < r_us) { 
+    //if (itemRats[0]->item == item) { 
+    //  iGrad[j] += -1.0*model->constrainWt*model->_(uFac)[u][j];
+    //}
+  }
+
+  //perturb item with +E and cmpute loss
+  memset(fac, 0, sizeof(float)*model->_(facDim)); 
+  for (j = 0; j < model->_(facDim); j++) {
+    fac[j] = sumItemLatFac[j] + 0.0001;    
+  }
+  rat_s = dotProd(model->_(uFac)[u], fac, model->_(facDim))/majSz;
+  lossRight = pow(rat_s - r_us, 2);
+  //if (itemRats[0]->item == item && r_us > itemRats[0]->rating) {
+  //if (itemRats[0]->item == item) {
+  //  lossRight += model->constrainWt*(r_us - itemRats[0]->rating);
+  //}
+
+  //perturb item with  -E and cmpute loss
+  memset(fac, 0, sizeof(float)*model->_(facDim)); 
+  for (j = 0; j < model->_(facDim); j++) {
+    fac[j] = sumItemLatFac[j] - 0.0001;    
+  }
+  rat_s = dotProd(model->_(uFac)[u], fac, model->_(facDim))/majSz;
+  lossLeft = pow(rat_s - r_us, 2);
+  //if (itemRats[0]->item == item && r_us > itemRats[0]->rating) {
+  //if (itemRats[0]->item == item) {
+  //  lossLeft += model->constrainWt*(r_us - itemRats[0]->rating);
+  //}
+
+  //compute gradient and E dotprod
+  gradE = 0;
+  for (j = 0; j < model->_(facDim); j++) {
+    gradE += 2.0*iGrad[j]*0.0001;
+  }
+
+  if (fabs(lossRight-lossLeft-gradE) > 0.00001) {
+    printf("\nu: %d item: %d diff: %f div: %f lDiff:%f gradE:%f", u, item, 
+      lossRight-lossLeft-gradE, (lossRight-lossLeft)/gradE, lossRight-lossLeft, 
+      gradE);
+  }
+
+
+  free(sumItemLatFac);
+  free(iGrad);
+  free(uGrad);
+  free(fac);
+}
+
+
 void testItemRat() {
   int i, j;
   ItemRat **itemRats = (ItemRat**) malloc(sizeof(ItemRat*)*5);
@@ -1017,7 +1143,7 @@ void ModelMajority_trainCD(void *self, Data *data, Params *params, float **sim,
     } //end item
      
     //objective check
-    if (iter % OBJ_ITER == 0 && iter % 50 == 0) {
+    if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
         printf("\nIter: %d obj: %f test items rmse: %f", iter, valTest->setObj, 
             model->_(indivItemSetErr) (model, data->testSet));
@@ -1206,8 +1332,6 @@ void ModelMajority_trainAdaDelta(void *self, Data *data, Params *params, float *
       } else {
         majSz = setSz/2 + 1;
       }
-
-      majSz = setSz;
 
       //update user and item latent factor
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
@@ -1485,7 +1609,7 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   printf("\nrhoRMS = %f", params->rhoRMS);
 
   for (iter = 0; iter < params->maxIter; iter++) {
-    for (subIter = 0; subIter <  numAllSets; subIter++) {
+    for (subIter = 0; subIter <  100; subIter++) {
       
       //sample u
       u = rand() % data->nUsers;
@@ -1526,7 +1650,12 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
       if (setSz == 1) {
         continue;
       }
-      
+   
+
+
+      ModelMajority_gradientCheck(model, u, set, setSz, r_us, itemRats);
+      continue;
+
       for (i = 0; i < setSz; i++) {
         itemRats[i]->item = set[i];
         itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[set[i]],
@@ -1629,6 +1758,267 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
         }
       }
       prevObj = valTest->setObj;
+    }
+
+    //validation check
+    /*
+    if (iter % VAL_ITER == 0) {
+      //validation err
+      valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+      if (iter > 0) {
+        if (fabs(prevVal - valTest->valSetRMSE) < EPS) {
+          //exit the model train procedure
+          printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
+              prevVal, valTest->valSetRMSE, fabs(prevVal - valTest->valSetRMSE));
+          break;
+        }
+      }
+      prevVal = valTest->valSetRMSE;
+    }
+    */
+    
+  }
+
+  printf("\nEnd Obj: %f", valTest->setObj);
+
+  printf("\nFinal Constraint violation: %d", ModelMajority_constViol(model, data));
+  
+  if (iter == params->maxIter) {
+    printf("\nNOT CONVERGED:Reached maximum iterations");
+  }
+
+  valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+  printf("\nValidation set err: %f", valTest->valSetRMSE);
+  
+  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
+  printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
+
+  valTest->trainSetRMSE = model->_(trainErr)(model, data, NULL); 
+  printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
+  
+  valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
+  printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
+
+  //get test eror
+  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
+
+  //printf("\nTest hit rate: %f", 
+  //    model->_(hitRate)(model, data->trainMat, data->testMat));
+
+  //model->_(writeUserSetSim)(self, data, "userSetsSim.txt");
+
+  for (i = 0; i < params->nUsers; i++) {
+    free(uGradsAcc[i]);
+  }
+  free(uGradsAcc);
+  
+  for (i = 0; i < params->nItems; i++) {
+    free(iGradsAcc[i]);
+  }
+  free(iGradsAcc);
+
+  for (i = 0; i < 100; i++) {
+    free(itemRats[i]);
+  }
+  free(itemRats);
+  free(sumItemLatFac);
+  free(uGrad);
+  free(iGrad);
+}
+
+
+void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, float **sim, 
+    ValTestRMSE *valTest) {
+
+  int iter, subIter, u, i, j, k, s, numAllSets;
+  UserSets *userSet;
+  int setSz, item, majSz, isTestValSet;
+  int *set;
+  float r_us, r_us_est, r_us_est_aftr_upd, prevObj; //actual set preference
+  float temp; 
+  ModelMajority *model = self;
+  float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
+  float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
+  float* uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
+  
+  float **iGradsAcc    = (float**) malloc(sizeof(float*)*params->nItems);
+  float **uGradsAcc    = (float**) malloc(sizeof(float*)*params->nUsers);
+  for (i = 0; i < params->nItems; i++) {
+    iGradsAcc[i] = (float*) malloc(sizeof(float)*model->_(facDim));
+    memset(iGradsAcc[i], 0, sizeof(float)*model->_(facDim));
+  }
+  for (i = 0; i < params->nUsers; i++) {
+    uGradsAcc[i] = (float*) malloc(sizeof(float)*model->_(facDim));
+    memset(uGradsAcc[i], 0, sizeof(float)*model->_(facDim));
+  }
+
+  //TODO: hardcode
+  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
+  for (i = 0; i < 100; i++) {
+    itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
+    memset(itemRats[i], 0, sizeof(ItemRat));
+  }
+
+  numAllSets = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    numAllSets += data->userSets[u]->numSets;
+  }
+
+  printf("\nnumAllSets: %d", numAllSets);
+
+  //get train error
+  printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
+  
+  //get objective
+  printf("\nInit Obj: %f", model->_(objective)(model, data, sim));
+  
+  printf("\nInit Constraint violation: %d", ModelMajority_constViol(model, data));
+ 
+  printf("\nrhoRMS = %f", params->rhoRMS);
+
+  for (iter = 0; iter < params->maxIter; iter++) {
+    for (subIter = 0; subIter < numAllSets; subIter++) {
+      
+      //sample u
+      u = rand() % data->nUsers;
+      
+      userSet = data->userSets[u];
+      isTestValSet = 0;
+      //select a non-test non-val set for user
+      s = rand() % userSet->numSets;
+      
+      //check if set in test sets
+      for (i = 0; i < userSet->szTestSet; i++) {
+        if (s == userSet->testSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      //check if set in validation sets
+      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
+        if (s == userSet->valSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      if (isTestValSet) {
+        continue;
+      }
+  
+      set       = userSet->uSets[s];
+      setSz     = userSet->uSetsSize[s];
+      r_us      = userSet->labels[s];
+      r_us_est  = 0.0;
+
+      assert(setSz <= 100);
+
+      //dont update no. of items if set is 1
+      if (setSz == 1) {
+        continue;
+      }
+   
+      //ModelMajority_gradientCheck(model, u, set, setSz, r_us, itemRats);
+      //continue;
+
+      for (i = 0; i < setSz; i++) {
+        itemRats[i]->item = set[i];
+        itemRats[i]->rating = dotProd(model->_(uFac)[u], model->_(iFac)[set[i]],
+                                        model->_(facDim));
+      }
+      
+      //TODO:verify whether sorted in descending order
+      //TODO: print rating and verify
+      qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
+
+      if (setSz % 2  == 0) {
+        majSz = setSz/2;
+      } else {
+        majSz = setSz/2 + 1;
+      }
+
+      //update user and item latent factor
+      memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
+      for (i = 0; i < majSz; i++) {
+        item = itemRats[i]->item;
+        
+        if (i > 0) {
+          
+          if (itemRats[i]->rating > itemRats[i-1]->rating) {
+            printf("\nTrain:Not in decreasing order:  %f %f", 
+                itemRats[i]->rating, itemRats[i-1]->rating);
+            Params_display(params);
+            fflush(stdout);
+            exit(0);
+          }
+          
+          //check if decreasing order
+          //assert(itemRats[i]->rating <= itemRats[i-1]->rating);
+        
+        }
+
+        for (j = 0; j < model->_(facDim); j++) {
+          sumItemLatFac[j] += model->_(iFac)[item][j];
+        }
+        r_us_est += itemRats[i]->rating;
+      }
+      r_us_est = r_us_est/majSz;
+      
+      /*
+      //compute user gradient
+      for (j = 0; j < model->_(facDim); j++) {
+        uGrad[j] = 2.0*(r_us_est - r_us)*sumItemLatFac[j]*(1.0/majSz);
+        uGrad[j] += 2.0*model->_(regU)*model->_(uFac)[u][j];
+      }
+    
+      for (j = 0; j < model->_(facDim); j++) {
+        //accumulate the gradients square
+        uGradsAcc[u][j] = uGradsAcc[u][j]*params->rhoRMS + 
+          (1.0 - params->rhoRMS)*uGrad[j]*uGrad[j];
+        //update
+        model->_(uFac)[u][j] -= (model->_(learnRate)/sqrt(uGradsAcc[u][j] + 0.0000001))*uGrad[j];
+      }
+      */
+      
+      //item gradient
+      for (j = 0; j < model->_(facDim); j++) {
+        iGrad[j] = 2.0*(r_us_est - r_us)*model->_(uFac)[u][j]*(1.0/majSz);
+      }
+
+      //compute  gradient of item and update their latent factor in sets
+      for (i = 0; i < majSz; i++) {
+        item = itemRats[i]->item;
+        for (j = 0; j < model->_(facDim); j++) {
+          //add regularization
+          temp = iGrad[j] + 2.0*model->_(regI)*model->_(iFac)[item][j]; 
+          //accumulate the gradients square 
+          iGradsAcc[item][j] = params->rhoRMS*iGradsAcc[item][j]  + (1.0 - params->rhoRMS)*temp*temp;
+          //update
+          model->_(iFac)[item][j] -= (model->_(learnRate)/sqrt(iGradsAcc[item][j] + 0.0000001))*temp;
+        }
+      }
+      
+    }
+
+    //objective check
+    if (iter % OBJ_ITER == 0) {
+      valTest->setObj = model->_(objective)(model, data, sim);
+      printf("\nIter: %d obj: %f, testItemsErr: %f", iter, valTest->setObj, model->_(indivItemSetErr) (model, data->testSet));
+      if (iter > 3000) {
+        if (fabs(prevObj - valTest->setObj) < EPS) {
+          //exit train procedure
+          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+              prevObj, valTest->setObj);
+          break;
+        }
+      }
+      prevObj = valTest->setObj;
+    }
+
+    if (iter > 0 && iter % 500 == 0) {
+      model->_(learnRate) = model->_(learnRate)/10.0;
     }
 
     //validation check
@@ -2122,7 +2512,6 @@ void ModelMajority_trainRMSPropCons(void *self, Data *data, Params *params, floa
         }
         
       }
-
     
     }
 
@@ -2142,7 +2531,8 @@ void ModelMajority_trainRMSPropCons(void *self, Data *data, Params *params, floa
       }
       prevObj = valTest->setObj;
     }
-      
+    
+
     fflush(stdout);
     //validation check
     /*
@@ -2336,8 +2726,6 @@ void ModelMajority_trainADAM(void *self, Data *data, Params *params, float **sim
       } else {
         majSz = setSz/2 + 1;
       }
-
-      majSz = setSz;
 
       //update user and item latent factor
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
@@ -3564,8 +3952,6 @@ void ModelMajority_update(void *self, UserSets *userSet, int setInd,
     majSz = setSz/2 + 1;
   }
 
-  majSz = setSz;
-
   //update user and item latent factor
   memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
   for (i = 0; i < majSz; i++) {
@@ -4351,7 +4737,7 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
 
 
 Model ModelMajorityProto = {
-  .objective             = ModelMajority_objective,
+  .objective             = ModelMajority_objectiveWOCons,
   //.objective             = ModelMajority_objectiveAvg,
   .setScore              = ModelMajority_setScore,
   //.setScore              = ModelMajority_setScoreAvg,
