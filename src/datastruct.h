@@ -8,7 +8,7 @@
 
 #include "GKlib.h"
 #include "set.h"
-
+#include "util.h"
 
 typedef struct {
   float valItemsRMSE;

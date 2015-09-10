@@ -56,8 +56,10 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
     gradE += 2.0*uGrad[j]*0.0001;
   }
   
-  printf("\nu: %d diff: %f div: %f lDiff:%f gradE:%f", u, lossRight-lossLeft-gradE, 
+  if (fabs(lossRight-lossLeft-gradE) > 0.0001) {
+    printf("\nu: %d diff: %f div: %f lDiff:%f gradE:%f", u, lossRight-lossLeft-gradE, 
       (lossRight-lossLeft)/gradE, lossRight-lossLeft, gradE);
+  }
 
   //find gradient w.r.t. one of the item in set
   memset(iGrad, 0, sizeof(float)*model->_(facDim));
@@ -89,9 +91,11 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
     gradE += 2.0*iGrad[j]*0.0001;
   }
   
-  printf("\ni: %d diff: %f div: %f lDiff:%f gradE:%f", item, lossRight-lossLeft-gradE, 
-      (lossRight-lossLeft)/gradE, lossRight-lossLeft, gradE);
+  if (fabs(lossRight-lossLeft-gradE) > 0.0001) {
 
+    printf("\ni: %d diff: %f div: %f lDiff:%f gradE:%f", item, lossRight-lossLeft-gradE, 
+      (lossRight-lossLeft)/gradE, lossRight-lossLeft, gradE);
+  }
 
   //find gradient w.r.t. u_m
   umGrad = commGradCoeff*-1.0;
@@ -106,9 +110,11 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   
   gradE = 2.0*umGrad*0.0001;
   
-  printf("\num: %d diff: %f div: %f lDiff:%f gradE:%f", u, lossRight-lossLeft-gradE, 
-      (lossRight-lossLeft)/gradE, lossRight-lossLeft, gradE);
+  if (fabs(lossRight-lossLeft-gradE) > 0.0001) {
 
+    printf("\num: %d diff: %f div: %f lDiff:%f gradE:%f", u, lossRight-lossLeft-gradE, 
+      (lossRight-lossLeft)/gradE, lossRight-lossLeft, gradE);
+  }
 
   free(sumItemLatFac);
   free(iGrad);
@@ -122,7 +128,7 @@ float ModelAvgSigmoid_setScore(void *self, int u, int *set, int setSz,
   
   int i, item;
   ModelAvgSigmoid *model = self;
-  float r_us_est = 0;
+  float r_us_est = 0, diff;
 
   for (i = 0; i < setSz; i++) {
     item     = set[i];
@@ -130,7 +136,8 @@ float ModelAvgSigmoid_setScore(void *self, int u, int *set, int setSz,
         model->_(facDim));
   }
   r_us_est = r_us_est/setSz;
-  r_us_est = sigmoid(r_us_est - model->u_m[u]);
+  diff = r_us_est - model->u_m[u];
+  r_us_est = sigmoid(diff);
   
   return r_us_est;
 }
@@ -173,8 +180,8 @@ float ModelAvgSigmoid_objective(void *self, Data *data, float **sim) {
   }
   iRegErr *= model->_(regI);
  
-  printf("\nse: %f uRegErr: %f umRegErr: %f iRegErr: %f", se, uRegErr, 
-      umRegErr, iRegErr);
+  //printf("\nse: %f uRegErr: %f umRegErr: %f iRegErr: %f", se, uRegErr, 
+  //    umRegErr, iRegErr);
 
   return (se + uRegErr + umRegErr + iRegErr);
 }
@@ -396,7 +403,7 @@ void ModelAvgSigmoid_trainSGD(void *self, Data *data, Params *params,
   printf("\nInit Obj: %f", model->_(objective)(model, data, sim));
 
   for (iter = 0; iter < params ->maxIter; iter++) {
-    for (subIter = 0; subIter <  numAllSets; subIter++) {
+    for (subIter = 0; subIter <  5; subIter++) {
       //sample u
       u = rand() % data->nUsers;
       userSet = data->userSets[u];
@@ -418,8 +425,8 @@ void ModelAvgSigmoid_trainSGD(void *self, Data *data, Params *params,
       }
 
       //perform gradient checks
-      //gradCheck(model, u, set, setSz, r_us);
-      //continue;
+      gradCheck(model, u, set, setSz, r_us);
+      continue;
 
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < setSz; i++) {
@@ -542,16 +549,16 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   //initialize u_m
   model->u_m = (float *) malloc(sizeof(float)*params->nUsers);
   for (u = 0; u < params->nUsers; u++) {
-    //model->u_m[u] = (float) rand() / (float) (RAND_MAX);  
-    model->u_m[u] = data->userMidps[u]; 
+    model->u_m[u] = (float) rand() / (float) (RAND_MAX);  
+    //model->u_m[u] = data->userMidps[u]; 
   }
 
   //load user item weights from train: needed to compute training on indiv items
   //in training sets
   loadUserItemWtsFrmTrain(data);
 
-  copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
-  copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
+  //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
+  //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
 
   //transform set ratings via midP param
   for (u = 0; u < data->nUsers; u++) {
@@ -563,9 +570,9 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   //printf("\n------------------------------------------------------------------");
   //writeData(data); 
   
-  printf("\nModel objective: %f", model->_(objective)(model, data, NULL));
+  //printf("\nModel objective: %f", model->_(objective)(model, data, NULL));
   
-  //model->_(train) (model, data, params, NULL, valTest); 
+  model->_(train) (model, data, params, NULL, valTest); 
   
   free(model->u_m);
   model->_(free)(model);

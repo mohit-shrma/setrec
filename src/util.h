@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <float.h>
 #include <stdlib.h>
+float sigmoid(float x);
 void coeffUpdateWOReg(float *fac, float *grad, float stepSize, int facDim);
 void coefficientNormUpdate(float *fac, float *grad, float reg, float learnRate, int facDim);
 void coeffUpdate(float *fac, float *grad, float reg, float learnRate, int facDim);
