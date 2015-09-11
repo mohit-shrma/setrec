@@ -4,12 +4,12 @@
 
 void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   int i, j, item;
-  ModelAvgSigmoid *model = self;
   float commGradCoeff, r_us_est, avgRat;
-  float *sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
-  float *uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
-  float *iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
-  float *fac         = (float*) malloc(sizeof(float)*model->_(facDim));
+  ModelAvgSigmoid *model = self;
+  float *sumItemLatFac   = (float*) malloc(sizeof(float)*model->_(facDim));
+  float *uGrad           = (float*) malloc(sizeof(float)*model->_(facDim));
+  float *iGrad           = (float*) malloc(sizeof(float)*model->_(facDim));
+  float *fac             = (float*) malloc(sizeof(float)*model->_(facDim));
   
   float lossRight, lossLeft, gradE, umGrad;
 
@@ -194,7 +194,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
   UserSets *userSet;
   int setSz, item, isTestValSet;
   int *set;
-  float r_us, r_us_est, prevObj; 
+  float r_us, r_us_est, prevObj, dev; 
   float temp; 
   ModelAvgSigmoid *model = self;
   float commGradCoeff = 0, avgRat = 0;
@@ -261,12 +261,13 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
         }
       }
       avgRat = dotProd(model->_(uFac)[u], sumItemLatFac,  model->_(facDim))/setSz;
-      r_us_est = sigmoid(avgRat - model->u_m[u]);
+      dev = avgRat - model->u_m[u];
+      r_us_est = sigmoid(dev);
 
-      //commGradCoeff = exp(-1.0*(avgRat - model->u_m[u]))*pow(sigmoid(avgRat-model->u_m[u]), 2);
-      commGradCoeff = exp(-1.0*(avgRat - model->u_m[u]))*r_us_est*r_us_est;
+      //commGradCoeff = exp(-1.0*(dev))*pow(sigmoid(dev), 2);
+      commGradCoeff = exp(-1.0*(dev))*r_us_est*r_us_est;
       commGradCoeff = 2 * (r_us_est - r_us) * commGradCoeff;
-
+      
       //compute user gradient
       memset(uGrad, 0, sizeof(float)*model->_(facDim));  
       for (j = 0; j < model->_(facDim); j++) {
@@ -281,12 +282,11 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
         //update
         model->_(uFac)[u][j] -= (model->_(learnRate)/sqrt(uGradsAcc[u][j] + 0.0000001))*uGrad[j];
       }
-
+      
       //compute items gradient n update
       for (j = 0; j < model->_(facDim); j++) {
         iGrad[j] = commGradCoeff*model->_(uFac)[u][j]/setSz;
       }
-
       for (i = 0; i < setSz; i++) {
         item = set[i];
         for (j = 0; j < model->_(facDim); j++) {
@@ -298,7 +298,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
           model->_(iFac)[item][j] -= (model->_(learnRate)/sqrt(iGradsAcc[item][j] + 0.0000001))*temp;
         }
       }
-
+      
       //compute user midp gradient
       umGrad = commGradCoeff*-1.0 + 2.0*model->u_m[u]*model->regUm;
       
@@ -312,9 +312,10 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-      printf("\nIter: %d obj: %f trainRMSE: %f", iter, valTest->setObj, 
-          model->_(indivTrainSetsErr) (model, data));
-      if (iter > 5000) {
+      //printf("\nIter: %d obj: %f avgHits: %f", iter, valTest->setObj, 
+      //    model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, data->iFac, 10));
+      printf("\nIter: %d obj: %f", iter, valTest->setObj);
+      if (iter > 1000) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
           printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
@@ -442,6 +443,7 @@ void ModelAvgSigmoid_trainSGD(void *self, Data *data, Params *params,
       commGradCoeff = exp(-1.0*(avgRat - model->u_m[u]))*r_us_est*r_us_est;
       commGradCoeff = 2 * (r_us_est - r_us) * commGradCoeff;
 
+      /*
       //compute user gradient
       memset(uGrad, 0, sizeof(float)*model->_(facDim));  
       for (j = 0; j < model->_(facDim); j++) {
@@ -450,6 +452,7 @@ void ModelAvgSigmoid_trainSGD(void *self, Data *data, Params *params,
         uGrad[j] += 2.0*model->_(regU)*model->_(uFac)[u][j];
         model->_(uFac)[u][j] -= model->_(learnRate)*uGrad[j];
       }
+      */
 
       //compute items gradient n update
       for (j = 0; j < model->_(facDim); j++) {
@@ -466,11 +469,13 @@ void ModelAvgSigmoid_trainSGD(void *self, Data *data, Params *params,
         }
       }
 
+      /*
       //compute user midp gradient
       umGrad = commGradCoeff*-1.0 + 2.0*model->u_m[u]*model->regUm;
       
       //update
       model->u_m[u] -= model->_(learnRate)*umGrad;
+      */
     }
 
     //objective check
@@ -573,7 +578,14 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   //printf("\nModel objective: %f", model->_(objective)(model, data, NULL));
   
   model->_(train) (model, data, params, NULL, valTest); 
-  
+ 
+  //write the learned u_m value
+  //writeFloatVector(model->u_m, data->nUsers, "um_users.txt");
+
+  //save model latent factors
+  //writeMat(model->_(uFac), params->nUsers, model->_(facDim), "uFacAvgSigm.txt");
+  //writeMat(model->_(iFac), params->nItems, model->_(facDim), "iFacAvgSigm.txt");
+
   free(model->u_m);
   model->_(free)(model);
 }

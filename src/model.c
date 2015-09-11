@@ -721,6 +721,64 @@ float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat) {
 }
 
 
+float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat,
+    float **origUFac, float **origIFac, int N) {
+  
+  int u, i, j, ii, jj;
+  int nItems            = trainMat->ncols;
+  float nHits           = 0;
+  Model *model          = self;
+  gk_fkv_t *origItemPrefInd = gk_fkvmalloc(nItems, "preferences of the original");
+  gk_fkv_t *modelItemPrefInd = gk_fkvmalloc(nItems, "preferences of the model");
+  int *isItemRated      = (int*) malloc(sizeof(int)*nItems);
+
+  for (u = 0; u < trainMat->nrows; u++) {
+    
+    //get items rated by user in train
+    memset(isItemRated, 0, sizeof(int)*nItems);
+    for (ii = trainMat->rowptr[u]; ii < trainMat->rowptr[u+1]; ii++) {
+      if (trainMat->rowval[ii] > 0) {
+        isItemRated[trainMat->rowind[ii]] = 1;
+      }
+    }
+
+    //go over all items and predict rating
+    for (i = 0; i < nItems; i++) {
+      if (isItemRated[i]) {
+        origItemPrefInd[i].key = 0;
+        modelItemPrefInd[i].key = 0;
+      } else {
+        modelItemPrefInd[i].key = dotProd(model->uFac[u], model->iFac[i], model->facDim);
+        origItemPrefInd[i].key = dotProd(origUFac[u], origIFac[i], model->facDim); 
+      }
+      modelItemPrefInd[i].val = i;
+      origItemPrefInd[i].val = i;
+    }
+
+    //put top-N largest in beginning of array
+    gk_dfkvkselect(nItems, N, origItemPrefInd);
+    gk_dfkvkselect(nItems, N, modelItemPrefInd);
+
+    for (i = 0; i < N; i++) {
+      //check if origItemPrefInd[i].val is in modelItemPrefInd[0:N-1]
+      for (j = 0; j < N; j++) {
+        if (origItemPrefInd[i].val == modelItemPrefInd[j].val) {
+          nHits += 1.0;
+        }
+      }
+    }
+
+  }
+
+  gk_free((void **)&origItemPrefInd, LTERM);
+  gk_free((void **)&modelItemPrefInd, LTERM);
+  free(isItemRated);
+
+  //divide by no. of users to get avg hit per user
+  return (nHits/trainMat->nrows); 
+}
+
+
 float Model_cmpLoadedFac(void *self, Data *data) {
   int u, i, j;
   Model *model = self;
@@ -799,6 +857,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.indivItemSetErr) proto.indivItemSetErr         = Model_indivItemSetErr;
   if (!proto.writeUserSetSim) proto.writeUserSetSim         = Model_writeUserSetSim;
   if (!proto.hitRate) proto.hitRate                         = Model_hitRate;
+  if (!proto.hitRateOrigTopN) proto.hitRateOrigTopN         = Model_hitRateOrigTopN;
   if (!proto.indivTrainSetsErr) proto.indivTrainSetsErr     = Model_indivTrainSetsErr;
   if (!proto.cmpLoadedFac) proto.cmpLoadedFac               = Model_cmpLoadedFac;
   if (!proto.indivItemCSRErr) proto.indivItemCSRErr         = Model_indivItemCSRErr;

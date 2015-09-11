@@ -6,6 +6,7 @@ float sigmoid(float x) {
   return fSigm;
 }
 
+
 void coeffUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {
 
   int k;
@@ -32,6 +33,20 @@ void coeffUpdateAdap(float *fac, float *grad, float reg, float learnRate,
 
 }
 
+void coeffUpdateAdap2(float *fac, float *grad, float reg, float learnRate, 
+    int facDim, int iter) {
+
+  int k;
+  float facNorm;
+
+  float stepSize = learnRate/sqrt(iter);
+  
+  for (k = 0; k < facDim; k++) { 
+    fac[k] -= stepSize*(grad[k] + 2.0*reg*fac[k]); 
+  }
+
+}
+
 
 void coeffUpdateWOReg(float *fac, float *grad, float stepSize, int facDim) {
   
@@ -42,7 +57,6 @@ void coeffUpdateWOReg(float *fac, float *grad, float stepSize, int facDim) {
   }
 
 }
-
 
 
 void coefficientNormUpdate(float *fac, float *grad, float reg, float learnRate, int facDim) {

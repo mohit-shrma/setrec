@@ -21,11 +21,11 @@ LIBSDIR= -L.. -I/usr/include
 #LIBS = -lm 
 LIBS = $(STDLIBS) $(EXT_LIBS) 
 
-#CFLAGS = $(COPTIONS)  $(OPTFLAGS) -I$(GKINCHOME)   
-CFLAGS = $(COPTIONS) -I$(GKINCHOME)  
+CFLAGS = $(COPTIONS)  $(OPTFLAGS) -I$(GKINCHOME)   
+#CFLAGS = $(COPTIONS) -I$(GKINCHOME)  
 #CFLAGS=  -I. $(OPTFLAGS) 
 
-setrec: model.o modelMajority.o modelItemMatFac.o set.o util.o io.o datastruct.o setrec.o 
+setrec: model.o modelAvgSigmoid.o modelMajority.o modelItemMatFac.o set.o util.o io.o datastruct.o setrec.o 
 	$(CC) $^ $(CFLAGS) $(LIBS) $(LIBSDIR) $(EXT_LIBS_DIR) -o $@
 
 

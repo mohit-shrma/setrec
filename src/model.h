@@ -54,6 +54,8 @@ typedef struct {
   float (*indivTrainSetsErr) (void *self, Data *data);
   float (*indivItemCSRErr) (void *self, gk_csr_t *mat, char *opName); 
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
+  float (*hitRateOrigTopN) (void *self, gk_csr_t *trainMat, float **origUFac, 
+      float **origIFac, int N);
   float (*cmpLoadedFac) (void *self, Data *data);
   void (*train) (void *self, Data *data, Params *params, float **Sim, ValTestRMSE *valTest);
   void (*free) (void *self);
@@ -84,6 +86,8 @@ float Model_userFacNorm(void *self, Data *data);
 float Model_itemFacNorm(void *Self, Data *data);
 float Model_indivItemSetErr(void *self, RatingSet *ratSet);
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
+float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat, float **origUFac, 
+    float **origIFac, int N);
 float Model_indivTrainSetsErr(void *self, Data *data);
 float Model_indivItemCSRErr(void *self, gk_csr_t *mat, char *opName);
 float Model_cmpLoadedFac(void *self, Data *data);
