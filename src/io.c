@@ -91,7 +91,7 @@ void writeData(Data *data) {
     
     //print: label numItem itemsInSet
     for (j = 0; j < dUserSet->numSets; j++) {
-      printf("%f %d ", dUserSet->labels[j], dUserSet->uSetsSize[j]);
+      printf("s: %f %d ", dUserSet->labels[j], dUserSet->uSetsSize[j]);
       for (k = 0; k < dUserSet->uSetsSize[j]; k++) {
         printf("%d ", dUserSet->uSets[j][k]);
       }

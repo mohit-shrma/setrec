@@ -8,6 +8,9 @@ typedef struct {
   float *u_m;
   float rhoRMS; //rmsProp
   float regUm;
+  float g_k; //global steepness parameter
+  //TODO: from commandline
+  float regG_k; //global steepness regularization
 } ModelAvgSigmoid;
 
 

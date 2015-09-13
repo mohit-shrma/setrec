@@ -1,7 +1,7 @@
 #include "util.h"
 
-float sigmoid(float x) {
-  float expVal = exp((double) -x);
+float sigmoid(float x, float k) {
+  float expVal = exp((double) -(k*x));
   float fSigm = 1.0/(1.0 + expVal);
   return fSigm;
 }
@@ -264,3 +264,4 @@ double generateGaussianNoise(double mu, double sigma) {
   return z0 * sigma + mu;
 }
 
+    

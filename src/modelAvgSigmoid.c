@@ -2,7 +2,7 @@
 
 
 
-void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
+void ModelAvgSigmoid_gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   int i, j, item;
   float commGradCoeff, r_us_est, avgRat;
   ModelAvgSigmoid *model = self;
@@ -11,7 +11,7 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   float *iGrad           = (float*) malloc(sizeof(float)*model->_(facDim));
   float *fac             = (float*) malloc(sizeof(float)*model->_(facDim));
   
-  float lossRight, lossLeft, gradE, umGrad;
+  float lossRight, lossLeft, gradE, umGrad, g_kGrad;
 
   //compute common grad coeffs and est score
   memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
@@ -23,14 +23,14 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   }
 
   avgRat = dotProd(model->_(uFac)[u], sumItemLatFac, model->_(facDim))/setSz; 
-  r_us_est = sigmoid(avgRat - model->u_m[u]);
-  commGradCoeff = exp(-1.0*(avgRat - model->u_m[u]))*r_us_est*r_us_est;
+  r_us_est = sigmoid(avgRat - model->u_m[u], model->g_k);
+  commGradCoeff = exp(-1.0*model->g_k*(avgRat - model->u_m[u]))*r_us_est*r_us_est;
   commGradCoeff = 2 * (r_us_est - r_us) * commGradCoeff;
 
   //find gradient w.r.t. u
   memset(uGrad, 0, sizeof(float)*model->_(facDim));
   for (j = 0; j < model->_(facDim); j++) {
-    uGrad[j] = commGradCoeff*sumItemLatFac[j]/setSz;
+    uGrad[j] = model->g_k*commGradCoeff*sumItemLatFac[j]/setSz;
     //add regularization
     //uGrad[j] += 2.0*model->_(regU)*model->_(uFac)[u][j];
   }
@@ -40,14 +40,14 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
     fac[j] = model->_(uFac)[u][j] + 0.0001;
   }
   avgRat = dotProd(fac, sumItemLatFac, model->_(facDim))/setSz;
-  r_us_est = sigmoid(avgRat - model->u_m[u]);
+  r_us_est = sigmoid(avgRat - model->u_m[u], model->g_k);
   lossRight = pow(r_us_est - r_us, 2);
   
   for (j = 0; j < model->_(facDim); j++) {
     fac[j] = model->_(uFac)[u][j] - 0.0001;
   }
   avgRat = dotProd(fac, sumItemLatFac, model->_(facDim))/setSz;
-  r_us_est = sigmoid(avgRat - model->u_m[u]);
+  r_us_est = sigmoid(avgRat - model->u_m[u], model->g_k);
   lossLeft = pow(r_us_est - r_us, 2);
 
   //compute gradient and E dotprod
@@ -65,7 +65,7 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   memset(iGrad, 0, sizeof(float)*model->_(facDim));
   item = set[rand()%setSz];
   for (j = 0; j < model->_(facDim); j++) {
-    iGrad[j] = commGradCoeff*model->_(uFac)[u][j]/setSz;
+    iGrad[j] = model->g_k*commGradCoeff*model->_(uFac)[u][j]/setSz;
   }
 
   //perturb item with +E and -E and cmpute loss
@@ -74,7 +74,7 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
     fac[j] = sumItemLatFac[j] + 0.0001;
   }
   avgRat = dotProd(model->_(uFac)[u], fac, model->_(facDim))/setSz; 
-  r_us_est = sigmoid(avgRat - model->u_m[u]);
+  r_us_est = sigmoid(avgRat - model->u_m[u], model->g_k);
   lossRight = pow(r_us_est - r_us, 2);
 
   memset(fac, 0, sizeof(float)*model->_(facDim));
@@ -82,7 +82,7 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
     fac[j] = sumItemLatFac[j] - 0.0001;
   }
   avgRat = dotProd(model->_(uFac)[u], fac, model->_(facDim))/setSz; 
-  r_us_est = sigmoid(avgRat - model->u_m[u]);
+  r_us_est = sigmoid(avgRat - model->u_m[u], model->g_k);
   lossLeft = pow(r_us_est - r_us, 2);
 
   //compute gradient and E dotprod
@@ -98,14 +98,14 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   }
 
   //find gradient w.r.t. u_m
-  umGrad = commGradCoeff*-1.0;
+  umGrad = -1.0*commGradCoeff*model->g_k;
 
   //perturb u_m with +E and -E
   avgRat = dotProd(model->_(uFac)[u], sumItemLatFac, model->_(facDim))/setSz;
-  r_us_est = sigmoid(avgRat - (model->u_m[u] + 0.0001));
+  r_us_est = sigmoid(avgRat - (model->u_m[u] + 0.0001), model->g_k);
   lossRight = pow(r_us_est - r_us, 2);
 
-  r_us_est = sigmoid(avgRat - (model->u_m[u] - 0.0001));
+  r_us_est = sigmoid(avgRat - (model->u_m[u] - 0.0001), model->g_k);
   lossLeft = pow(r_us_est - r_us, 2);
   
   gradE = 2.0*umGrad*0.0001;
@@ -115,6 +115,25 @@ void gradCheck(void *self, int u, int *set, int setSz, float r_us) {
     printf("\num: %d diff: %f div: %f lDiff:%f gradE:%f", u, lossRight-lossLeft-gradE, 
       (lossRight-lossLeft)/gradE, lossRight-lossLeft, gradE);
   }
+
+  //find gradient w.r.t. g_k
+  avgRat = dotProd(model->_(uFac)[u], sumItemLatFac, model->_(facDim))/setSz;  
+  g_kGrad = commGradCoeff*(avgRat - model->u_m[u]);
+  
+  //perturb g_k with +E and -E
+  r_us_est = sigmoid(avgRat - model->u_m[u], model->g_k + 0.0001);
+  lossRight = pow(r_us_est - r_us, 2);
+
+  r_us_est = sigmoid(avgRat - model->u_m[u], model->g_k - 0.0001);
+  lossLeft = pow(r_us_est - r_us, 2);
+
+  gradE = 2.0*g_kGrad*0.0001;
+
+  if (fabs(lossRight-lossLeft-gradE) > 0.0001) {
+    printf("\ng_k: %d diff: %f div: %f lDiff:%f gradE:%f", u, lossRight-lossLeft-gradE, 
+      (lossRight-lossLeft)/gradE, lossRight-lossLeft, gradE);
+  }
+
 
   free(sumItemLatFac);
   free(iGrad);
@@ -137,7 +156,7 @@ float ModelAvgSigmoid_setScore(void *self, int u, int *set, int setSz,
   }
   r_us_est = r_us_est/setSz;
   diff = r_us_est - model->u_m[u];
-  r_us_est = sigmoid(diff);
+  r_us_est = sigmoid(diff, model->g_k);
   
   return r_us_est;
 }
@@ -179,7 +198,9 @@ float ModelAvgSigmoid_objective(void *self, Data *data, float **sim) {
     iRegErr += dotProd(model->_(iFac)[i], model->_(iFac)[i], model->_(facDim)); 
   }
   iRegErr *= model->_(regI);
- 
+
+  //TODO: regularization g_k parameter
+
   //printf("\nse: %f uRegErr: %f umRegErr: %f iRegErr: %f", se, uRegErr, 
   //    umRegErr, iRegErr);
 
@@ -202,6 +223,8 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float* uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float umGrad         = 0;
+  float g_kGrad        = 0;
+  float g_kGradAcc     = 0;
 
   float *umGradAcc    = (float*) malloc(sizeof(float)*params->nUsers);
   memset(umGradAcc, 0, sizeof(float)*params->nUsers);
@@ -250,7 +273,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
       }
 
       //perform gradient checks
-      //gradCheck(model, u, set, setSz, r_us);
+      //ModelAvgSigmoid_gradCheck(model, u, set, setSz, r_us);
       //continue;
 
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
@@ -262,16 +285,16 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
       }
       avgRat = dotProd(model->_(uFac)[u], sumItemLatFac,  model->_(facDim))/setSz;
       dev = avgRat - model->u_m[u];
-      r_us_est = sigmoid(dev);
+      r_us_est = sigmoid(dev, model->g_k);
 
       //commGradCoeff = exp(-1.0*(dev))*pow(sigmoid(dev), 2);
-      commGradCoeff = exp(-1.0*(dev))*r_us_est*r_us_est;
+      commGradCoeff = exp(-1.0*model->g_k*dev)*r_us_est*r_us_est;
       commGradCoeff = 2 * (r_us_est - r_us) * commGradCoeff;
       
       //compute user gradient
       memset(uGrad, 0, sizeof(float)*model->_(facDim));  
       for (j = 0; j < model->_(facDim); j++) {
-        uGrad[j] = commGradCoeff*sumItemLatFac[j]/setSz;
+        uGrad[j] = model->g_k*commGradCoeff*sumItemLatFac[j]/setSz;
         //add regularization
         uGrad[j] += 2.0*model->_(regU)*model->_(uFac)[u][j];
       }
@@ -285,7 +308,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
       
       //compute items gradient n update
       for (j = 0; j < model->_(facDim); j++) {
-        iGrad[j] = commGradCoeff*model->_(uFac)[u][j]/setSz;
+        iGrad[j] = model->g_k*commGradCoeff*model->_(uFac)[u][j]/setSz;
       }
       for (i = 0; i < setSz; i++) {
         item = set[i];
@@ -300,21 +323,35 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
       }
       
       //compute user midp gradient
-      umGrad = commGradCoeff*-1.0 + 2.0*model->u_m[u]*model->regUm;
+      umGrad = commGradCoeff*-1.0*model->g_k + 2.0*model->u_m[u]*model->regUm;
       
       //accumulate gradients square
       umGradAcc[u] = params->rhoRMS*umGradAcc[u] + (1.0 - params->rhoRMS)*umGrad*umGrad;
 
       //update
-      model->u_m[u] -= (model->_(learnRate)/(sqrt(umGradAcc[u]) + 0.0000001))*umGrad;
+      model->u_m[u] -= (model->_(learnRate)/sqrt(umGradAcc[u] + 0.0000001))*umGrad;
+  
+      
+      //compute global g_k gradient
+      g_kGrad = commGradCoeff*dev;
+
+      //accumulate grad sqr
+      g_kGradAcc = params->rhoRMS*g_kGradAcc + (1.0 - params->rhoRMS)*g_kGrad*g_kGrad;
+
+      //update
+      model->g_k -= (model->_(learnRate)/sqrt(g_kGradAcc + 0.0000001))*g_kGrad;
+      if (model->g_k < 0) {
+        model->g_k = 0;
+      }
     }
 
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-      //printf("\nIter: %d obj: %f avgHits: %f", iter, valTest->setObj, 
-      //    model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, data->iFac, 10));
-      printf("\nIter: %d obj: %f", iter, valTest->setObj);
+      printf("\nIter: %d obj: %f avgHits: %f g_k:%f", iter, valTest->setObj, 
+          model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, 
+            data->iFac, 10), model->g_k);
+      //printf("\nIter: %d obj: %f", iter, valTest->setObj);
       if (iter > 1000) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -328,8 +365,9 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
 
   }
 
-  printf("\nEnd Obj: %f", valTest->setObj);
-  
+  printf("\nEnd Obj: %f", model->_(objective)(model, data, sim));
+  printf("\nEnd avg hits: %f", 
+      model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, data->iFac, 10)); 
   valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
   
@@ -426,7 +464,7 @@ void ModelAvgSigmoid_trainSGD(void *self, Data *data, Params *params,
       }
 
       //perform gradient checks
-      gradCheck(model, u, set, setSz, r_us);
+      ModelAvgSigmoid_gradCheck(model, u, set, setSz, r_us);
       continue;
 
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
@@ -437,7 +475,7 @@ void ModelAvgSigmoid_trainSGD(void *self, Data *data, Params *params,
         }
       }
       avgRat = dotProd(model->_(uFac)[u], sumItemLatFac,  model->_(facDim))/setSz;
-      r_us_est = sigmoid(avgRat - model->u_m[u]);
+      r_us_est = sigmoid(avgRat - model->u_m[u], 1.0);
 
       //commGradCoeff = exp(-1.0*(avgRat - model->u_m[u]))*pow(sigmoid(avgRat-model->u_m[u]), 2);
       commGradCoeff = exp(-1.0*(avgRat - model->u_m[u]))*r_us_est*r_us_est;
@@ -551,12 +589,29 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   printf("\nrhoRMS = %f", params->rhoRMS);
   printf("\nregUm = %f", model->regUm);
 
+  //assign usermidps randomly between 0 to 5
+  /*
+  for (u = 0; u < data->nUsers; u++) {
+    data->userMidps[u] = (float) generateGaussianNoise(2.5, 2);
+    //data->userMidps[u] = (float) (rand()%5);
+    if (data->userMidps[u] < 0) {
+      data->userMidps[u] = 0;
+    } else if (data->userMidps[u] > 5) {
+      data->userMidps[u] = 5;
+    }
+  }
+  */
+  
   //initialize u_m
   model->u_m = (float *) malloc(sizeof(float)*params->nUsers);
   for (u = 0; u < params->nUsers; u++) {
     model->u_m[u] = (float) rand() / (float) (RAND_MAX);  
     //model->u_m[u] = data->userMidps[u]; 
   }
+
+  //initialize steepness parameter
+  model->g_k = (float) rand()/ (float) (RAND_MAX);
+  //model->g_k = 1.0;
 
   //load user item weights from train: needed to compute training on indiv items
   //in training sets
@@ -568,7 +623,7 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   //transform set ratings via midP param
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
-    UserSets_transToBin(userSet, data->userMidps);
+    UserSets_transToSigm(userSet, data->userMidps);
   }
   
   //printf("\nData is as follow: ");

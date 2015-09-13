@@ -398,13 +398,62 @@ void UserSets_free(UserSets * const self) {
 }
 
 
-void UserSets_transToBin(UserSets *self, float *userMidps) {
+void UserSets_transToSigm(UserSets *self, float *userMidps) {
   int i, u, s;
 
   u = self->userId;
   for (s = 0; s < self->numSets; s++) {
-    self->labels[s] = sigmoid(self->labels[s] - userMidps[u]);
+    self->labels[s] = sigmoid(self->labels[s] - userMidps[u], 50.0);
   }
+}
+
+
+void UserSets_transToHingeBin(UserSets *self, float *userMidps) {
+  int i, u, s;
+
+  u = self->userId;
+  for (s = 0; s < self->numSets; s++) {
+    if (self->labels[s] > userMidps[u]) {
+      self->labels[s] = 1.0;
+    } else {
+      self->labels[s] = -1.0;
+    }
+  }
+}
+
+
+void UserSets_transToBin(UserSets *self, float *userMidps) {
+  int i, u, s;
+  float rat;
+  u = self->userId;
+  for (s = 0; s < self->numSets; s++) {
+    rat = sigmoid(self->labels[s] - userMidps[u], 1.0);
+    if (rat >= 0.5) {
+      self->labels[s] = 1.0;
+    } else {
+      self->labels[s] = 0.0;
+    }
+  }
+}
+
+
+void UserSets_transToBinWNoise(UserSets *self, float *userMidps) {
+  int i, u, s;
+  float rat;
+  float noisyRat;
+  
+  u = self->userId;
+  for (s = 0; s < self->numSets; s++) {
+    rat = sigmoid(self->labels[s] - userMidps[u], 1.0); 
+    noisyRat = (float) generateGaussianNoise(rat, 0.01);
+    if (noisyRat > 1.0) {
+      self->labels[s] = 1.0;
+    } else if (noisyRat < 0) {
+      self->labels[s] = 0;
+    }
+    self->labels[s] = noisyRat;
+  }
+
 }
 
 
