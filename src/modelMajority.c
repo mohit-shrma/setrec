@@ -288,7 +288,6 @@ void ModelMajority_setScoreWMaxRat(void *self, int u, int *set, int setSz,
 } 
 
 
-
 //return the sum of majority of item latent factors
 void ModelMajority_setMajFac(void *self, int u, int *set, int setSz, 
     ItemRat **itemRats, float *majFac) {
@@ -2201,26 +2200,11 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
       //select a non-test non-val set for user
       s = rand() % userSet->numSets;
       
-      //check if set in test sets
-      for (i = 0; i < userSet->szTestSet; i++) {
-        if (s == userSet->testSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
+      //check if set in test or validation
+      if (UserSets_isSetTestVal(userSet, s)) {
+       continue;
       }
       
-      //check if set in validation sets
-      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
-        if (s == userSet->valSets[i]) {
-          isTestValSet = 1;
-          break;
-        }
-      }
-      
-      if (isTestValSet) {
-        continue;
-      }
-  
       set       = userSet->uSets[s];
       setSz     = userSet->uSetsSize[s];
       r_us      = userSet->labels[s];
@@ -2242,8 +2226,6 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
                                         model->_(facDim));
       }
       
-      //TODO:verify whether sorted in descending order
-      //TODO: print rating and verify
       qsort(itemRats, setSz, sizeof(ItemRat*), compItemRat);
 
       if (setSz % 2  == 0) {
@@ -3814,7 +3796,8 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
       } else {
         majSz = setSz/2 + 1;
       }
-
+      
+      /*
       //update user and item latent factor
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < majSz; i++) {
@@ -3850,6 +3833,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
      
       coeffUpdateAdap(model->_(uFac)[u], uGrad, model->_(regU),
           model->_(learnRate), model->_(facDim), iter);
+      */
 
       //compute  gradient of item and update their latent factor in sets
       for (i = 0; i < majSz; i++) {
@@ -3863,36 +3847,16 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
           }
         }
         //update item + reg
-        coeffUpdateAdap(model->_(iFac)[item], iGrad, model->_(regI), 
+        coeffUpdateAdap2(model->_(iFac)[item], iGrad, model->_(regI), 
             model->_(learnRate), model->_(facDim), iter);
       }
 
-    
-      //find whether update helped in estimating set ratings
-      r_us_est_aftr_upd = 0;
-      memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
-      for (i = 0; i < majSz; i++) {
-        item = itemRats[i]->item;
-        for (j = 0; j < model->_(facDim); j++) {
-          sumItemLatFac[j] += model->_(iFac)[item][j];
-        } 
-      } 
-      r_us_est_aftr_upd = dotProd(model->_(uFac)[u], sumItemLatFac, 
-          model->_(facDim))/majSz;
-      if (fabs(r_us_est_aftr_upd - r_us) <= fabs(r_us_est - r_us)) {
-        succ++;
-      } else {
-        fail++;
-      }
-      epochDiff += fabs(r_us_est_aftr_upd - r_us);
     }
-    
-    //printf("\nEpoch: %d  succ = %d fail = %d avg diff = %f", 
-    //    iter, succ, fail, epochDiff/subIter);
 
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
+      printf("\niter: %d obj:%f", iter, valTest->setObj);
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -4600,11 +4564,11 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
 
 //model specifications
 Model ModelMajorityProto = {
-  .objective             = ModelMajority_objectiveWOCons,
+  .objective             = ModelMajority_objective,
   //.objective             = ModelMajority_objectiveAvg,
   .setScore              = ModelMajority_setScore,
   //.setScore              = ModelMajority_setScoreAvg,
-  .train                 = ModelMajority_trainGDAltWOCons
+  .train                 = ModelMajority_train
 };
 
 
@@ -4735,7 +4699,7 @@ void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
   loadUserItemWtsFrmTrain(data);
  
   //initialize model with latent factors given to the program
-  //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
+  copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
   //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
 
   printf("\nTest Error: %f", model->_(testErr) (model, data, NULL));  

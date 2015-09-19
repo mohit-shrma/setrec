@@ -4,7 +4,7 @@
 void ModelLogisticWUm_gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   int i, j, item;
   float commGradCoeff, r_us_est, avgRat;
-  ModelHingeWUm *model = self;
+  ModelLogisticWUm *model = self;
   float *sumItemLatFac   = (float*) malloc(sizeof(float)*model->_(facDim));
   float *uGrad           = (float*) malloc(sizeof(float)*model->_(facDim));
   float *iGrad           = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -128,7 +128,7 @@ float ModelLogisticWUm_setScore(void *self, int u, int *set, int setSz,
     float **sim) {
   
   int i, item;
-  ModelHingeWUm *model = self;
+  ModelLogisticWUm *model = self;
   float r_us_est = 0, diff;
 
   for (i = 0; i < setSz; i++) {
@@ -151,7 +151,7 @@ float ModelLogisticWUm_objective(void *self, Data *data, float **sim) {
   int *set = NULL;
   float se = 0, diff = 0, userSetPref = 0;
   float uRegErr = 0, iRegErr = 0, umRegErr = 0;
-  ModelHingeWUm *model = self;
+  ModelLogisticWUm *model = self;
   int nSets = 0;
   int uSets = 0;  
   
@@ -197,7 +197,7 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
   int *set;
   float r_us, r_us_est, prevObj, dev; 
   float temp; 
-  ModelHingeWUm *model = self;
+  ModelLogisticWUm *model = self;
   float commGradCoeff = 0, avgRat = 0;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -251,8 +251,8 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
       }
 
       //perform gradient checks
-      ModelLogisticWUm_gradCheck(model, u, set, setSz, r_us);
-      continue;
+      //ModelLogisticWUm_gradCheck(model, u, set, setSz, r_us);
+      //continue;
 
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < setSz; i++) {
@@ -314,7 +314,7 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
       valTest->setObj = model->_(objective)(model, data, sim);
       printf("\nIter: %d obj: %f avgHits: %f", iter, valTest->setObj, 
           model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, 
-            data->iFac, 100));
+            data->iFac, 10));
       //printf("\nIter: %d obj: %f", iter, valTest->setObj);
       if (iter > 1000) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
@@ -365,7 +365,7 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
 }
 
 
-Model ModelHingeWUmProto = {
+Model ModelLogisticWUmProto = {
   .objective = ModelLogisticWUm_objective,
   .setScore = ModelLogisticWUm_setScore,
   .train = ModelLogisticWUm_trainRMSProp

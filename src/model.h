@@ -7,7 +7,7 @@
 #include <string.h>
 
 #define EPS 0.000001
-#define OBJ_ITER 50
+#define OBJ_ITER 100
 #define VAL_CONV 1
 #define OBJ_CONV 1
 #define VAL_ITER 1
@@ -41,11 +41,14 @@ typedef struct {
   float (*validationErr) (void *self, Data *data, float **sim);
   float (*hingeValidationErr) (void *self, Data *data, float **sim);
   float (*validationClassLoss) (void *self, Data *data, float **sim);
+  float (*validationClass01Loss) (void *self, Data *data, float **sim);
   float (*testErr) (void *self, Data *data, float **sim);
   float (*hingeTestErr) (void *self, Data *data, float **sim);
   float (*testClassLoss) (void *self, Data *data, float **sim);
+  float (*testClass01Loss) (void *self, Data *data, float **sim);
   float (*trainErr) (void *self, Data *data, float **sim);
   float (*trainClassLoss) (void *self, Data *data, float **sim);
+  float (*trainClass01Loss) (void *self, Data *data, float **sim);
   float (*userFacNorm) (void *self, Data *data);
   float (*itemFacNorm) (void *self, Data *data);
   float (*setSimilarity) (void *self, int *set, int setSz, float **sim);  
@@ -77,11 +80,14 @@ void Model_train(void *self, Data *data, Params *params, float **Sim, ValTestRMS
 float Model_validationErr(void *self, Data *data, float **sim);
 float Model_hingeValErr(void *self, Data *data, float **sim);
 float Model_validationClassLoss(void *self, Data *data, float **sim);
+float Model_validationClass01Loss(void *self, Data *data, float **sim);
 float Model_testErr(void *self, Data *data, float **sim);
 float Model_hingeTestErr(void *self, Data *data, float **sim);
 float Model_testClassLoss(void *self, Data *data, float **sim);
+float Model_testClass01Loss(void *self, Data *data, float **sim);
 float Model_trainErr(void *self, Data *data, float **sim);
 float Model_trainClassLoss(void *self, Data *data, float **sim);
+float Model_trainClass01Loss(void *self, Data *data, float **sim);
 float Model_userFacNorm(void *self, Data *data);
 float Model_itemFacNorm(void *Self, Data *data);
 float Model_indivItemSetErr(void *self, RatingSet *ratSet);

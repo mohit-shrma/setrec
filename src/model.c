@@ -457,6 +457,153 @@ float Model_trainClassLoss(void *self, Data *data, float **sim) {
 }
 
 
+float Model_validationClass01Loss(void *self, Data *data, float **sim) {
+  
+  int u, i, j;
+  Model *model          = self;
+  UserSets *userSet     = NULL;
+  int nValSets          = 0;
+  float *valLabels      = NULL;
+  float *valModelScores = NULL;
+  float classLoss        = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    nValSets += userSet->szValSet;
+  }
+
+  valLabels = (float*) malloc(sizeof(float)*nValSets);
+  valModelScores = (float*) malloc(sizeof(float)*nValSets);
+  memset(valLabels, 0, sizeof(float)*nValSets);
+  memset(valModelScores, 0, sizeof(float)*nValSets);
+
+  j = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->szValSet; i++) {
+      valModelScores[j] =  model->setScore(model, u, userSet->uSets[userSet->valSets[i]], 
+          userSet->uSetsSize[userSet->valSets[i]], sim);
+      if (valModelScores[j] > 0.5) {
+        valModelScores[j] = 1.0;
+      } else {
+        valModelScores[j] = 0.0;
+      }
+      valLabels[j] = userSet->labels[userSet->valSets[i]];
+      j++;
+    }
+  }
+
+  for (j = 0; j < nValSets; j++) {
+    classLoss += fabs(valModelScores[j] - valLabels[j]);
+  }
+  
+  //printf("\n%s validation rmse = %f", model->description, rmse);
+
+  free(valLabels);
+  free(valModelScores);
+  return classLoss/nValSets;
+}
+
+
+float Model_testClass01Loss(void *self, Data *data, float **sim) {
+  
+  int u, i, j;
+  Model *model          = self;
+  UserSets *userSet     = NULL;
+  int nTestSets          = 0;
+  float *testLabels      = NULL;
+  float *testModelScores = NULL;
+  float classLoss        = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    nTestSets += userSet->szTestSet;
+  }
+
+  testLabels = (float*) malloc(sizeof(float)*nTestSets);
+  testModelScores = (float*) malloc(sizeof(float)*nTestSets);
+  memset(testLabels, 0, sizeof(float)*nTestSets);
+  memset(testModelScores, 0, sizeof(float)*nTestSets);
+
+  j = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->szTestSet; i++) {
+      testModelScores[j] =  model->setScore(model, u, userSet->uSets[userSet->testSets[i]], 
+          userSet->uSetsSize[userSet->testSets[i]], sim);
+      if (testModelScores[j] > 0.5) {
+        testModelScores[j] = 1.0;
+      } else {
+        testModelScores[j] = 0.0;
+      }
+      testLabels[j] = userSet->labels[userSet->testSets[i]];
+      j++;
+    }
+  }
+
+  for (j = 0; j < nTestSets; j++) {
+      classLoss += fabs(testModelScores[j] - testLabels[j]);
+  }
+  
+  //printf("\n%s test rmse = %f", model->description, rmse);
+
+  free(testLabels);
+  free(testModelScores);
+  return classLoss/nTestSets;
+}
+
+
+float Model_trainClass01Loss(void *self, Data *data, float **sim) {
+
+  int u, i, j, s, isTestValSet, setSz;
+  Model *model = self;
+  UserSets *userSet = NULL;
+  int *set = NULL;
+  float classLoss = 0, setScore;
+  int nSets = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (s = 0; s < userSet->numSets; s++) {
+      isTestValSet = 0;
+      //check if set in test sets
+      for (i = 0; i < userSet->szTestSet; i++) {
+        if (s == userSet->testSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+      
+      //check if set in validation sets
+      for (i = 0; i < userSet->szValSet && !isTestValSet; i++) {
+        if (s == userSet->valSets[i]) {
+          isTestValSet = 1;
+          break;
+        }
+      }
+    
+      if (isTestValSet) {
+        continue;
+      }
+    
+      set = userSet->uSets[s];
+      setSz = userSet->uSetsSize[s];
+      setScore = model->setScore(model, u, set, setSz, sim); 
+      
+      if (setScore > 0.5) {
+        setScore = 1.0;
+      } else {
+        setScore = 0;
+      }
+      classLoss += fabs(setScore - userSet->labels[s]);
+      nSets++;
+    }
+  }
+  
+  return classLoss/nSets;
+}
+
+
 float Model_trainErr(void *self, Data *data, float **sim) {
 
   int u, i, j, s, isTestValSet, nTrainSets, setSz;
@@ -844,11 +991,14 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.free) proto.free                               = Model_free;
   if (!proto.validationErr) proto.validationErr             = Model_validationErr;
   if (!proto.validationClassLoss) proto.validationClassLoss = Model_validationClassLoss;
+  if (!proto.validationClass01Loss) proto.validationClass01Loss = Model_validationClass01Loss;
   if (!proto.testErr) proto.testErr                         = Model_testErr;
   if (!proto.hingeTestErr) proto.hingeTestErr               = Model_hingeTestErr;
   if (!proto.hingeValidationErr) proto.hingeValidationErr   = Model_hingeValErr;
   if (!proto.testClassLoss) proto.testClassLoss             = Model_testClassLoss;
+  if (!proto.testClass01Loss) proto.testClass01Loss             = Model_testClass01Loss;
   if (!proto.trainClassLoss) proto.trainClassLoss           = Model_trainClassLoss;
+  if (!proto.trainClass01Loss) proto.trainClass01Loss           = Model_trainClass01Loss;
   if (!proto.trainErr) proto.trainErr                       = Model_trainErr;
   if (!proto.reset) proto.reset                             = Model_reset;
   if (!proto.userFacNorm) proto.userFacNorm                 = Model_userFacNorm;

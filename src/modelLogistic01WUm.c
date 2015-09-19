@@ -1,10 +1,20 @@
-#include "modelHingeWUm.h"
+#include "modelLogistic01WUm.h"
+
+float logisticLoss(float r_us, float r_us_est) {
+  float loss = 0.0;
+  if (r_us == 1.0) {
+    loss = -1.0*log(r_us_est);
+  } else {
+    loss = -1.0*log(1.0 - r_us_est);
+  }
+  return loss;
+}
 
 
-void ModelHingeWUm_gradCheck(void *self, int u, int *set, int setSz, float r_us) {
+void ModelLogistic01WUm_gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   int i, j, item;
   float commGradCoeff, r_us_est, avgRat;
-  ModelHingeWUm *model = self;
+  ModelLogistic01WUm *model = self;
   float *sumItemLatFac   = (float*) malloc(sizeof(float)*model->_(facDim));
   float *uGrad           = (float*) malloc(sizeof(float)*model->_(facDim));
   float *iGrad           = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -22,45 +32,29 @@ void ModelHingeWUm_gradCheck(void *self, int u, int *set, int setSz, float r_us)
   }
 
   avgRat = dotProd(model->_(uFac)[u], sumItemLatFac, model->_(facDim))/setSz; 
-  r_us_est = avgRat - model->u_m[u];
-  commGradCoeff = -1.0*r_us;
+  r_us_est = sigmoid(avgRat - model->u_m[u], 1.0);
+  commGradCoeff = (r_us_est - r_us);
 
   //find gradient w.r.t. u
   memset(uGrad, 0, sizeof(float)*model->_(facDim));
   for (j = 0; j < model->_(facDim); j++) {
-    if (r_us*r_us_est <= 1.0) {
-      uGrad[j] = commGradCoeff*sumItemLatFac[j]/setSz;
-    }
-    //add regularization
-    //uGrad[j] += 2.0*model->_(regU)*model->_(uFac)[u][j];
+    uGrad[j] = commGradCoeff*sumItemLatFac[j]/setSz;
   }
   
-  printf("\nr_us_est orig: %f", r_us_est);
-
   //perturb user with +E and -E and compute Loss 
   for (j = 0; j < model->_(facDim); j++) {
     fac[j] = model->_(uFac)[u][j] + 0.0001;
   }
   avgRat = dotProd(fac, sumItemLatFac, model->_(facDim))/setSz;
-  r_us_est = avgRat - model->u_m[u];
-  printf("\nr_us_est +R: %f", r_us_est);
-  if (r_us*r_us_est <= 1.0) {
-    lossRight = 1.0 - r_us*r_us_est;
-  } else {
-    lossRight = 0;
-  }
+  r_us_est = sigmoid(avgRat - model->u_m[u], 1.0);
+  lossRight = logisticLoss(r_us, r_us_est);
   
   for (j = 0; j < model->_(facDim); j++) {
     fac[j] = model->_(uFac)[u][j] - 0.0001;
   }
   avgRat = dotProd(fac, sumItemLatFac, model->_(facDim))/setSz;
-  r_us_est = avgRat - model->u_m[u];
-  printf("\nr_us_est -L: %f", r_us_est);
-  if (r_us*r_us_est <= 1.0) {
-    lossLeft = 1.0 - r_us*r_us_est;
-  } else {
-    lossLeft = 0;
-  }
+  r_us_est = sigmoid(avgRat - model->u_m[u], 1.0);
+  lossLeft = logisticLoss(r_us, r_us_est);
 
   //compute gradient and E dotprod
   gradE = 0;
@@ -79,11 +73,9 @@ void ModelHingeWUm_gradCheck(void *self, int u, int *set, int setSz, float r_us)
   memset(iGrad, 0, sizeof(float)*model->_(facDim));
   item = set[rand()%setSz];
   avgRat = dotProd(model->_(uFac)[u], sumItemLatFac, model->_(facDim))/setSz; 
-  r_us_est = avgRat - model->u_m[u];
+  r_us_est = sigmoid(avgRat - model->u_m[u], 1.0);  
   for (j = 0; j < model->_(facDim); j++) {
-    if (r_us*r_us_est <= 1.0) {
-      iGrad[j] = commGradCoeff*model->_(uFac)[u][j]/setSz;
-    }
+    iGrad[j] = commGradCoeff*model->_(uFac)[u][j]/setSz;
   }
 
   //perturb item with +E and -E and cmpute loss
@@ -92,24 +84,16 @@ void ModelHingeWUm_gradCheck(void *self, int u, int *set, int setSz, float r_us)
     fac[j] = sumItemLatFac[j] + 0.0001;
   }
   avgRat = dotProd(model->_(uFac)[u], fac, model->_(facDim))/setSz; 
-  r_us_est = avgRat - model->u_m[u];
-  if (r_us*r_us_est <= 1.0) {
-    lossRight = 1.0 - r_us*r_us_est;
-  } else {
-    lossRight = 0;
-  }
+  r_us_est = sigmoid(avgRat - model->u_m[u], 1.0);
+  lossRight = logisticLoss(r_us, r_us_est); 
 
   memset(fac, 0, sizeof(float)*model->_(facDim));
   for (j = 0; j < model->_(facDim); j++) {
     fac[j] = sumItemLatFac[j] - 0.0001;
   }
   avgRat = dotProd(model->_(uFac)[u], fac, model->_(facDim))/setSz; 
-  r_us_est = avgRat - model->u_m[u];
-  if (r_us*r_us_est <= 1.0) {
-    lossLeft = 1.0 - r_us*r_us_est;
-  } else {
-    lossLeft = 0;
-  }
+  r_us_est = sigmoid(avgRat - model->u_m[u], 1.0);
+  lossLeft = logisticLoss(r_us, r_us_est); 
 
   //compute gradient and E dotprod
   gradE = 0;
@@ -125,26 +109,16 @@ void ModelHingeWUm_gradCheck(void *self, int u, int *set, int setSz, float r_us)
   }
 
   //find gradient w.r.t. u_m
-  umGrad = 0;
-  if (r_us*r_us_est <= 1.0) {
-    umGrad = -1.0*commGradCoeff;
-  }
+  umGrad = -1.0*commGradCoeff;
 
   //perturb u_m with +E and -E
   avgRat = dotProd(model->_(uFac)[u], sumItemLatFac, model->_(facDim))/setSz;
-  r_us_est = avgRat - (model->u_m[u] + 0.0001);
-  if (r_us*r_us_est > 1) {
-    lossRight = 0;
-  } else {
-    lossRight = 1.0 - r_us*r_us_est;
-  }
+  
+  r_us_est = sigmoid(avgRat - (model->u_m[u] + 0.0001), 1.0);
+  lossRight = logisticLoss(r_us, r_us_est); 
 
-  r_us_est = avgRat - (model->u_m[u] - 0.0001);
-  if (r_us*r_us_est > 1) {
-    lossLeft = 0;
-  } else {
-    lossLeft = 1.0 - r_us*r_us_est;
-  }
+  r_us_est = sigmoid(avgRat - (model->u_m[u] - 0.0001), 1.0);
+  lossLeft = logisticLoss(r_us, r_us_est);  
   
   gradE = 2.0*umGrad*0.0001;
   
@@ -160,11 +134,11 @@ void ModelHingeWUm_gradCheck(void *self, int u, int *set, int setSz, float r_us)
 }
 
 
-float ModelHingeWUm_setScore(void *self, int u, int *set, int setSz, 
+float ModelLogistic01WUm_setScore(void *self, int u, int *set, int setSz, 
     float **sim) {
   
   int i, item;
-  ModelHingeWUm *model = self;
+  ModelLogistic01WUm *model = self;
   float r_us_est = 0, diff;
 
   for (i = 0; i < setSz; i++) {
@@ -173,13 +147,13 @@ float ModelHingeWUm_setScore(void *self, int u, int *set, int setSz,
         model->_(facDim));
   }
   r_us_est = r_us_est/setSz;
-  r_us_est = r_us_est - model->u_m[u];
+  r_us_est = sigmoid(r_us_est - model->u_m[u], 1.0);
   
   return r_us_est;
 }
 
 
-float ModelHingeWUm_objective(void *self, Data *data, float **sim) {
+float ModelLogistic01WUm_objective(void *self, Data *data, float **sim) {
   
   int u, i, s;
   int setSz;
@@ -187,7 +161,7 @@ float ModelHingeWUm_objective(void *self, Data *data, float **sim) {
   int *set = NULL;
   float se = 0, diff = 0, userSetPref = 0;
   float uRegErr = 0, iRegErr = 0, umRegErr = 0;
-  ModelHingeWUm *model = self;
+  ModelLogistic01WUm *model = self;
   int nSets = 0;
   int uSets = 0;  
   
@@ -202,9 +176,7 @@ float ModelHingeWUm_objective(void *self, Data *data, float **sim) {
       set = userSet->uSets[s];
       setSz = userSet->uSetsSize[s];
       userSetPref = model->_(setScore) (model, u, set, setSz, NULL);
-      if (userSetPref*userSet->labels[s] <= 1.0) {
-        diff = 1.0 - userSetPref*userSet->labels[s];
-      }
+      diff = logisticLoss(userSet->labels[s], userSetPref);
       se += diff;
       nSets++;
     }
@@ -218,7 +190,6 @@ float ModelHingeWUm_objective(void *self, Data *data, float **sim) {
   }
   iRegErr *= model->_(regI);
 
-
   //printf("\nse: %f uRegErr: %f umRegErr: %f iRegErr: %f", se, uRegErr, 
   //    umRegErr, iRegErr);
 
@@ -226,7 +197,7 @@ float ModelHingeWUm_objective(void *self, Data *data, float **sim) {
 }
 
 
-void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params, 
+void ModelLogistic01WUm_trainRMSProp(void *self, Data *data, Params *params, 
     float **sim, ValTestRMSE *valTest) {
   
   int iter, subIter, u, i, j, k, s, numAllSets;
@@ -235,7 +206,7 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
   int *set;
   float r_us, r_us_est, prevObj, dev; 
   float temp; 
-  ModelHingeWUm *model = self;
+  ModelLogistic01WUm *model = self;
   float commGradCoeff = 0, avgRat = 0;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -289,8 +260,9 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
       }
 
       //perform gradient checks
-      //ModelHingeWUm_gradCheck(model, u, set, setSz, r_us);
-      //continue;
+      if (iter %100 == 0 && subIter % 100 == 0) {
+        ModelLogistic01WUm_gradCheck(model, u, set, setSz, r_us);
+      }
 
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < setSz; i++) {
@@ -300,17 +272,14 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
         }
       }
       avgRat = dotProd(model->_(uFac)[u], sumItemLatFac,  model->_(facDim))/setSz;
-      r_us_est = avgRat - model->u_m[u];
+      r_us_est = sigmoid(avgRat - model->u_m[u], 1.0);
 
-      //commGradCoeff = exp(-1.0*(dev))*pow(sigmoid(dev), 2);
-      commGradCoeff = -1.0*r_us;
+      commGradCoeff = (r_us_est - r_us);
       
       //compute user gradient
       memset(uGrad, 0, sizeof(float)*model->_(facDim));  
       for (j = 0; j < model->_(facDim); j++) {
-        if (r_us*r_us_est <= 1.0) {
-          uGrad[j] = commGradCoeff*sumItemLatFac[j]/setSz;
-        }
+        uGrad[j] = commGradCoeff*sumItemLatFac[j]/setSz;
         //add regularization
         uGrad[j] += 2.0*model->_(regU)*model->_(uFac)[u][j];
       }
@@ -325,9 +294,7 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
       //compute items gradient n update
       memset(iGrad, 0, sizeof(float)*model->_(facDim));
       for (j = 0; j < model->_(facDim); j++) {
-        if (r_us*r_us_est <= 1.0) {
-          iGrad[j] = commGradCoeff*model->_(uFac)[u][j]/setSz;
-        }
+        iGrad[j] = commGradCoeff*model->_(uFac)[u][j]/setSz;
       }
       for (i = 0; i < setSz; i++) {
         item = set[i];
@@ -342,10 +309,7 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
       }
    
       //compute user midp gradient
-      umGrad = 0;
-      if (r_us*r_us_est <= 1.0) {
-        umGrad = commGradCoeff*-1.0;
-      }
+      umGrad = commGradCoeff*-1.0;
       umGrad += 2.0*model->u_m[u]*model->regUm;
       
       //accumulate gradients square
@@ -358,7 +322,8 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-      printf("\nIter: %d obj: %f avgHits: %f", iter, valTest->setObj, 
+      printf("\nIter: %d obj: %f trainLoss: %f avgHits: %f", iter, valTest->setObj,
+          model->_(trainClass01Loss) (model, data, NULL),
           model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, 
             data->iFac, 10));
       //printf("\nIter: %d obj: %f", iter, valTest->setObj);
@@ -376,19 +341,21 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
   }
 
   printf("\nEnd Obj: %f", model->_(objective)(model, data, sim));
-  printf("\nEnd avg hits: %f", 
-      model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, data->iFac, 10)); 
-
-  valTest->valSetRMSE = model->_(validationClassLoss) (model, data, NULL);
+  printf("\nEnd avg hits: %f",model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, 
+            data->iFac, 10)); 
+ 
+  valTest->valSetRMSE = model->_(validationClass01Loss) (model, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
-  
 
-  valTest->trainSetRMSE = model->_(trainClassLoss)(model, data, NULL); 
+  valTest->trainSetRMSE = model->_(trainClass01Loss)(model, data, NULL); 
   printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
   
-  valTest->testSetRMSE = model->_(testClassLoss) (model, data, NULL); 
+  valTest->testSetRMSE = model->_(testClass01Loss) (model, data, NULL); 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
+  //get test eror
+  valTest->testItemsRMSE = model->_(hitRate) (model, data->trainMat, data->testMat);
+  printf("\nTest items hr(modelMajority): %f", valTest->testItemsRMSE);
   
   //free up memory
   for (i = 0; i < params->nUsers; i++) {
@@ -407,19 +374,19 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
 }
 
 
-Model ModelHingeWUmProto = {
-  .objective = ModelHingeWUm_objective,
-  .setScore = ModelHingeWUm_setScore,
-  .train = ModelHingeWUm_trainRMSProp
+Model ModelLogistic01WUmProto = {
+  .objective = ModelLogistic01WUm_objective,
+  .setScore = ModelLogistic01WUm_setScore,
+  .train = ModelLogistic01WUm_trainRMSProp
 };
 
 
-void modelHingeWUm(Data *data, Params *params, ValTestRMSE *valTest) {
+void modelLogistic01WUm(Data *data, Params *params, ValTestRMSE *valTest) {
   
   int u;
   
   UserSets *userSet = NULL;
-  ModelHingeWUm *model = NEW(ModelHingeWUm, "hinge loss set prediction");
+  ModelLogistic01WUm *model = NEW(ModelLogistic01WUm, "hinge loss set prediction");
   model->_(init)(model, params->nUsers, params->nItems, params->facDim, 
       params->regU, params->regI, params->learnRate);
   model->rhoRMS = params->rhoRMS;
@@ -458,7 +425,7 @@ void modelHingeWUm(Data *data, Params *params, ValTestRMSE *valTest) {
   //transform set ratings via midP param
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
-    UserSets_transToHingeBin(userSet, data->userMidps);
+    UserSets_transToBin(userSet, data->userMidps);
   }
 
   //printf("\nData is as follow: ");
@@ -468,7 +435,7 @@ void modelHingeWUm(Data *data, Params *params, ValTestRMSE *valTest) {
   model->_(train) (model, data, params, NULL, valTest); 
  
   //write the learned u_m value
-  writeFloatVector(model->u_m, data->nUsers, "um_users_hinge.txt");
+  writeFloatVector(model->u_m, data->nUsers, "um_users_log.txt");
 
   //save model latent factors
   //writeMat(model->_(uFac), params->nUsers, model->_(facDim), "uFacAvgSigm.txt");
@@ -477,4 +444,6 @@ void modelHingeWUm(Data *data, Params *params, ValTestRMSE *valTest) {
   free(model->u_m);
   model->_(free)(model);
 }
+
+
 
