@@ -427,8 +427,7 @@ void UserSets_transToBin(UserSets *self, float *userMidps) {
   float rat;
   u = self->userId;
   for (s = 0; s < self->numSets; s++) {
-    rat = sigmoid(self->labels[s] - userMidps[u], 1.0);
-    if (rat >= 0.5) {
+    if (self->labels[s] > userMidps[u]) {
       self->labels[s] = 1.0;
     } else {
       self->labels[s] = 0.0;
