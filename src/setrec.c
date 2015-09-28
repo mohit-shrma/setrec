@@ -17,7 +17,7 @@ void parse_cmd_line(int argc, char **argv) {
   memset(baseValTest, 0, sizeof(ValTestRMSE));
   memset(modelValTest, 0, sizeof(ValTestRMSE));
 
-  if (argc < 27) {
+  if (argc < 20) {
     printf("\n Error: need args");
     exit(0);
   } else {
@@ -33,18 +33,18 @@ void parse_cmd_line(int argc, char **argv) {
     params->maxIter         = atoi(argv[10]);
     params->seed            = atoi(argv[11]);
 
-    params->train_mat_file  = argv[18];
-    params->test_mat_file   = argv[19];
-    params->val_mat_file    = argv[20];
+    params->train_mat_file  = argv[12];
+    params->test_mat_file   = argv[13];
+    params->val_mat_file    = argv[14];
     
-    params->ext_setSim_file = argv[21];
+    params->ext_setSim_file = argv[15];
     
-    params->rhoRMS = atof(argv[22]);
-    params->epsRMS = atof(argv[23]);
+    params->rhoRMS          = atof(argv[16]);
+    params->epsRMS          = atof(argv[17]);
     
-    params->uFacFileName    = argv[24];
-    params->iFacFileName    = argv[25];
-    params->uMidPFName      = argv[26];
+    params->uFacFileName    = argv[18];
+    params->iFacFileName    = argv[19];
+    params->uMidPFName      = argv[20];
   }
 
   //initialize random seed
