@@ -4,9 +4,6 @@
 void Params_display(Params *params) {
   printf("\nParameters:");
   printf("\n%s %s", params->user_set_file, params->ext_setSim_file);
-  printf("\n%s %d", params->val_set_file, params->val_set_size);
-  printf("\n%s %d", params->test_set_file, params->test_set_size);
-  printf("\n%s %d", params->train_set_file, params->train_set_size);
   printf("\n%d %d", params->nUsers, params->nItems);
   printf("\n%d %f %f %f %f", params->facDim, params->regU, params->regI, 
       params->learnRate, params->constrainWt);
@@ -15,27 +12,29 @@ void Params_display(Params *params) {
 
 
 void loadUserItemWtsFrmTrain(Data *data) {
-  int u, i, j;
+  int u, ii, i, j, item;
   UserSets *userSet = NULL;
   ItemWtSets *itemWtSets = NULL;
-  RatingSet *trainSet = data->trainSet;
   float rat = 0;
   int notFoundCt = 0;
   int foundCt = 0;
-  for (j = 0; j < trainSet->size; j++) {
-    u = trainSet->rats[j]->user;
-    i = trainSet->rats[j]->item;
-    rat = trainSet->rats[j]->rat;
-    userSet = data->userSets[u];
-    itemWtSets = UserSets_search(userSet, i);
-    if (NULL == itemWtSets) {
-      //printf("\nu:%d i:%d j:%d not found", u, i, j);
-      notFoundCt++;
-      continue;
+  gk_csr_t *trainMat = data->trainMat;
+
+  for (u = 0; u < trainMat->nrows; u++) {
+    for (ii = trainMat->rowptr[u]; ii < trainMat->rowptr[u+1]; ii++) {
+      item = trainMat->rowind[ii];
+      rat = trainMat->rowval[ii];
+      itemWtSets = UserSets_search(userSet, item);
+      if (NULL == itemWtSets) {
+        //printf("\nu:%d i:%d j:%d not found", u, i, j);
+        notFoundCt++;
+        continue;
+      }
+      foundCt++;
+      itemWtSets->wt = rat;
     }
-    foundCt++;
-    itemWtSets->wt = rat;
   }
+  
   printf("\nfound:%d notFound: %d", foundCt, notFoundCt);
 }
 
@@ -560,12 +559,7 @@ void Data_init(Data *self, int nUsers, int nItems) {
   int i;
   self->nUsers = nUsers;
   self->nItems = nItems;
-  self->testSet = (RatingSet *) malloc(sizeof(RatingSet));
-  memset(self->testSet, 0, sizeof(RatingSet));
-  self->valSet = (RatingSet *) malloc(sizeof(RatingSet));
-  memset(self->valSet, 0, sizeof(RatingSet));
-  self->trainSet = (RatingSet *) malloc(sizeof(RatingSet));
-  memset(self->trainSet, 0, sizeof(RatingSet));
+ 
   self->userSets = (UserSets**) malloc(sizeof(UserSets*)*nUsers);
   for (i = 0; i < nUsers; i++) {
     self->userSets[i] = (UserSets*) malloc(sizeof(UserSets));
@@ -597,9 +591,6 @@ void Data_free(Data *self) {
     UserSets_free(self->userSets[i]);
   }
   free(self->userSets);
-  RatingSet_free(self->trainSet);
-  RatingSet_free(self->testSet);
-  RatingSet_free(self->valSet);
   gk_csr_Free(&(self->trainMat));
   gk_csr_Free(&(self->testMat));
   gk_csr_Free(&(self->valMat));
@@ -706,27 +697,6 @@ void Data_jaccSim(Data *data, float **sim) {
   }
   free(itemMembSets);
   Set_free(temp);
-}
-
-
-void RatingSet_init(RatingSet *ratSet, int sz) {
-  int i;
-  ratSet->size = sz;
-  ratSet->rats = (Rating **) malloc(sizeof(Rating*)*sz);
-  for (i = 0; i < sz; i++) {
-    ratSet->rats[i] = (Rating *) malloc(sizeof(Rating));
-    memset(ratSet->rats[i], 0, sizeof(Rating));
-  }
-}
-
-
-void RatingSet_free(RatingSet *ratSet) {
-  int i;
-  for (i = 0; i < ratSet->size; i++) {
-    free(ratSet->rats[i]);
-  }
-  free(ratSet->rats);
-  free(ratSet);
 }
 
 

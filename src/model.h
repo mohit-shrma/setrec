@@ -53,7 +53,6 @@ typedef struct {
   float (*itemFacNorm) (void *self, Data *data);
   float (*setSimilarity) (void *self, int *set, int setSz, float **sim);  
   void (*writeUserSetSim) (void *self, Data *data, float **sim, char *fName); 
-  float (*indivItemSetErr) (void *self, RatingSet *ratSet);
   float (*indivTrainSetsErr) (void *self, Data *data);
   float (*indivItemCSRErr) (void *self, gk_csr_t *mat, char *opName); 
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
@@ -90,7 +89,6 @@ float Model_trainClassLoss(void *self, Data *data, float **sim);
 float Model_trainClass01Loss(void *self, Data *data, float **sim);
 float Model_userFacNorm(void *self, Data *data);
 float Model_itemFacNorm(void *Self, Data *data);
-float Model_indivItemSetErr(void *self, RatingSet *ratSet);
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat, float **origUFac, 
     float **origIFac, int N);

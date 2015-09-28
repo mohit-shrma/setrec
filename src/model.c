@@ -724,37 +724,6 @@ void Model_writeUserSetSim(void *self, Data *data, float **sim, char *fName) {
 }
 
 
-float Model_indivItemSetErr(void *self, RatingSet *ratSet) {
-  
-  float rmse, estRat, diff;
-  int i;
-  Model *model = self;
-  int user, item;
-  float rat;
-  rmse = 0.0;
-  
-  for (i = 0; i < ratSet->size; i++) {
-    user = ratSet->rats[i]->user; 
-    item = ratSet->rats[i]->item;
-    rat  = ratSet->rats[i]->rat;
-    estRat = dotProd(model->uFac[user], model->iFac[item], model->facDim);
-    diff = rat - estRat;
-
-    if (estRat != estRat) {
-      //nan check
-      printf("\nu:%d i:%d estRat: %f rat:%f", user, item, estRat, rat);
-      printf("\nuserFac Norm: %f itemFac Norm: %f", norm(model->uFac[user], model->facDim), norm(model->iFac[item], model->facDim));
-      fflush(stdout);
-      writeFloatVector(model->iFac[item], model->facDim, "temp.txt");
-      exit(0);
-    }
-    rmse += diff*diff;
-  }
-  //printf("\nrmse: %f nSet: %d", rmse, ratSet->size);
-  return sqrt(rmse/ratSet->size);
-}
-
-
 float Model_indivTrainSetsErr(void *self, Data *data) {
   
   int u, i, item;
@@ -1004,7 +973,6 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.userFacNorm) proto.userFacNorm                 = Model_userFacNorm;
   if (!proto.itemFacNorm) proto.itemFacNorm                 = Model_itemFacNorm;
   if (!proto.setSimilarity) proto.setSimilarity             = Model_setSimilarity;
-  if (!proto.indivItemSetErr) proto.indivItemSetErr         = Model_indivItemSetErr;
   if (!proto.writeUserSetSim) proto.writeUserSetSim         = Model_writeUserSetSim;
   if (!proto.hitRate) proto.hitRate                         = Model_hitRate;
   if (!proto.hitRateOrigTopN) proto.hitRateOrigTopN         = Model_hitRateOrigTopN;

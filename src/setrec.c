@@ -32,16 +32,7 @@ void parse_cmd_line(int argc, char **argv) {
     params->useSim          = atoi(argv[9]);
     params->maxIter         = atoi(argv[10]);
     params->seed            = atoi(argv[11]);
-    
-    params->train_set_file  = argv[12];
-    params->train_set_size  = atoi(argv[13]);
-    
-    params->test_set_file   = argv[14];
-    params->test_set_size   = atoi(argv[15]);
-    
-    params->val_set_file    = argv[16];
-    params->val_set_size    = atoi(argv[17]);
-    
+
     params->train_mat_file  = argv[18];
     params->test_mat_file   = argv[19];
     params->val_mat_file    = argv[20];
@@ -76,10 +67,10 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   //run baseline
-  //modelItemMatFac(data, params, baseValTest);  
+  modelItemMatFac(data, params, baseValTest);  
 
   //learn model
-  modelMajority(data, params, modelValTest);
+  //modelMajority(data, params, modelValTest);
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));

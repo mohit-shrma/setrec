@@ -30,16 +30,7 @@ typedef struct {
 typedef struct {
   char *user_set_file;
   char *ext_setSim_file;
-  
-  char *val_set_file;
-  int val_set_size;
-  
-  char *test_set_file;
-  int test_set_size;
-  
-  char *train_set_file;
-  int train_set_size;
-  
+
   char *train_mat_file;
   char *val_mat_file;
   char *test_mat_file;
@@ -149,30 +140,12 @@ typedef struct {
 void ItemSets_init(ItemSets *itemSets, UserSets **userSets, int nUsers, int nItems);
 void ItemSets_free(ItemSets *self);
 
-typedef struct {
-  int user;
-  int item;
-  float rat;
-} Rating;
-
-typedef struct {
-  Rating **rats;
-  int size;
-} RatingSet;
-
-void RatingSet_init(RatingSet *self, int size);
-void RatingSet_free(RatingSet *self);
-
 
 typedef struct {
   int nUsers;
   int nItems;
 
   UserSets **userSets;
-  
-  RatingSet *testSet;
-  RatingSet *valSet;  
-  RatingSet *trainSet;
   
   gk_csr_t *trainMat;
   gk_csr_t *valMat;

@@ -103,76 +103,6 @@ void writeData(Data *data) {
 }
 
 
-void RatingSet_load(RatingSet *ratSet, char *ip, int setSize) {
-  
-  FILE *fp = NULL;  
-  char *line = NULL;
-  size_t len = 15000;
-  char *token = NULL;
-  int read, i;
-  int user, item;
-  float rating;
-
-  RatingSet_init(ratSet, setSize);
-   
-  line = (char*) malloc(len);
-  
-  //open set file  
-  fp = fopen(ip, "r");
-  if (fp == NULL) {
-    printf("\nError opening file: %s", ip);
-    exit(EXIT_FAILURE);
-  }
-  
-  memset(line, 0, len);
-  
-  i = 0;
-  while ((read = getline(&line, &len, fp)) != -1) {
-    
-    if (read >= len) {
-      printf("\nErr: line > capacity specified");
-    }
-   
-    //tokenize the line
-    token = strtok(line, " ");
-    
-    //get user
-    user = atoi(token);
-    
-    //get item
-    item = atoi(strtok(NULL, " "));
-
-    //get rating
-    rating = atof(strtok(NULL, " "));
-    
-    ratSet->rats[i]->user = user;
-    ratSet->rats[i]->item = item;
-    ratSet->rats[i]->rat = rating;
-    i++;
-    memset(line, 0, len);
-  }
-
-  printf("\nRead %s  size: %d", ip, i);
-  
-  assert(i == setSize);
-
-  fclose(fp);
-  free(line);
-}
-
-
-void RatingSet_write(RatingSet *ratSet) {
-  
-  int i;
-  
-  for (i = 0; i < ratSet->size; i++) {
-    printf("\n%d %d %f", ratSet->rats[i]->user, ratSet->rats[i]->item, 
-        ratSet->rats[i]->rat);
-  }
-
-}
-
-
 //assuming data is already allocated
 void loadData(Data *data, Params *params) {
   
@@ -315,19 +245,6 @@ void loadData(Data *data, Params *params) {
 
   fclose(fp);
   
-  //load test set
-  RatingSet_load(data->testSet, params->test_set_file,  params->test_set_size);
-  //RatingSet_write(data->testSet);
-
-  //load validation set
-  RatingSet_load(data->valSet, params->val_set_file, params->val_set_size);
-  //RatingSet_write(data->valSet);
-
-  //load train set
-  RatingSet_load(data->trainSet, params->train_set_file, params->train_set_size);
-
-  //RatingSet_write(data->trainSet);
-
   //read csr matrices
   data->trainMat = gk_csr_Read(params->train_mat_file, GK_CSR_FMT_CSR, 1, 0);
   gk_csr_CreateIndex(data->trainMat, GK_CSR_COL);
