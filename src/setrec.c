@@ -51,9 +51,9 @@ void parse_cmd_line(int argc, char **argv) {
     params->rhoRMS = atof(argv[22]);
     params->epsRMS = atof(argv[23]);
     
-    params->uFacFileName    = argv[24];
-    params->iFacFileName    = argv[25];
-    params->uMidPFName      = argv[26];
+    params->uFacFileName    = NULL;//argv[24];
+    params->iFacFileName    = NULL;//argv[25];
+    params->uMidPFName      = NULL;//argv[26];
   }
 
   //initialize random seed
@@ -76,10 +76,10 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   //run baseline
-  //modelItemMatFac(data, params, baseValTest);  
+  modelItemMatFac(data, params, baseValTest);  
 
   //learn model
-  modelMajority(data, params, modelValTest);
+  //modelItemMatFac(data, params, modelValTest);
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));
