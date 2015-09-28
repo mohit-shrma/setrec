@@ -568,6 +568,8 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
 }
 
 
+
+
 void modelItemMatFac(Data *data, Params *params, ValTestRMSE *valTest) {
   
   //allocate storage for model
