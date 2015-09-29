@@ -51,21 +51,21 @@ def writeMap(m, fName):
 
 def writeUserSet(user, userTracks, userAlbumRatTracks, g):
   nTracks = len(userTracks)
-  g.write(str(user) + ' ' + str(nTracks) + ' ' 
-      + ' '.join(map(str, userTracks)) + '\n')
+  g.write(str(user) + ' ' + str(len(userAlbumRatTracks)) + ' ' + str(nTracks) 
+      + ' ' + ' '.join(map(str, userTracks)) + '\n')
   for album, ratTracks in userAlbumRatTracks.iteritems():
     albumTracks = ratTracks[0]
     albumRat = ratTracks[1]
-    g.write(str(albumRat) + ' ' + str(album) + ' ' + str(len(albumTracks)) + ' ' 
+    g.write(str(albumRat) + ' ' + str(len(albumTracks)) + ' ' 
         + ' '.join(map(str, albumTracks)) + '\n')
 
 
 def writeSets(fName, userTestTracks, userValTracks, opPrefix):
   opName = opPrefix + '_set.txt'
   with open(fName, 'r') as f, open(opName, 'w') as g:
-    userTracks = []
+    userTracks         = []
     userAlbumRatTracks = {}
-    currUser = None
+    currUser           = None
     for line in f:
       cols     = map(int, line.strip().split(' '))
       user     = cols[0]
@@ -124,6 +124,71 @@ def writeRatings(fName, opPrefix):
   return (userTestTracks, userValTracks)
 
 
+def getTestValTracks(userTracks, nTestTracks):
+  testTracks = set([])
+  valTracks = set([])
+  
+  if len(userTracks) == 2.0*nTestTracks:
+    print  'Err: No. of user tracks == 2*nTestTracks'
+    return ([],[])
+
+  while len(testTracks) != nTestTracks:
+    ind = random.randint(0, len(userTracks)-1)
+    if userTracks[ind] not in testTracks:
+      testTracks.add(userTracks[ind])
+  
+  while len(valTracks) != nTestTracks:
+    ind = random.randint(0, len(userTracks)-1)
+    if userTracks[ind] not in valTracks and \
+        userTracks[ind] not in testTracks:
+      valTracks.add(userTracks[ind])
+
+  return  (testTracks, valTracks)
+
+
+def writeRatings(fName, opPrefix, nTestTracks = 1):
+  userTestTracks   = {}
+  userValTracks    = {}
+  trackRatOpName   = opPrefix + '_trackRat.txt'
+  albumRatOpName   = opPrefix + '_albumRat.txt'
+  userAlbums       = {}
+  prevUser         = ''
+  userTracks       = []
+  userTestTracks   = {}
+  userValTracks    = {}
+  
+  with open(fName, 'r') as f, open(trackRatOpName, 'w') as g, open(albumRatOpName, 'w') as h:
+    for line in f:
+      cols     = map(int, line.strip().split())
+      user     = cols[0]
+      album    = cols[1]
+      albumRat = cols[2]
+      track    = cols[3]
+      trackRat = cols[4]
+      g.write(str(user) + ' ' + str(track) + ' ' + str(trackRat) + '\n')  
+      if prevUser == '':
+        prevUser = user
+      if prevUser != user:
+        (testTracks, valTracks) = getTestValTracks(userTracks, nTestTracks)   
+        userTestTracks[prevUser] = testTracks
+        userValTracks[prevUser] = valTracks
+        for album, rat in userAlbums.iteritems():
+          h.write(str(prevUser) + ' ' +  str(album) + ' ' +  str(albumRat) + '\n')
+        #reset
+        userTracks = []      
+        userAlbums = {}
+        prevUser = user
+      userTracks.append(track)
+      userAlbums[album] = albumRat
+    #write for last user
+    testTracks, valTracks = getTestValTracks(userTracks, nTestTracks)     
+    userTestTracks[prevUser] = testTracks
+    userValTracks[prevUser] = valTracks
+    for album, rat in userAlbums.iteritems():
+      h.write(str(prevUser) + ' ' +  str(album) + ' ' +  str(albumRat) + '\n')
+  return (userTestTracks, userValTracks)
+
+
 def writeTrainTestValTriplets(fName, opPrefix, userTestTracks, userValTracks):
   trainFName = opPrefix + '_train.triplet'
   testFName  = opPrefix + '_test.triplet'
@@ -137,20 +202,23 @@ def writeTrainTestValTriplets(fName, opPrefix, userTestTracks, userValTracks):
           albumRat = cols[2]
           track    = cols[3]
           trackRat = cols[4]
-          if track == userTestTracks[user][0]:
+          if track in  set(userTestTracks[user]):
             h.write(str(user) + ' ' + str(track) + ' ' + str(trackRat) + '\n')
-          elif track == userValTracks[user][0]:
+          elif track in set(userValTracks[user]):
             p.write(str(user) + ' ' + str(track) + ' ' + str(trackRat) + '\n')
           else:
             g.write(str(user) + ' ' + str(track) + ' ' + str(trackRat) + '\n')
 
 
-
 def main():
-  convFName = sys.argv[1]
-  opPrefix  = sys.argv[2]
+  convFName    = sys.argv[1]
+  opPrefix     = sys.argv[2]
   userMapFName = sys.argv[3]
-  seed      = int(sys.argv[4])
+  nTestTracks  = int(sys.argv[4])
+  seed         = int(sys.argv[5])
+
+  print 'seed', seed
+  print 'nTestTracks', nTestTracks
 
   opPrefix = opPrefix + '_' + str(seed) 
 
@@ -173,9 +241,10 @@ def main():
   print 'Read passed Converted  rating file...'
 
   #write track and album rating triplets
-  (userTestTracks, userValTracks) = writeRatings(convFName, opPrefix)
+  (userTestTracks, userValTracks) = writeRatings(convFName, opPrefix,
+      nTestTracks)
  
-  print 'Wrote album and track ratings'
+  print 'Wrote album and track ratings...'
 
   #make sure user testTRacks and val tracks are not empty
   for u in users:
@@ -196,6 +265,5 @@ def main():
 
 if __name__ == '__main__':
   main()
-
 
 
