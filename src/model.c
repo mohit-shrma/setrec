@@ -844,6 +844,11 @@ float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat,
   int nItems            = trainMat->ncols;
   float nHits           = 0;
   Model *model          = self;
+  
+  if (origUFac == NULL || origIFac == NULL) {
+    return 0;
+  }
+  
   gk_fkv_t *origItemPrefInd = gk_fkvmalloc(nItems, "preferences of the original");
   gk_fkv_t *modelItemPrefInd = gk_fkvmalloc(nItems, "preferences of the model");
   int *isItemRated      = (int*) malloc(sizeof(int)*nItems);
