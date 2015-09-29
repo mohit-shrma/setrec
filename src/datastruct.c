@@ -21,6 +21,7 @@ void loadUserItemWtsFrmTrain(Data *data) {
   gk_csr_t *trainMat = data->trainMat;
 
   for (u = 0; u < trainMat->nrows; u++) {
+    userSet = data->userSets[u];
     for (ii = trainMat->rowptr[u]; ii < trainMat->rowptr[u+1]; ii++) {
       item = trainMat->rowind[ii];
       rat = trainMat->rowval[ii];
