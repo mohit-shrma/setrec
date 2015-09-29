@@ -42,9 +42,9 @@ void parse_cmd_line(int argc, char **argv) {
     params->rhoRMS          = atof(argv[16]);
     params->epsRMS          = atof(argv[17]);
     
-    params->uFacFileName    = argv[18];
-    params->iFacFileName    = argv[19];
-    params->uMidPFName      = argv[20];
+    params->uFacFileName    = NULL;//argv[18];
+    params->iFacFileName    = NULL;//argv[19];
+    params->uMidPFName      = NULL;//argv[20];
   }
 
   //initialize random seed
@@ -54,10 +54,14 @@ void parse_cmd_line(int argc, char **argv) {
   data = (Data *) malloc(sizeof(Data));
   Data_init(data, params->nUsers, params->nItems);
 
-  //printf("\nloading data...");
+  printf("\nloading data...");
+  fflush(stdout);
   loadData(data, params);
   ItemSets_init(data->itemSets, data->userSets, params->nUsers, 
       params->nItems);
+  
+  printf("\nFinished loading data..");
+  fflush(stdout);
 
   //load external similarities
   //loadSims(data, params);
@@ -67,10 +71,10 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   //run baseline
-  modelItemMatFac(data, params, baseValTest);  
+  //modelItemMatFac(data, params, baseValTest);  
 
   //learn model
-  //modelMajority(data, params, modelValTest);
+  modelMajority(data, params, modelValTest);
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));

@@ -42,11 +42,7 @@ float ModelMajority_estScoreNSumFac(void *self, int u, int *set, int setSz,
   }
   r_us_est = r_us_est/majSz;
 
-  temp = dotProd(model->_(uFac)[u], sumItemFac, model->_(facDim))/majSz; 
-  if (fabs(r_us_est - temp) > 0.00001) {
-    printf("\nERR: Rating mismatch for set %f %f", r_us_est, temp);
-    exit(0);
-  }
+  //temp = dotProd(model->_(uFac)[u], sumItemFac, model->_(facDim))/majSz; 
 
   return r_us_est;
 }
@@ -64,7 +60,7 @@ void ModelMajority_gradientCheck(void *self, int u, int *set, int setSz,
   float *uGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float *iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
   float *fac           = (float*) malloc(sizeof(float)*model->_(facDim));
-  float lossRight, lossLeft, gradE, r_us_est, rat_s;
+  float lossRight, lossLeft, gradE, r_us_est, rat_s, maxRat;
   
   if (setSz % 2 == 0) {
     majSz = setSz/2;
@@ -75,16 +71,15 @@ void ModelMajority_gradientCheck(void *self, int u, int *set, int setSz,
   r_us_est = ModelMajority_estScoreNSumFac(model, u, set, setSz, sumItemLatFac,
       itemRats);
 
-  //sample item
+  //sample item from majority
   item = itemRats[rand()%majSz]->item;
   //item gradient
   memset(iGrad, 0, sizeof(float)*model->_(facDim));
   for (j = 0; j < model->_(facDim); j++) {
     iGrad[j] = (2.0*(r_us_est - r_us)*model->_(uFac)[u][j])/majSz;
-    //if (itemRats[0]->item == item && itemRats[0]->rating < r_us) { 
-    //if (itemRats[0]->item == item) { 
-    //  iGrad[j] += -1.0*model->constrainWt*model->_(uFac)[u][j];
-    //}
+    if (itemRats[0]->item == item && itemRats[0]->rating < r_us) { 
+      iGrad[j] += -1.0*model->constrainWt*model->_(uFac)[u][j];
+    }
   }
 
   //perturb item with +E and cmpute loss
@@ -94,10 +89,15 @@ void ModelMajority_gradientCheck(void *self, int u, int *set, int setSz,
   }
   rat_s = dotProd(model->_(uFac)[u], fac, model->_(facDim))/majSz;
   lossRight = pow(rat_s - r_us, 2);
-  //if (itemRats[0]->item == item && r_us > itemRats[0]->rating) {
-  //if (itemRats[0]->item == item) {
-  //  lossRight += model->constrainWt*(r_us - itemRats[0]->rating);
-  //}
+  if (itemRats[0]->item == item && r_us > itemRats[0]->rating) {
+    //recompute item rating if top
+    memset (fac, 0, sizeof(float)*model->_(facDim));
+    for (j = 0; j < model->_(facDim); j++) {
+      fac[j] = model->_(iFac)[item][j] + 0.0001;
+    }
+    maxRat = dotProd(model->_(uFac)[u], fac, model->_(facDim));
+    lossRight += model->constrainWt*(r_us - maxRat);
+  }
 
   //perturb item with  -E and cmpute loss
   memset(fac, 0, sizeof(float)*model->_(facDim)); 
@@ -106,10 +106,15 @@ void ModelMajority_gradientCheck(void *self, int u, int *set, int setSz,
   }
   rat_s = dotProd(model->_(uFac)[u], fac, model->_(facDim))/majSz;
   lossLeft = pow(rat_s - r_us, 2);
-  //if (itemRats[0]->item == item && r_us > itemRats[0]->rating) {
-  //if (itemRats[0]->item == item) {
-  //  lossLeft += model->constrainWt*(r_us - itemRats[0]->rating);
-  //}
+  if (itemRats[0]->item == item && r_us > itemRats[0]->rating) {
+    //recompute item rating if top
+    memset (fac, 0, sizeof(float)*model->_(facDim));
+    for (j = 0; j < model->_(facDim); j++) {
+      fac[j] = model->_(iFac)[item][j] - 0.0001;
+    }
+    maxRat = dotProd(model->_(uFac)[u], fac, model->_(facDim));
+    lossLeft += model->constrainWt*(r_us - maxRat);
+  }
 
   //compute gradient and E dotprod
   gradE = 0;
@@ -117,7 +122,7 @@ void ModelMajority_gradientCheck(void *self, int u, int *set, int setSz,
     gradE += 2.0*iGrad[j]*0.0001;
   }
 
-  if (fabs(lossRight-lossLeft-gradE) > 0.00001) {
+  if (fabs(lossRight-lossLeft-gradE) > 0.0001) {
     printf("\nu: %d item: %d diff: %f div: %f lDiff:%f gradE:%f", u, item, 
       lossRight-lossLeft-gradE, (lossRight-lossLeft)/gradE, lossRight-lossLeft, 
       gradE);
@@ -374,8 +379,8 @@ void samplePosSetNRat(Data *data, int u, int *posSet, int setSz, float *rat) {
   int i, nItems, itemInd, item, found;
   int nUserItems, majSz;
   gk_csr_t *trainMat = data->trainMat;
-  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
-  for (i = 0; i < 100; i++) {
+  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*MAX_SET_SZ);
+  for (i = 0; i < MAX_SET_SZ; i++) {
     itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
     memset(itemRats[i], 0, sizeof(ItemRat));
   }
@@ -419,7 +424,7 @@ void samplePosSetNRat(Data *data, int u, int *posSet, int setSz, float *rat) {
  
   *rat = ratAvg;
 
-  for (i = 0; i < 100; i++) {
+  for (i = 0; i < MAX_SET_SZ; i++) {
     free(itemRats[i]);
   }
   free(itemRats);
@@ -846,8 +851,10 @@ void ModelMajority_trainCDWOCons(void *self, Data *data, Params *params, float *
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-        printf("\nIter: %d obj: %f test items rmse: %f", iter, valTest->setObj, 
-            model->_(indivItemSetErr) (model, data->testSet));
+        printf("\nIter: %d obj: %f avgHits: %f testItemsRmse: %f", iter, 
+            valTest->setObj, model->_(hitRateOrigTopN) (model, data->trainMat, 
+              data->uFac, data->iFac, 10),
+            model->_(indivItemCSRErr) (model, data->testMat, NULL));
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -900,7 +907,7 @@ void ModelMajority_trainCDWOCons(void *self, Data *data, Params *params, float *
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   for (i = 0; i < 100; i++) {
@@ -1062,7 +1069,7 @@ void ModelMajority_trainCDAltWOCons(void *self, Data *data, Params *params, floa
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
       printf("\nIter: %d obj: %f test items rmse: %f", iter, valTest->setObj, 
-      model->_(indivItemSetErr) (model, data->testSet));
+      model->_(indivItemCSRErr) (model, data->testMat, NULL));
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -1114,7 +1121,7 @@ void ModelMajority_trainCDAltWOCons(void *self, Data *data, Params *params, floa
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   for (i = 0; i < 100; i++) {
@@ -1291,9 +1298,11 @@ void ModelMajority_trainRMSPropAltWOCons(void *self, Data *data, Params *params,
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-      printf("\nIter: %d obj: %f test items rmse: %f", iter, valTest->setObj, 
-      model->_(indivItemSetErr) (model, data->testSet));
-      if (iter > 0) {
+        printf("\nIter: %d obj: %f avgHits: %f testItemsRmse: %f", iter, 
+            valTest->setObj, model->_(hitRateOrigTopN) (model, data->trainMat, 
+              data->uFac, data->iFac, 10),
+            model->_(indivItemCSRErr) (model, data->testMat, NULL));
+      if (iter > 5000) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
           printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
@@ -1344,7 +1353,7 @@ void ModelMajority_trainRMSPropAltWOCons(void *self, Data *data, Params *params,
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   for (i = 0; i < 100; i++) {
@@ -1367,6 +1376,238 @@ void ModelMajority_trainRMSPropAltWOCons(void *self, Data *data, Params *params,
   free(iGradsAcc);
 }
 
+//full gradient descent using RMSProp adaptive learning rate w/o constraint
+void ModelMajority_trainRMSPropAlt(void *self, Data *data, Params *params, float **sim, 
+    ValTestRMSE *valTest) {
+
+  int iter, subIter, u, i, j, k, s, numAllSets;
+  UserSets *userSet;
+  int setSz, item, isTestValSet;
+  int *set;
+  float r_us, r_us_est, r_us_est_aftr_upd, prevObj; //actual set preference
+  float temp, majSz, num, denom; 
+  ModelMajority *model = self;
+  
+  //TODO: hard code
+  int nSetsPerUser = 50;
+  setSz = 5;
+
+  float* setSumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
+  
+  float **iGradsAcc    = (float**) malloc(sizeof(float*)*params->nItems);
+  float **uGradsAcc    = (float**) malloc(sizeof(float*)*params->nUsers);
+  for (i = 0; i < params->nItems; i++) {
+    iGradsAcc[i] = (float*) malloc(sizeof(float)*model->_(facDim));
+    memset(iGradsAcc[i], 0, sizeof(float)*model->_(facDim));
+  }
+  for (i = 0; i < params->nUsers; i++) {
+    uGradsAcc[i] = (float*) malloc(sizeof(float)*model->_(facDim));
+    memset(uGradsAcc[i], 0, sizeof(float)*model->_(facDim));
+  }
+
+
+  //TODO: hardcode
+  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*MAX_SET_SZ);
+  for (i = 0; i < MAX_SET_SZ; i++) {
+    itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
+    memset(itemRats[i], 0, sizeof(ItemRat));
+  }
+
+  float *uGrad, *iGrad;
+  uGrad = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(uGrad, 0, sizeof(float)*model->_(facDim));
+  iGrad = (float*) malloc(sizeof(float)*model->_(facDim));
+  memset(iGrad, 0, sizeof(float)*model->_(facDim));
+
+  numAllSets = 0;
+  for (u = 0; u < data->nUsers; u++) {
+    numAllSets += data->userSets[u]->numSets;
+  }
+
+  printf("\nnumAllSets: %d", numAllSets);
+
+  //get train error
+  printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
+  
+  //get objective
+  printf("\nInit Obj: %.10e", model->_(objective)(model, data, sim));
+  
+  printf("\nInit Constraint violation: %d", ModelMajority_constViol(model, data));
+  
+  if (setSz % 2 == 0) {
+    majSz = setSz/2;
+  } else {
+    majSz = setSz/2 + 1;
+  }
+
+  ItemWtSets *itemWtSet = NULL;
+
+  for (iter = 0; iter < params->maxIter; iter++) {
+    for (subIter = 0; subIter < 2000; subIter++) {
+      
+      u = rand() % model->_(nUsers);
+      
+      //update users
+      //compute user gradient
+      memset(uGrad, 0, sizeof(float)*model->_(facDim));
+      userSet = data->userSets[u];
+      //update user's lat fac
+      //go through over all sets to compute sum of lat fac in sets
+      for (s = 0; s < userSet->numSets; s++) {
+        //check if set in test or validation
+        if (UserSets_isSetTestVal(userSet, s)) {
+         continue;
+        }
+        memset(setSumItemLatFac, 0, sizeof(float)*model->_(facDim));
+        ModelMajority_setMajFac(model, u, userSet->uSets[s], userSet->uSetsSize[s], 
+            itemRats, setSumItemLatFac);
+        r_us = userSet->labels[s];
+        r_us_est = dotProd(model->_(uFac)[u], setSumItemLatFac, 
+            model->_(facDim))/majSz;
+        temp = 2*(r_us - r_us_est);
+        for (j = 0; j < model->_(facDim); j++) {
+          uGrad[j] += temp*(-1.0/majSz)*setSumItemLatFac[j];
+          //check if constraint violated for set
+          if (itemRats[0]->rating < r_us) {
+            uGrad[j] += -1.0*model->constrainWt*model->_(iFac)[itemRats[0]->item][j];
+          }
+        }
+      }
+      
+      //update user 
+      for (j = 0; j < model->_(facDim); j++) {
+        uGrad[j] += 2.0*model->_(regU)*model->_(uFac)[u][j];
+        uGradsAcc[u][j] = uGradsAcc[u][j]*params->rhoRMS + 
+          (1.0 - params->rhoRMS)*uGrad[j]*uGrad[j];
+        model->_(uFac)[u][j] -= (model->_(learnRate)/sqrt(uGradsAcc[u][j] + 0.0000001))*uGrad[j];
+      }
+      
+      //update item
+      item = rand() % model->_(nItems);
+      
+      //compute gradient
+      memset(iGrad, 0, sizeof(float)*model->_(facDim));  
+      for (u = 0; u < model->_(nUsers); u++) {
+        if (data->itemSets->itemUsers[item][u]) {
+          //u has item
+          userSet = data->userSets[u];
+
+          //find sets which contains the item
+          itemWtSet = UserSets_search(userSet, item);
+
+          if (itemWtSet != NULL) {
+            for (i = 0; i < itemWtSet->szItemSets; i++) {
+              s = itemWtSet->itemSets[i];
+              set = userSet->uSets[s];
+              setSz = userSet->uSetsSize[s];
+              if (ModelMajority_isSetMajFac(model, u, set, setSz, itemRats, 
+                    setSumItemLatFac, item)) {
+                r_us = userSet->labels[s];
+                r_us_est = dotProd(model->_(uFac)[u], setSumItemLatFac,
+                    model->_(facDim))/majSz;
+                temp = 2.0 * (r_us - r_us_est);
+                for (j = 0; j < model->_(facDim); j++) {
+                  iGrad[j] += temp*(-1.0/majSz)*model->_(uFac)[u][j];
+                  if (itemRats[0]->item == item && itemRats[0]->rating < r_us) {
+                    iGrad[j] += -1.0*model->constrainWt*model->_(uFac)[u][j];
+                  }
+                }
+              }
+            }
+          } else {
+            printf("\nERROR: u %d item %d not found", u, item);
+          }
+        }
+      }//end u
+        
+      for (j = 0; j < model->_(facDim); j++) {
+        //add reg
+        iGrad[j] += 2.0*model->_(regI)*model->_(iFac)[item][j];
+        //accumulate the gradients square 
+        iGradsAcc[item][j] = params->rhoRMS*iGradsAcc[item][j]  + 
+          (1.0 - params->rhoRMS)*iGrad[j]*iGrad[j];
+        //update
+        model->_(iFac)[item][j] -= (model->_(learnRate)/sqrt(iGradsAcc[item][j] + 0.0000001))*iGrad[j];
+      }
+    } 
+       
+    //objective check
+    if (iter % OBJ_ITER == 0) {
+      valTest->setObj = model->_(objective)(model, data, sim);
+        printf("\nIter: %d obj: %.10e avgHits: %f testItemsRmse: %f", iter, 
+            valTest->setObj, model->_(hitRateOrigTopN) (model, data->trainMat, 
+              data->uFac, data->iFac, 10),
+            model->_(indivItemCSRErr) (model, data->testMat, NULL));
+      if (iter > 5000) {
+        if (fabs(prevObj - valTest->setObj) < EPS) {
+          //exit train procedure
+          printf("\nConverged in iteration: %d prevObj: %.10e currObj: %.10e", iter,
+              prevObj, valTest->setObj);
+          break;
+        }
+      }
+      prevObj = valTest->setObj;
+      fflush(stdout);
+    }
+
+    //validation check
+    /*
+    if (iter % VAL_ITER == 0) {
+      //validation err
+      valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+      if (iter > 0) {
+        if (fabs(prevVal - valTest->valSetRMSE) < EPS) {
+          //exit the model train procedure
+          printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
+              prevVal, valTest->valSetRMSE, fabs(prevVal - valTest->valSetRMSE));
+          break;
+        }
+      }
+      prevVal = valTest->valSetRMSE;
+    }
+    */
+  }
+
+  printf("\nEnd Obj: %.10e", valTest->setObj);
+
+  printf("\nFinal Constraint violation: %d", ModelMajority_constViol(model, data));
+  
+  if (iter == params->maxIter) {
+    printf("\nNOT CONVERGED:Reached maximum iterations");
+  }
+
+  valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+  printf("\nValidation set err: %f", valTest->valSetRMSE);
+  
+  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
+  printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
+
+  valTest->trainSetRMSE = model->_(trainErr)(model, data, NULL); 
+  printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
+  
+  valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
+  printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
+
+  //get test eror
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
+  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
+
+  for (i = 0; i < MAX_SET_SZ; i++) {
+    free(itemRats[i]);
+  }
+  free(itemRats);
+  free(setSumItemLatFac);
+  free(uGrad);
+  free(iGrad);
+  for (u = 0; u < model->_(nUsers); u++) {
+    free(uGradsAcc[u]);
+  }
+  free(uGradsAcc);
+  for (i = 0; i < model->_(nItems); i++) {
+    free(iGradsAcc[i]);
+  }
+  free(iGradsAcc);
+}
 
 //full gradient descent alternating over user and items w/o constraint
 void ModelMajority_trainGDAltWOCons(void *self, Data *data, Params *params, float **sim, 
@@ -1519,7 +1760,7 @@ void ModelMajority_trainGDAltWOCons(void *self, Data *data, Params *params, floa
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
       printf("\nIter: %d obj: %f test items rmse: %f", iter, valTest->setObj, 
-      model->_(indivItemSetErr) (model, data->testSet));
+      model->_(indivItemCSRErr) (model, data->testMat, NULL));
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -1571,7 +1812,7 @@ void ModelMajority_trainGDAltWOCons(void *self, Data *data, Params *params, floa
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   for (i = 0; i < 100; i++) {
@@ -1842,7 +2083,7 @@ void ModelMajority_trainAdaDelta(void *self, Data *data, Params *params, float *
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -1902,8 +2143,8 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   }
 
   //TODO: hardcode
-  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
-  for (i = 0; i < 100; i++) {
+  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*MAX_SET_SZ);
+  for (i = 0; i < MAX_SET_SZ; i++) {
     itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
     memset(itemRats[i], 0, sizeof(ItemRat));
   }
@@ -1919,11 +2160,12 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
   
   //get objective
-  printf("\nInit Obj: %f", model->_(objective)(model, data, sim));
+  printf("\nInit Obj: %.10e", model->_(objective)(model, data, sim));
   
   printf("\nInit Constraint violation: %d", ModelMajority_constViol(model, data));
  
   printf("\nrhoRMS = %f", params->rhoRMS);
+  fflush(stdout);
 
   for (iter = 0; iter < params->maxIter; iter++) {
     for (subIter = 0; subIter <  numAllSets; subIter++) {
@@ -1961,7 +2203,7 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
       r_us      = userSet->labels[s];
       r_us_est  = 0.0;
 
-      assert(setSz <= 100);
+      assert(setSz <= MAX_SET_SZ);
 
       //dont update no. of items if set is 1
       if (setSz == 1) {
@@ -2057,40 +2299,24 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-      if (iter%1000 == 0) {
-        printf("\nIter: %d obj: %f, testItemsErr: %f", iter, valTest->setObj, model->_(indivItemSetErr) (model, data->testSet));
-      }
-      if (iter > 10000) {
+      printf("\nIter: %d obj: %.10e, testItemsErr: %f avgHits: %f", iter, valTest->setObj, 
+          model->_(indivItemCSRErr) (model, data->testMat, NULL), 
+          model->_(hitRateOrigTopN) (model, data->trainMat, 
+            data->uFac, data->iFac, 10));
+      if (iter > 5000) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
-          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+          printf("\nConverged in iteration: %d prevObj: %.10e currObj: %.10e", iter,
               prevObj, valTest->setObj);
           break;
         }
       }
       prevObj = valTest->setObj;
     }
-
-    //validation check
-    /*
-    if (iter % VAL_ITER == 0) {
-      //validation err
-      valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
-      if (iter > 0) {
-        if (fabs(prevVal - valTest->valSetRMSE) < EPS) {
-          //exit the model train procedure
-          printf("\nConverged in iteration: %d prevVal: %f currVal: %f diff: %f", iter,
-              prevVal, valTest->valSetRMSE, fabs(prevVal - valTest->valSetRMSE));
-          break;
-        }
-      }
-      prevVal = valTest->valSetRMSE;
-    }
-    */
     
   }
 
-  printf("\nEnd Obj: %f", valTest->setObj);
+  printf("\nEnd Obj: %.10e", valTest->setObj);
 
   printf("\nFinal Constraint violation: %d", ModelMajority_constViol(model, data));
   
@@ -2111,7 +2337,7 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -2129,7 +2355,7 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   }
   free(iGradsAcc);
 
-  for (i = 0; i < 100; i++) {
+  for (i = 0; i < MAX_SET_SZ; i++) {
     free(itemRats[i]);
   }
   free(itemRats);
@@ -2166,8 +2392,8 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
   }
 
   //TODO: hardcode
-  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
-  for (i = 0; i < 100; i++) {
+  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*MAX_SET_SZ);
+  for (i = 0; i < MAX_SET_SZ; i++) {
     itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
     memset(itemRats[i], 0, sizeof(ItemRat));
   }
@@ -2210,7 +2436,7 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
       r_us      = userSet->labels[s];
       r_us_est  = 0.0;
 
-      assert(setSz <= 100);
+      assert(setSz <= MAX_SET_SZ);
 
       //dont update no. of items if set is 1
       if (setSz == 1) {
@@ -2261,7 +2487,6 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
       }
       r_us_est = r_us_est/majSz;
       
-      /*
       //compute user gradient
       for (j = 0; j < model->_(facDim); j++) {
         uGrad[j] = 2.0*(r_us_est - r_us)*sumItemLatFac[j]*(1.0/majSz);
@@ -2275,7 +2500,6 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
         //update
         model->_(uFac)[u][j] -= (model->_(learnRate)/sqrt(uGradsAcc[u][j] + 0.0000001))*uGrad[j];
       }
-      */
       
       //item gradient
       for (j = 0; j < model->_(facDim); j++) {
@@ -2300,7 +2524,10 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-      printf("\nIter: %d obj: %f, testItemsErr: %f", iter, valTest->setObj, model->_(indivItemSetErr) (model, data->testSet));
+      printf("\nIter: %d obj: %f avgHits: %f testItemsRmse: %f", iter, 
+          valTest->setObj, model->_(hitRateOrigTopN) (model, data->trainMat, 
+            data->uFac, data->iFac, 10),
+          model->_(indivItemCSRErr) (model, data->testMat, NULL));
       if (iter > 3000) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
@@ -2310,10 +2537,6 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
         }
       }
       prevObj = valTest->setObj;
-    }
-
-    if (iter > 0 && iter % 500 == 0) {
-      model->_(learnRate) = model->_(learnRate)/10.0;
     }
 
     //validation check
@@ -2356,7 +2579,7 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -2374,7 +2597,7 @@ void ModelMajority_trainRMSPropWOCons(void *self, Data *data, Params *params, fl
   }
   free(iGradsAcc);
 
-  for (i = 0; i < 100; i++) {
+  for (i = 0; i < MAX_SET_SZ; i++) {
     free(itemRats[i]);
   }
   free(itemRats);
@@ -2411,8 +2634,8 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
   }
 
   //TODO: hardcode
-  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*100);
-  for (i = 0; i < 100; i++) {
+  ItemRat **itemRats    = (ItemRat**) malloc(sizeof(ItemRat*)*MAX_SET_SZ);
+  for (i = 0; i < MAX_SET_SZ; i++) {
     itemRats[i] = (ItemRat*) malloc(sizeof(ItemRat));
     memset(itemRats[i], 0, sizeof(ItemRat));
   }
@@ -2428,7 +2651,7 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
   printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
   
   //get objective
-  printf("\nInit Obj: %f", model->_(objective)(model, data, sim));
+  printf("\nInit Obj: %.10e", model->_(objective)(model, data, sim));
   
   printf("\nInit Constraint violation: %d", ModelMajority_constViol(model, data));
  
@@ -2470,7 +2693,7 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
       r_us      = userSet->labels[s];
       r_us_est  = 0.0;
 
-      assert(setSz <= 100);
+      assert(setSz <= MAX_SET_SZ);
 
       //dont update no. of items if set is 1
       if (setSz == 1) {
@@ -2533,14 +2756,12 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-      if (iter%1000 == 0) {
-        printf("\nIter: %d obj: %f trainRMSE: %f", iter, valTest->setObj, 
-            model->_(indivTrainSetsErr) (model, data));
-      }
-      if (iter > 10000) {
+      printf("\nIter: %d obj: %.10e trainRMSE: %f", iter, valTest->setObj, 
+          model->_(indivTrainSetsErr) (model, data));
+      if (iter > 1000) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
-          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+          printf("\nConverged in iteration: %d prevObj: %.10e currObj: %.10e", iter,
               prevObj, valTest->setObj);
           break;
         }
@@ -2568,7 +2789,7 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
     
   }
 
-  printf("\nEnd Obj: %f", valTest->setObj);
+  printf("\nEnd Obj: %.10e", valTest->setObj);
 
   printf("\nFinal Constraint violation: %d", ModelMajority_constViol(model, data));
   
@@ -2589,7 +2810,7 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -2607,7 +2828,7 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
   }
   free(iGradsAcc);
 
-  for (i = 0; i < 100; i++) {
+  for (i = 0; i < MAX_SET_SZ; i++) {
     free(itemRats[i]);
   }
   free(itemRats);
@@ -2769,18 +2990,13 @@ void ModelMajority_trainRMSPropSampSets(void *self, Data *data, Params *params, 
     }
 
     //objective check
-    if (iter % 1000 == 0) {
-      printf("\nIter: %d", iter);
-      fflush(stdout);
-    }
-  
-
-    if (iter >5000 && iter % OBJ_ITER == 0) {
+    if (iter % OBJ_ITER == 0) {
       valTest->setObj = model->_(objective)(model, data, sim);
-      if (iter%1000 == 0) {
-        printf("\nIter: %d obj: %f, trainItemsErr: %f", iter, valTest->setObj, model->_(indivTrainSetsErr) (model, data));
-      }
-      if (iter > 6000) {
+      printf("\nIter: %d obj: %f avgHits: %f trainmsErr: %f", iter, valTest->setObj, 
+          model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, 
+            data->iFac, 10),
+          model->_(indivTrainSetsErr) (model, data));
+      if (iter > 5000) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
           printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
@@ -2832,7 +3048,7 @@ void ModelMajority_trainRMSPropSampSets(void *self, Data *data, Params *params, 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -3132,7 +3348,7 @@ void ModelMajority_trainADAM(void *self, Data *data, Params *params, float **sim
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -3396,7 +3612,7 @@ void ModelMajority_trainAdaGrad(void *self, Data *data, Params *params, float **
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -3672,7 +3888,7 @@ void ModelMajority_trainHeavyBall(void *self, Data *data, Params *params, float 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -3909,7 +4125,7 @@ void ModelMajority_train(void *self, Data *data, Params *params, float **sim,
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -4151,7 +4367,7 @@ void ModelMajority_trainSGDSamp(void *self, Data *data, Params *params, float **
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -4400,7 +4616,7 @@ void ModelMajority_trainSGDMomentum(void *self, Data *data, Params *params, floa
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
@@ -4546,7 +4762,7 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
+  valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
  
@@ -4564,11 +4780,11 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
 
 //model specifications
 Model ModelMajorityProto = {
-  .objective             = ModelMajority_objective,
-  //.objective             = ModelMajority_objectiveAvg,
-  .setScore              = ModelMajority_setScore,
-  //.setScore              = ModelMajority_setScoreAvg,
-  .train                 = ModelMajority_train
+  //.objective             = ModelMajority_objective,
+  .objective             = ModelMajority_objectiveAvg,
+  //.setScore              = ModelMajority_setScore,
+  .setScore              = ModelMajority_setScoreAvg,
+  .train                 = ModelMajority_trainRMSPropAvg //ModelMajority_train
 };
 
 
@@ -4694,19 +4910,23 @@ void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
   model->beta1       = params->rhoRMS;
   model->beta2       = params->epsRMS;
 
+  printf("\nconstWt: %f rhoRMS:%f epsRMS:%f beta1:%f beta2:%f", 
+      model->constrainWt, model->rhoRMS, model->epsRMS, model->beta1, 
+      model->beta2);
+
   //load user item weights from train: needed to compute training on indiv items
   //in training sets
   loadUserItemWtsFrmTrain(data);
  
   //initialize model with latent factors given to the program
-  copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
+  //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
   //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
 
   printf("\nTest Error: %f", model->_(testErr) (model, data, NULL));  
   //testItemRat();
   
   //get objective
-  printf("\nModelMaj Init Obj: %f", model->_(objective)(model, data, NULL));
+  printf("\nModelMaj Init Obj: %.10e", model->_(objective)(model, data, NULL));
   
   //train model 
   model->_(train)(model, data,  params, NULL, valTest);

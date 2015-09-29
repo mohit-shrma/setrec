@@ -221,7 +221,6 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   for (iter = 0; iter < params->maxIter; iter++) {
     //update user and item latent factor pair
     for (subIter = 0; subIter < nnz; subIter++) {
-     
       //sample u
       u = rand() % params->nUsers;
       userSet = data->userSets[u];
@@ -244,7 +243,6 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
       for (i = 0; i < model->_(facDim); i++) {
         model->_(iFac)[itemWtSets->item][i] -= (model->_(learnRate)/(1.0 + model->_(learnRate)*model->_(regI)*iter))*iGrad[i];
       }
-
     }
 
 
@@ -252,12 +250,12 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
     if (iter % OBJ_ITER == 0) {
       valTest->valItemsRMSE = model->_(indivItemCSRErr) (model, data->valMat, NULL);
       valTest->setObj = model->_(objective)(model, data, sim);
-      printf("\nIter:%d Obj: %f valRMSE:%f", iter, valTest->setObj, 
+      printf("\nIter:%d Obj: %.10e valRMSE:%f", iter, valTest->setObj, 
           valTest->valItemsRMSE);
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
-          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+          printf("\nConverged in iteration: %d prevObj: %.10e currObj: %.10e", iter,
               prevObj, valTest->setObj);
           break;
         }
@@ -375,13 +373,11 @@ void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float 
 
     }
 
-
     //objective check
     if (iter % OBJ_ITER == 0) {
       valTest->valItemsRMSE = model->_(indivItemCSRErr) (model, data->valMat, NULL);
       valTest->setObj = model->_(objective)(model, data, sim);
-      
-      printf("\nIter:%d Obj: %f valRMSE:%f", iter, valTest->setObj, 
+      printf("\nIter:%d Obj: %.10e valRMSE:%f", iter, valTest->setObj, 
           valTest->valItemsRMSE);
       if (iter > 0) {
         
@@ -392,16 +388,16 @@ void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float 
           bestIter = iter;
         }
 
-        if (iter - bestIter >= 500) {
+        if (iter - bestIter >= 300) {
           //after 300 more iterations cant beat best objective achieved
-          printf("\nNOT CONVERGED: bestIter:%d bestObj: %f currIter:%d currObj: %f",
+          printf("\nNOT CONVERGED: bestIter:%d bestObj: %.10e currIter:%d currObj: %.10e",
               bestIter, bestObj, iter, valTest->setObj);
           break;
         }
 
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
-          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+          printf("\nConverged in iteration: %d prevObj: %.10e currObj: %.10e", iter,
               prevObj, valTest->setObj);
           break;
         }
@@ -416,7 +412,7 @@ void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float 
   }
 
   valTest->setObj = bestObj;
-  printf("\nNum Iter: %d best Obj: %f bestIter: %d", iter, bestObj, bestIter);
+  printf("\nNum Iter: %d best Obj: %.10e bestIter: %d", iter, bestObj, bestIter);
 
   valTest->valItemsRMSE = bestModel->_(indivItemCSRErr) (bestModel, data->valMat, NULL);
   printf("\nValidation items error: %f", valTest->valItemsRMSE);
@@ -518,7 +514,7 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
       if (iter > 0) {
         if (fabs(prevObj - valTest->setObj) < EPS) {
           //exit train procedure
-          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
+          printf("\nConverged in iteration: %d prevObj: %.10e currObj: %.10e", iter,
               prevObj, valTest->setObj);
           break;
         }
@@ -568,8 +564,6 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
 }
 
 
-
-
 void modelItemMatFac(Data *data, Params *params, ValTestRMSE *valTest) {
   
   //allocate storage for model
@@ -590,7 +584,7 @@ void modelItemMatFac(Data *data, Params *params, ValTestRMSE *valTest) {
   //load user item weights from train
   loadUserItemWtsFrmTrain(data);
   
-  printf("\nmodel mat fac Init obj: %f", model->_(objective)(model, data, NULL));
+  printf("\nmodel mat fac Init obj: %.10e", model->_(objective)(model, data, NULL));
   //get train error
   //valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
   //printf("\nTrain set indiv error(matfac): %f", valTest->trainItemsRMSE);

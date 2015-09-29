@@ -10,7 +10,8 @@
 #define OBJ_ITER 100
 #define VAL_CONV 1
 #define OBJ_CONV 1
-#define VAL_ITER 1
+#define VAL_ITER 100
+#define MAX_SET_SZ 120
 
 typedef struct { 
   int nUsers;

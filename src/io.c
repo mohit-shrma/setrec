@@ -137,7 +137,8 @@ void loadData(Data *data, Params *params) {
     exit(EXIT_FAILURE);
   }
 
-  //printf("\nreading file %s ...", params->user_set_file);
+  printf("\nreading file %s ...", params->user_set_file);
+  fflush(stdout);
 
   memset(line, 0, len);
   while( (read = getline(&line, &len, fp)) != -1) {
@@ -246,6 +247,7 @@ void loadData(Data *data, Params *params) {
   fclose(fp);
   
   //read csr matrices
+  printf("\nReading CSR matrices..");
   data->trainMat = gk_csr_Read(params->train_mat_file, GK_CSR_FMT_CSR, 1, 0);
   gk_csr_CreateIndex(data->trainMat, GK_CSR_COL);
 
@@ -254,6 +256,7 @@ void loadData(Data *data, Params *params) {
   
   data->testMat = gk_csr_Read(params->test_mat_file, GK_CSR_FMT_CSR, 1, 0);
   gk_csr_CreateIndex(data->testMat, GK_CSR_COL);
+
 
   //read latent factors if passed
   data->facDim = params->facDim;
