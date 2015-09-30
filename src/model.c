@@ -900,6 +900,105 @@ float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat,
 }
 
 
+double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N) {
+  
+  int u, i, j, ii, item;
+  Model *model          = self;
+  double *actualRat     = (double*) malloc(sizeof(double)*N);
+  double *predRat       = (double*) malloc(sizeof(double)*N);
+  double *spearmanWork  = (double*) malloc(sizeof(double)*2*N);
+  double uSpearMan, avgSpearMan, gr80Spearman, less0Spearman;
+  double uPearson, avgPearson, gr80Pearson, less0Pearson;
+  int gr80 = 0, less0 = 0, nanCount = 0;
+
+  uSpearMan     = 0;
+  avgSpearMan   = 0;
+  gr80Spearman  = 0;
+  less0Spearman = 0;
+  uPearson      = 0;
+  avgPearson    = 0;
+  gr80Pearson   = 0;
+  less0Pearson  = 0;
+  
+  for (u = 0; u < testMat->nrows; u++) {
+    memset(actualRat, 0, sizeof(double)*N);
+    memset(predRat, 0, sizeof(double)*N);
+    memset(spearmanWork, 0, sizeof(double)*2*N);
+    j = 0;
+    //get actual and predicted rating for test items
+    for (ii = testMat->rowptr[u]; ii < testMat->rowptr[u+1] && j < N; 
+                                  ii++, j++) {
+      item         = testMat->rowind[ii];
+      actualRat[j] = testMat->rowval[ii];
+      predRat[j]   = dotProd(model->uFac[u], model->iFac[item],
+                              model->facDim);
+    }
+    
+    uSpearMan = gsl_stats_spearman(actualRat, 1, predRat, 1, N, spearmanWork);
+    //uPearson = gsl_stats_correlation(actualRat, 1, predRat, 1, N);
+    
+    //nan check
+    if (uSpearMan != uSpearMan) {
+      nanCount++;    
+      continue;
+      /*
+      printf("\nuSpearman is Nan u: %d\n", u);
+      for (i = 0; i < N; i++) {
+        printf("%f ", predRat[i]);
+      }
+      printf("\n");
+      for (i = 0; i < N; i++) {
+        printf("%f ", actualRat[i]);
+      }
+      */
+    }
+
+    if (uSpearMan > 0) {
+      gr80++;
+      gr80Spearman += uSpearMan;
+    } else{
+      less0++;
+      less0Spearman += uSpearMan;
+    }
+    avgSpearMan += uSpearMan;
+ 
+    /*
+    if (uPearson > 0) {
+      gr80Pearson += uPearson;
+    } else{
+      less0Pearson += uPearson;
+    }
+    avgPearson += uPearson;
+    */
+  }
+
+  avgSpearMan = avgSpearMan/(gr80+less0);
+  gr80Spearman = gr80Spearman/gr80;
+  less0Spearman = less0Spearman/less0;
+  
+  /*
+  avgPearson = avgPearson/(gr80+less0);
+  gr80Pearson = gr80Pearson/gr80;
+  less0Pearson = less0Pearson/less0;
+  */
+
+  //printf("\nnanCount: %d gr80: %d less0:%d validU:%d", nanCount, gr80, less0,
+  //    gr80+less0);
+
+  //printf("\ngr80Spearman: %f less0Spearman:%f", 
+  //     gr80Spearman, less0Spearman);
+
+  //printf("\navgPearson:%f gr80PearSon: %f less0Pearson:%f", 
+  //    avgPearson, gr80Pearson, less0Pearson);
+  
+  free(actualRat);
+  free(predRat);
+  free(spearmanWork);
+  
+  return avgSpearMan; 
+}
+
+
 float Model_cmpLoadedFac(void *self, Data *data) {
   int u, i, j;
   Model *model = self;
@@ -981,6 +1080,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.writeUserSetSim) proto.writeUserSetSim         = Model_writeUserSetSim;
   if (!proto.hitRate) proto.hitRate                         = Model_hitRate;
   if (!proto.hitRateOrigTopN) proto.hitRateOrigTopN         = Model_hitRateOrigTopN;
+  if (!proto.spearmanRankCorrN) proto.spearmanRankCorrN     = Model_spearmanRankCorrN; 
   if (!proto.indivTrainSetsErr) proto.indivTrainSetsErr     = Model_indivTrainSetsErr;
   if (!proto.cmpLoadedFac) proto.cmpLoadedFac               = Model_cmpLoadedFac;
   if (!proto.indivItemCSRErr) proto.indivItemCSRErr         = Model_indivItemCSRErr;

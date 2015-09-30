@@ -5,6 +5,7 @@
 #include "util.h"
 #include <stdio.h>
 #include <string.h>
+#include <gsl/gsl_statistics.h>
 
 #define EPS 0.000001
 #define OBJ_ITER 100
@@ -59,6 +60,7 @@ typedef struct {
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
   float (*hitRateOrigTopN) (void *self, gk_csr_t *trainMat, float **origUFac, 
       float **origIFac, int N);
+  double (*spearmanRankCorrN) (void *self, gk_csr_t *testMat, int N);
   float (*cmpLoadedFac) (void *self, Data *data);
   void (*train) (void *self, Data *data, Params *params, float **Sim, ValTestRMSE *valTest);
   void (*free) (void *self);
@@ -93,6 +95,7 @@ float Model_itemFacNorm(void *Self, Data *data);
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat, float **origUFac, 
     float **origIFac, int N);
+double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N);
 float Model_indivTrainSetsErr(void *self, Data *data);
 float Model_indivItemCSRErr(void *self, gk_csr_t *mat, char *opName);
 float Model_cmpLoadedFac(void *self, Data *data);
