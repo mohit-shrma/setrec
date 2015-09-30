@@ -908,17 +908,12 @@ double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N) {
   double *predRat       = (double*) malloc(sizeof(double)*N);
   double *spearmanWork  = (double*) malloc(sizeof(double)*2*N);
   double uSpearMan, avgSpearMan, gr80Spearman, less0Spearman;
-  double uPearson, avgPearson, gr80Pearson, less0Pearson;
   int gr80 = 0, less0 = 0, nanCount = 0;
 
   uSpearMan     = 0;
   avgSpearMan   = 0;
   gr80Spearman  = 0;
   less0Spearman = 0;
-  uPearson      = 0;
-  avgPearson    = 0;
-  gr80Pearson   = 0;
-  less0Pearson  = 0;
   
   for (u = 0; u < testMat->nrows; u++) {
     memset(actualRat, 0, sizeof(double)*N);
@@ -935,22 +930,11 @@ double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N) {
     }
     
     uSpearMan = gsl_stats_spearman(actualRat, 1, predRat, 1, N, spearmanWork);
-    //uPearson = gsl_stats_correlation(actualRat, 1, predRat, 1, N);
     
     //nan check
     if (uSpearMan != uSpearMan) {
       nanCount++;    
       continue;
-      /*
-      printf("\nuSpearman is Nan u: %d\n", u);
-      for (i = 0; i < N; i++) {
-        printf("%f ", predRat[i]);
-      }
-      printf("\n");
-      for (i = 0; i < N; i++) {
-        printf("%f ", actualRat[i]);
-      }
-      */
     }
 
     if (uSpearMan > 0) {
@@ -962,40 +946,62 @@ double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N) {
     }
     avgSpearMan += uSpearMan;
  
-    /*
-    if (uPearson > 0) {
-      gr80Pearson += uPearson;
-    } else{
-      less0Pearson += uPearson;
-    }
-    avgPearson += uPearson;
-    */
   }
 
   avgSpearMan = avgSpearMan/(gr80+less0);
   gr80Spearman = gr80Spearman/gr80;
   less0Spearman = less0Spearman/less0;
-  
-  /*
-  avgPearson = avgPearson/(gr80+less0);
-  gr80Pearson = gr80Pearson/gr80;
-  less0Pearson = less0Pearson/less0;
-  */
-
-  //printf("\nnanCount: %d gr80: %d less0:%d validU:%d", nanCount, gr80, less0,
-  //    gr80+less0);
-
-  //printf("\ngr80Spearman: %f less0Spearman:%f", 
-  //     gr80Spearman, less0Spearman);
-
-  //printf("\navgPearson:%f gr80PearSon: %f less0Pearson:%f", 
-  //    avgPearson, gr80Pearson, less0Pearson);
-  
+ 
   free(actualRat);
   free(predRat);
   free(spearmanWork);
   
   return avgSpearMan; 
+}
+
+
+int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter, float *bestObj, 
+    float *prevObj, ValTestRMSE *valTest, Data *data) {
+  
+  int ret               = 0;
+  Model *model          = self;
+  Model *bestModel      = bestM;
+  valTest->valItemsRMSE = model->indivItemCSRErr(model, data->valMat, NULL);
+  valTest->setObj       = model->objective(model, data, NULL);
+  valTest->valSpearman  = model->spearmanRankCorrN(model, data->valMat, 10);
+ 
+  printf("\nIter: %d Obj: %.10e valSpearman: %f valRMSE: %f", iter, 
+      valTest->setObj, valTest->valSpearman, valTest->valItemsRMSE);
+  
+  if (iter > 0) {
+    if (valTest->setObj < *bestObj) {
+      model->copy(model, bestModel);
+      *bestObj = valTest->setObj;
+      *bestIter = iter;
+    }
+
+    if (iter - *bestIter >= 500) {
+      //after 500 more iterations cant beat best objective achieved
+      printf("\nNOT CONVERGED: bestIter:%d bestObj: %.10e currIter:%d currObj: %.10e",
+          *bestIter, *bestObj, iter, valTest->setObj);
+      ret = 1;
+    }
+
+    if (fabs(*prevObj - valTest->setObj) < EPS) {
+      //exit train procedure
+      printf("\nConverged in iteration: %d prevObj: %.10e currObj: %.10e", iter,
+          *prevObj, valTest->setObj);
+      ret = 1;
+    }
+  }
+  
+  if (iter == 0) {
+    *bestObj = valTest->setObj;
+    *bestIter = iter;
+  }
+  
+  *prevObj = valTest->setObj;
+  return ret;
 }
 
 
@@ -1085,6 +1091,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.cmpLoadedFac) proto.cmpLoadedFac               = Model_cmpLoadedFac;
   if (!proto.indivItemCSRErr) proto.indivItemCSRErr         = Model_indivItemCSRErr;
   if (!proto.copy) proto.copy                               = Model_copy;
+  if (!proto.isTerminateModel) proto.isTerminateModel       = Model_isTerminateModel;
   //struct of one size
   Model *model = calloc(1, size);
   //copy from proto to model or point a different pointer to cast it

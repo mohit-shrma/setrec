@@ -5,17 +5,14 @@ void parse_cmd_line(int argc, char **argv) {
   
   Params *params;
   Data *data = NULL;
-  ValTestRMSE *baseValTest, *modelValTest;
+  ValTestRMSE *valTest;
   int i;
 
   params = (Params *) malloc(sizeof(Params));
   memset(params, 0, sizeof(Params));
   
-  baseValTest = (ValTestRMSE *) malloc(sizeof(ValTestRMSE));
-  modelValTest = (ValTestRMSE *) malloc(sizeof(ValTestRMSE)); 
-
-  memset(baseValTest, 0, sizeof(ValTestRMSE));
-  memset(modelValTest, 0, sizeof(ValTestRMSE));
+  valTest = (ValTestRMSE *) malloc(sizeof(ValTestRMSE));
+  memset(valTest, 0, sizeof(ValTestRMSE));
 
   if (argc < 20) {
     printf("\n Error: need args");
@@ -70,29 +67,25 @@ void parse_cmd_line(int argc, char **argv) {
   //printf("\ndisplaying data...");
   //writeData(data);
 
-  //run baseline
-  //modelItemMatFac(data, params, baseValTest);  
-
   //learn model
-  modelMajority(data, params, modelValTest);
+  modelItemMatFac(data, params, valTest);  
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));
   //Data_reset(data, params->nUsers, params->nItems);
 
-  printf("\nRE: %f %f %f %d %f %f %f %f %f %f %f %f %f %f %f %f %f %f", 
+  printf("\nRE: %f %f %f %d %f %f"
+          " %f %f %f"
+          " %f %f %f"
+          " %f %f %f", 
       params->regU, params->regI, params->constrainWt, params->facDim, params->learnRate, params->rhoRMS, 
-      baseValTest->trainItemsRMSE, modelValTest->trainItemsRMSE,
-      baseValTest->testItemsRMSE, modelValTest->testItemsRMSE,
-      baseValTest->trainSetRMSE, modelValTest->trainSetRMSE,
-      baseValTest->testSetRMSE, modelValTest->testSetRMSE,
-      baseValTest->valItemsRMSE, modelValTest->valSetRMSE,
-      baseValTest->setObj, modelValTest->setObj);
+      valTest->trainItemsRMSE, valTest->trainSetRMSE, valTest->testItemsRMSE, 
+      valTest->testSetRMSE, valTest->testSpearman, valTest->valItemsRMSE,
+      valTest->valSetRMSE, valTest->valSpearman, valTest->setObj);
 
   Data_free(data);  
   free(params);
-  free(baseValTest);
-  free(modelValTest);
+  free(valTest);
 }
 
 

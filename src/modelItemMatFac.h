@@ -9,7 +9,7 @@ typedef struct {
   Model proto;
 } ModelItemMatFac;
 
-//extern Model ModelMajorityProto;
+extern Model ModelItemMatFacProto;
 
 void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim, ValTestRMSE *valTest);
 void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float **sim, ValTestRMSE *valTest);

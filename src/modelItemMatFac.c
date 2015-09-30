@@ -295,14 +295,6 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
 }
 
 
-Model ModelItemMatFacProto = {
-  .objective               = ModelItemMatFac_objective,
-  .setScore                = ModelItemMatFac_majSetScore,
-  .train                   = ModelItemMatFac_trainRMSProp,
-  .validationErr           = ModelItemMatFac_validationErr
-};
-
-
 void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float **sim,
     ValTestRMSE *valTest) {
   
@@ -375,47 +367,25 @@ void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float 
 
     //objective check
     if (iter % OBJ_ITER == 0) {
-      valTest->valItemsRMSE = model->_(indivItemCSRErr) (model, data->valMat, NULL);
-      valTest->setObj = model->_(objective)(model, data, sim);
-      printf("\nIter:%d Obj: %.10e valRMSE:%f", iter, valTest->setObj, 
-          valTest->valItemsRMSE);
-      if (iter > 0) {
-        
-        if (valTest->setObj < bestObj) {
-          //curr obj < best obj, save curr model
-          model->_(copy) (model, bestModel);
-          bestObj = valTest->setObj;
-          bestIter = iter;
-        }
-
-        if (iter - bestIter >= 300) {
-          //after 300 more iterations cant beat best objective achieved
-          printf("\nNOT CONVERGED: bestIter:%d bestObj: %.10e currIter:%d currObj: %.10e",
-              bestIter, bestObj, iter, valTest->setObj);
-          break;
-        }
-
-        if (fabs(prevObj - valTest->setObj) < EPS) {
-          //exit train procedure
-          printf("\nConverged in iteration: %d prevObj: %.10e currObj: %.10e", iter,
-              prevObj, valTest->setObj);
-          break;
-        }
-      }
-      prevObj = valTest->setObj;
-      if (iter == 0) {
-        bestObj = valTest->setObj;
-        bestIter = iter;
+      if (model->_(isTerminateModel)(model, bestModel, iter, &bestIter, &bestObj, 
+          &prevObj, valTest, data)) {
+        break;
       }
     }
-    
-  }
+
+  } 
 
   valTest->setObj = bestObj;
   printf("\nNum Iter: %d best Obj: %.10e bestIter: %d", iter, bestObj, bestIter);
 
   valTest->valItemsRMSE = bestModel->_(indivItemCSRErr) (bestModel, data->valMat, NULL);
   printf("\nValidation items error: %f", valTest->valItemsRMSE);
+
+  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->testMat, 10); 
+  printf("\nTest spearman: %f", valTest->testSpearman);
+
+  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->valMat, 10);
+  printf("\nVal spearman: %f", valTest->valSpearman);
 
   if (iter == params->maxIter) {
     printf("\nNOT CONVERGED:Reached maximum iterations");
@@ -562,6 +532,14 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
   free(iGrad);
   free(uGrad);
 }
+
+
+Model ModelItemMatFacProto = {
+  .objective               = ModelItemMatFac_objective,
+  .setScore                = ModelItemMatFac_majSetScore,
+  .train                   = ModelItemMatFac_trainRMSProp,
+  .validationErr           = ModelItemMatFac_validationErr
+};
 
 
 void modelItemMatFac(Data *data, Params *params, ValTestRMSE *valTest) {

@@ -8,12 +8,16 @@ COPTIONS = -g -D_FILE_OFFSET_BITS=64 -std=c99 -Wall\
 GKINCHOME=/home/grad02/mohit/George/GKlib/trunk
 GKLIBHOME=/home/grad02/mohit/George/GKlib/trunk/build/Linux-x86_64/
 
+#export LD_LIBRARY_PATH=/export/scratch/mohit/lib/gsl/lib
+GSLINC=/export/scratch/mohit/lib/gsl/include
+GSLLIB=/export/scratch/mohit/lib/gsl/lib
+
 #Standard Libraries
 STDLIBS = -fopenmp -lpthread -lm
 
 #external libraries
-EXT_LIBS = -lGKlib
-EXT_LIBS_DIR = -L$(GKLIBHOME)
+EXT_LIBS = -lGKlib -lgsl -lgslcblas
+EXT_LIBS_DIR = -L$(GKLIBHOME) -L$(GSLLIB) 
 
 #LIBSDIR= -L.. -I/usr/include 
 LIBSDIR= -L.. -I/usr/include 
@@ -21,11 +25,11 @@ LIBSDIR= -L.. -I/usr/include
 #LIBS = -lm 
 LIBS = $(STDLIBS) $(EXT_LIBS) 
 
-CFLAGS = $(COPTIONS)  $(OPTFLAGS) -I$(GKINCHOME)   
-#CFLAGS = $(COPTIONS) -I$(GKINCHOME)  
+CFLAGS = $(COPTIONS)  $(OPTFLAGS) -I$(GKINCHOME) -I$(GSLINC)  
+#CFLAGS = $(COPTIONS) -I$(GKINCHOME) -I$(GSLINC) 
 #CFLAGS=  -I. $(OPTFLAGS) 
 
-setrec: model.o modelAvgSigmoid.o modelMajority.o modelItemMatFac.o set.o util.o io.o datastruct.o setrec.o 
+setrec: model.o modelItemMatFac.o modelMajority.o set.o util.o io.o datastruct.o setrec.o 
 	$(CC) $^ $(CFLAGS) $(LIBS) $(LIBSDIR) $(EXT_LIBS_DIR) -o $@
 
 

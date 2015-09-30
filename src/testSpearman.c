@@ -1,6 +1,6 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_statistics.h>
-#include <gsl/gsl_statistics_double.h>
+//#include <gsl/gsl_statistics_double.h>
 #include <stdio.h>
 //gcc testSpearman.c -g -Wall -lgsl -lgslcblas
 //gcc -c -g -Wall -I/export/scratch/mohit/lib/gsl/include testSpearman.c

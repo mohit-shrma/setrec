@@ -13,6 +13,8 @@ typedef struct {
   float beta2;
 } ModelMajority;
 
+extern Model ModelMajorityProto;
+
 float ModelMajority_setScore(void *self, int u, int *set, int setSz, 
     float **sim);
 float ModelMajority_objective(void *self, Data *data, float **sim);

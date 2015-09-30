@@ -63,6 +63,8 @@ typedef struct {
   double (*spearmanRankCorrN) (void *self, gk_csr_t *testMat, int N);
   float (*cmpLoadedFac) (void *self, Data *data);
   void (*train) (void *self, Data *data, Params *params, float **Sim, ValTestRMSE *valTest);
+  int  (*isTerminateModel) (void *self, void *bestM, int iter, int *bestIter, float *bestObj, 
+    float *prevObj, ValTestRMSE *valTest, Data *data); 
   void (*free) (void *self);
   void (*reset) (void *self);
   void (*copy) (void *self, void *dest);  
@@ -100,6 +102,8 @@ float Model_indivTrainSetsErr(void *self, Data *data);
 float Model_indivItemCSRErr(void *self, gk_csr_t *mat, char *opName);
 float Model_cmpLoadedFac(void *self, Data *data);
 void  Model_copy (void *self, void *dest);
+int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter, float *bestObj, 
+    float *prevObj, ValTestRMSE *valTest, Data *data);
 void *Model_new(size_t size, Model proto, char *description);
 
 #define NEW(T, N) Model_new(sizeof(T), T##Proto, N)

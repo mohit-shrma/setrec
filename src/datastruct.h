@@ -11,13 +11,20 @@
 #include "util.h"
 
 typedef struct {
+ 
   float valItemsRMSE;
   float testItemsRMSE;
   float trainItemsRMSE;
+  
   float valSetRMSE;
   float testSetRMSE;
   float trainSetRMSE;
+  
+  float valSpearman;
+  float testSpearman;
+
   float setObj;
+
 } ValTestRMSE;
 
 
