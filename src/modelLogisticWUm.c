@@ -193,11 +193,17 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
   
   int iter, subIter, u, i, j, k, s, numAllSets;
   UserSets *userSet;
-  int setSz, item, isTestValSet;
+  int setSz, item, isTestValSet, bestIter;
   int *set;
   float r_us, r_us_est, prevObj, dev; 
-  float temp; 
+  float temp, bestObj; 
   ModelLogisticWUm *model = self;
+  ModelLogisticWUm *bestModel = NULL;
+
+  bestModel = NEW(ModelLogisticWUm, "model that achieved lowest obj");
+  bestModel->_(init) (bestModel, params->nUsers, params->nItems, 
+      params->facDim, params->regU, params->regI, params->learnRate);
+
   float commGradCoeff = 0, avgRat = 0;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -244,7 +250,7 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
       r_us      = userSet->labels[s];
       r_us_est  = 0.0;
 
-      assert(setSz <= 100);
+      assert(setSz <= MAX_SET_SZ);
       if (setSz == 1) {
         //no update if set contain one item
         continue;
@@ -311,43 +317,38 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
 
     //objective check
     if (iter % OBJ_ITER == 0) {
-      valTest->setObj = model->_(objective)(model, data, sim);
-      printf("\nIter: %d obj: %f avgHits: %f", iter, valTest->setObj, 
-          model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, 
-            data->iFac, 10));
-      //printf("\nIter: %d obj: %f", iter, valTest->setObj);
-      if (iter > 1000) {
-        if (fabs(prevObj - valTest->setObj) < EPS) {
-          //exit train procedure
-          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
-              prevObj, valTest->setObj);
-          break;
-        }
+      if (model->_(isTerminateClassModel)(model, bestModel, iter, &bestIter, &bestObj, 
+          &prevObj, valTest, data)) {
+        break;
       }
-      prevObj = valTest->setObj;
     }
 
   }
 
-  printf("\nEnd Obj: %f", model->_(objective)(model, data, sim));
-  printf("\nEnd avg hits: %f", 
-      model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, data->iFac, 10)); 
+  valTest->setObj = bestObj;
+  printf("\nNum Iter: %d best Obj: %.10e bestIter: %d", iter, bestObj, bestIter);
+ 
+  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->testMat, 10); 
+  printf("\nTest spearman: %f", valTest->testSpearman);
+
+  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->valMat, 10);
+  printf("\nVal spearman: %f", valTest->valSpearman);
+
+  if (iter == params->maxIter) {
+    printf("\nNOT CONVERGED:Reached maximum iterations");
+  }
+
   valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
   
-  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
-  printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
-
   valTest->trainSetRMSE = model->_(trainErr)(model, data, NULL); 
   printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
   
   valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
-  //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
-  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
-  
+  bestModel->_(free)(bestModel);
+
   //free up memory
   for (i = 0; i < params->nUsers; i++) {
     free(uGradsAcc[i]);

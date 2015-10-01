@@ -960,8 +960,8 @@ double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N) {
 }
 
 
-int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter, float *bestObj, 
-    float *prevObj, ValTestRMSE *valTest, Data *data) {
+int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter, 
+    float *bestObj, float *prevObj, ValTestRMSE *valTest, Data *data) {
   
   int ret               = 0;
   Model *model          = self;
@@ -972,6 +972,51 @@ int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter, flo
  
   printf("\nIter: %d Obj: %.10e valSpearman: %f valRMSE: %f", iter, 
       valTest->setObj, valTest->valSpearman, valTest->valItemsRMSE);
+  
+  if (iter > 0) {
+    if (valTest->setObj < *bestObj) {
+      model->copy(model, bestModel);
+      *bestObj = valTest->setObj;
+      *bestIter = iter;
+    }
+
+    if (iter - *bestIter >= 500) {
+      //after 500 more iterations cant beat best objective achieved
+      printf("\nNOT CONVERGED: bestIter:%d bestObj: %.10e currIter:%d currObj: %.10e",
+          *bestIter, *bestObj, iter, valTest->setObj);
+      ret = 1;
+    }
+
+    if (fabs(*prevObj - valTest->setObj) < EPS) {
+      //exit train procedure
+      printf("\nConverged in iteration: %d prevObj: %.10e currObj: %.10e", iter,
+          *prevObj, valTest->setObj);
+      ret = 1;
+    }
+  }
+  
+  if (iter == 0) {
+    *bestObj = valTest->setObj;
+    *bestIter = iter;
+  }
+  
+  *prevObj = valTest->setObj;
+  return ret;
+}
+
+
+int Model_isTerminateClassModel(void *self, void *bestM, int iter, int *bestIter, 
+    float *bestObj, float *prevObj, ValTestRMSE *valTest, Data *data) {
+  
+  int ret               = 0;
+  Model *model          = self;
+  Model *bestModel      = bestM;
+  valTest->valSetRMSE   = model->validationClassLoss(model, data, NULL);
+  valTest->setObj       = model->objective(model, data, NULL);
+  valTest->valSpearman  = model->spearmanRankCorrN(model, data->valMat, 10);
+ 
+  printf("\nIter: %d Obj: %.10e valSpearman: %f valClassLoss: %f", iter, 
+      valTest->setObj, valTest->valSpearman, valTest->valSetRMSE);
   
   if (iter > 0) {
     if (valTest->setObj < *bestObj) {
@@ -1092,6 +1137,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.indivItemCSRErr) proto.indivItemCSRErr         = Model_indivItemCSRErr;
   if (!proto.copy) proto.copy                               = Model_copy;
   if (!proto.isTerminateModel) proto.isTerminateModel       = Model_isTerminateModel;
+  if (!proto.isTerminateClassModel) proto.isTerminateClassModel = Model_isTerminateClassModel;
   //struct of one size
   Model *model = calloc(1, size);
   //copy from proto to model or point a different pointer to cast it

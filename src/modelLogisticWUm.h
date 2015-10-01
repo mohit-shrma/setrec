@@ -10,6 +10,8 @@ typedef struct {
   float regUm;
 } ModelLogisticWUm;
 
+extern Model ModelLogisticWUmProto;
+
 float ModelLogisticWUm_setScore(void *self, int u, int *set, int setSz, 
     float**sim);
 float ModelLogisticWUm_objective(void *self, Data *data, float **sim);

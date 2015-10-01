@@ -10,6 +10,7 @@ typedef struct {
   float regUm;
 } ModelHingeWUm;
 
+extern Model ModelHingeWUmProto;
 
 float ModelHingeWUm_setScore(void *self, int u, int *set, int setSz, 
     float**sim);
