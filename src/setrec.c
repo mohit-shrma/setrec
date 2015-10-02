@@ -78,7 +78,7 @@ void parse_cmd_line(int argc, char **argv) {
   printf("\nRE: %f %f %f %d %f %f"
           " %f %f %f"
           " %f %f %f"
-          " %f %f %f", 
+          " %f %f %.5e", 
       params->regU, params->regI, params->constrainWt, params->facDim, params->learnRate, params->rhoRMS, 
       valTest->trainItemsRMSE, valTest->trainSetRMSE, valTest->testItemsRMSE, 
       valTest->testSetRMSE, valTest->testSpearman, valTest->valItemsRMSE,
