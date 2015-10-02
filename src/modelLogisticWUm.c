@@ -203,6 +203,8 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
   bestModel = NEW(ModelLogisticWUm, "model that achieved lowest obj");
   bestModel->_(init) (bestModel, params->nUsers, params->nItems, 
       params->facDim, params->regU, params->regI, params->learnRate);
+  bestModel->u_m = (float*) malloc(sizeof(float)*params->nUsers);
+  memset(bestModel->u_m, 0, sizeof(float)*params->nUsers);
 
   float commGradCoeff = 0, avgRat = 0;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -338,15 +340,16 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
     printf("\nNOT CONVERGED:Reached maximum iterations");
   }
 
-  valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+  valTest->valSetRMSE = model->_(validationClassLoss) (model, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
   
-  valTest->trainSetRMSE = model->_(trainErr)(model, data, NULL); 
+  valTest->trainSetRMSE = bestModel->_(trainClassLoss)(bestModel, data, NULL); 
   printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
   
-  valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
+  valTest->testSetRMSE = bestModel->_(testClassLoss) (bestModel, data, NULL); 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
+  free(bestModel->u_m);
   bestModel->_(free)(bestModel);
 
   //free up memory
@@ -366,10 +369,43 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
 }
 
 
+void ModelLogisticWUm_copy(void *self, void *dest) {
+  
+  int i, j;
+
+  ModelLogisticWUm *frmModel = self;
+  ModelLogisticWUm *toModel = dest;
+
+  //copy to model
+  toModel->_(nUsers)    = frmModel->_(nUsers);
+  toModel->_(nItems)    = frmModel->_(nItems);
+  toModel->_(regU)      = frmModel->_(regU);
+  toModel->_(regI)      = frmModel->_(regI);
+  toModel->_(facDim)    = frmModel->_(facDim);
+  toModel->_(learnRate) = frmModel->_(learnRate);
+  
+  //TODO: copy model description
+
+  for (i = 0; i < frmModel->_(nUsers); i++) {
+    memcpy(toModel->_(uFac[i]), frmModel->_(uFac[i]), 
+        sizeof(float)*frmModel->_(facDim));
+  }
+  
+  for (i = 0; i < frmModel->_(nItems); i++) {
+    memcpy(toModel->_(iFac[i]), frmModel->_(iFac[i]), 
+        sizeof(float)*frmModel->_(facDim));
+  }
+
+  //copy um param
+  memcpy(toModel->u_m, frmModel->u_m, sizeof(float)*toModel->_(nUsers));
+}
+
+
 Model ModelLogisticWUmProto = {
   .objective = ModelLogisticWUm_objective,
-  .setScore = ModelLogisticWUm_setScore,
-  .train = ModelLogisticWUm_trainRMSProp
+  .copy      = ModelLogisticWUm_copy,
+  .setScore  = ModelLogisticWUm_setScore,
+  .train     = ModelLogisticWUm_trainRMSProp
 };
 
 

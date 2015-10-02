@@ -241,6 +241,8 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
   bestModel = NEW(ModelHingeWUm, "model that achieved lowest obj");
   bestModel->_(init) (bestModel, params->nUsers, params->nItems,
       params->facDim, params->regU, params->regI, params->learnRate);
+  bestModel->u_m = (float*) malloc(sizeof(float)*params->nUsers);
+  memset(bestModel->u_m, 0, sizeof(float)*params->nUsers);
 
   float commGradCoeff = 0, avgRat = 0;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -393,6 +395,7 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
   valTest->testSetRMSE = bestModel->_(testClassLoss) (bestModel, data, NULL); 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
+  free(bestModel->u_m);
   bestModel->_(free)(bestModel);
 
   //free up memory
@@ -412,10 +415,43 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
 }
 
 
+void ModelHingeWUm_copy(void *self, void *dest) {
+  
+  int i, j;
+
+  ModelHingeWUm *frmModel = self;
+  ModelHingeWUm *toModel = dest;
+
+  //copy to model
+  toModel->_(nUsers)    = frmModel->_(nUsers);
+  toModel->_(nItems)    = frmModel->_(nItems);
+  toModel->_(regU)      = frmModel->_(regU);
+  toModel->_(regI)      = frmModel->_(regI);
+  toModel->_(facDim)    = frmModel->_(facDim);
+  toModel->_(learnRate) = frmModel->_(learnRate);
+  
+  //TODO: copy model description
+
+  for (i = 0; i < frmModel->_(nUsers); i++) {
+    memcpy(toModel->_(uFac[i]), frmModel->_(uFac[i]), 
+        sizeof(float)*frmModel->_(facDim));
+  }
+  
+  for (i = 0; i < frmModel->_(nItems); i++) {
+    memcpy(toModel->_(iFac[i]), frmModel->_(iFac[i]), 
+        sizeof(float)*frmModel->_(facDim));
+  }
+
+  //copy um param
+  memcpy(toModel->u_m, frmModel->u_m, sizeof(float)*toModel->_(nUsers));
+}
+
+
 Model ModelHingeWUmProto = {
-  .objective = ModelHingeWUm_objective,
-  .setScore = ModelHingeWUm_setScore,
-  .train = ModelHingeWUm_trainRMSProp
+  .objective             = ModelHingeWUm_objective,
+  .setScore              = ModelHingeWUm_setScore,
+  .copy                  = ModelHingeWUm_copy,
+  .train                 = ModelHingeWUm_trainRMSProp
 };
 
 

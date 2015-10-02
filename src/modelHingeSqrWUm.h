@@ -11,6 +11,7 @@ typedef struct {
 } ModelHingeSqrWUm;
 
 extern Model ModelHingeSqrWUmProto;
+
 float ModelHingeSqrWUm_setScore(void *self, int u, int *set, int setSz, 
     float**sim);
 float ModelHingeSqrWUm_objective(void *self, Data *data, float **sim);
