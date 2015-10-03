@@ -15,6 +15,9 @@
 #include "modelMajority.h"
 #include "modelItemMatFac.h"
 #include "modelAvgSigmoid.h"
+#include "modelHingeSqrWUm.h"
+#include "modelHingeWUm.h"
+#include "modelLogisticWUm.h"
 
 void parse_cmd_line(int argc, char **argv);
 

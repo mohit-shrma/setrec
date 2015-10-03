@@ -68,18 +68,18 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   //learn model
-  //modelLogisticWUm(data, params, valTest);
   modelHingeSqrWUm(data, params, valTest);  
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));
   //Data_reset(data, params->nUsers, params->nItems);
 
-  printf("\nRE: %f %f %f %d %f %f"
+  printf("\nRE: %f %f %f %f %d %f %f"
           " %f %f %f"
           " %f %f %f"
           " %f %f %.5e", 
-      params->regU, params->regI, params->constrainWt, params->facDim, params->learnRate, params->rhoRMS, 
+      params->regU, params->regI, params->constrainWt, params->epsRMS,
+      params->facDim, params->learnRate, params->rhoRMS, 
       valTest->trainItemsRMSE, valTest->trainSetRMSE, valTest->testItemsRMSE, 
       valTest->testSetRMSE, valTest->testSpearman, valTest->valItemsRMSE,
       valTest->valSetRMSE, valTest->valSpearman, valTest->setObj);
