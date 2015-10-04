@@ -133,6 +133,7 @@ void UserSets_writeWt(UserSets *self, char *fileName);
 int UserSets_isSetTestVal(UserSets *self, int s);
 ItemWtSets* UserSets_search(UserSets *self, int item);
 void UserSets_transToBin(UserSets *self, float *userMidps);
+void UserSets_scaledTo01(UserSets *self, float maxRat); 
 
 typedef struct {
 

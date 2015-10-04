@@ -213,11 +213,17 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
   
   int iter, subIter, u, i, j, k, s, numAllSets;
   UserSets *userSet;
-  int setSz, item, isTestValSet;
+  int setSz, item, isTestValSet, bestIter;
   int *set;
-  float r_us, r_us_est, prevObj, dev; 
+  float r_us, r_us_est, prevObj, dev, bestObj; 
   float temp; 
   ModelAvgSigmoid *model = self;
+  ModelAvgSigmoid *bestModel = NEW(ModelAvgSigmoid, "best avg sigmoid model");
+  bestModel->_(init) (bestModel, params->nUsers, params->nItems, 
+      params->facDim, params->regU, params->regI, params->learnRate);
+  bestModel->u_m = (float*) malloc(sizeof(float)*params->nUsers);
+  memset(bestModel->u_m, 0, sizeof(float)*params->nUsers);
+
   float commGradCoeff = 0, avgRat = 0;
   float* sumItemLatFac = (float*) malloc(sizeof(float)*model->_(facDim));
   float* iGrad         = (float*) malloc(sizeof(float)*model->_(facDim));
@@ -266,15 +272,17 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
       r_us      = userSet->labels[s];
       r_us_est  = 0.0;
 
-      assert(setSz <= 100);
+      assert(setSz <= MAX_SET_SZ);
       if (setSz == 1) {
         //no update if set contain one item
         continue;
       }
 
       //perform gradient checks
-      //ModelAvgSigmoid_gradCheck(model, u, set, setSz, r_us);
+      //if (iter % 100 == 0 && subIter % 100 == 0) {
+      //  ModelAvgSigmoid_gradCheck(model, u, set, setSz, r_us);
       //continue;
+      //}
 
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < setSz; i++) {
@@ -331,59 +339,57 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
       //update
       model->u_m[u] -= (model->_(learnRate)/sqrt(umGradAcc[u] + 0.0000001))*umGrad;
   
-      
+      /*
       //compute global g_k gradient
-      g_kGrad = commGradCoeff*dev;
+      g_kGrad = commGradCoeff*dev + 2.0*model->g_k*model->regG_k;
 
       //accumulate grad sqr
       g_kGradAcc = params->rhoRMS*g_kGradAcc + (1.0 - params->rhoRMS)*g_kGrad*g_kGrad;
+      g_kGradAcc = 1.0;
 
       //update
       model->g_k -= (model->_(learnRate)/sqrt(g_kGradAcc + 0.0000001))*g_kGrad;
-      if (model->g_k < 0) {
-        model->g_k = 0;
-      }
+    
+      //if (model->g_k < 0) {
+      //  model->g_k = 0;
+      //}
+    
+      */
     }
 
     //objective check
     if (iter % OBJ_ITER == 0) {
-      valTest->setObj = model->_(objective)(model, data, sim);
-      printf("\nIter: %d obj: %f avgHits: %f g_k:%f", iter, valTest->setObj, 
-          model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, 
-            data->iFac, 10), model->g_k);
-      //printf("\nIter: %d obj: %f", iter, valTest->setObj);
-      if (iter > 1000) {
-        if (fabs(prevObj - valTest->setObj) < EPS) {
-          //exit train procedure
-          printf("\nConverged in iteration: %d prevObj: %f currObj: %f", iter,
-              prevObj, valTest->setObj);
-          break;
-        }
+      if (model->_(isTerminateModel)(model, bestModel, iter, &bestIter, &bestObj, 
+          &prevObj, valTest, data)) {
+        break;
       }
-      prevObj = valTest->setObj;
     }
 
   }
 
-  printf("\nEnd Obj: %f", model->_(objective)(model, data, sim));
-  printf("\nEnd avg hits: %f", 
-      model->_(hitRateOrigTopN) (model, data->trainMat, data->uFac, data->iFac, 10)); 
-  valTest->valSetRMSE = model->_(validationErr) (model, data, NULL);
+  printf("\nEnd Obj: %.10e bestObj: %.10e bestIter: %d", valTest->setObj, 
+      bestObj, bestIter);
+  
+  valTest->valSetRMSE = bestModel->_(validationErr) (model, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
-  
-  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
-  printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
 
-  valTest->trainSetRMSE = model->_(trainErr)(model, data, NULL); 
-  printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
+  valTest->trainSetRMSE = bestModel->_(trainErr)(model, data, NULL); 
+  printf("\nTrain set error: %f", valTest->trainSetRMSE);
   
-  valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
-  printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
+  valTest->testSetRMSE = bestModel->_(testErr) (model, data, NULL); 
+  printf("\nTest set error: %f", valTest->testSetRMSE);
+ 
+  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
+                                                         data->valMat, 10); 
+  printf("\nVal spearman: %f", valTest->valSpearman);
 
-  //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
-  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
-  
+  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
+                                                          data->testMat, 10); 
+  printf("\nTest spearman: %f", valTest->testSpearman);
+
+  free(bestModel->u_m);
+  bestModel->_(free) (bestModel);
+
   //free up memory
   for (i = 0; i < params->nUsers; i++) {
     free(uGradsAcc[i]);
@@ -548,10 +554,6 @@ void ModelAvgSigmoid_trainSGD(void *self, Data *data, Params *params,
   valTest->testSetRMSE = model->_(testErr) (model, data, NULL); 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
-  //get test eror
-  valTest->testItemsRMSE = model->_(indivItemSetErr) (model, data->testSet);
-  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
-  
   //free up memory
   for (i = 0; i < params->nUsers; i++) {
     free(uGradsAcc[i]);
@@ -569,9 +571,47 @@ void ModelAvgSigmoid_trainSGD(void *self, Data *data, Params *params,
 }
 
 
+void ModelAvgSigmoid_copy(void *self, void *dest) {
+  
+  int i, j;
+
+  ModelAvgSigmoid *frmModel = self;
+  ModelAvgSigmoid *toModel = dest;
+
+  //copy to model
+  toModel->_(nUsers)    = frmModel->_(nUsers);
+  toModel->_(nItems)    = frmModel->_(nItems);
+  toModel->_(regU)      = frmModel->_(regU);
+  toModel->_(regI)      = frmModel->_(regI);
+  toModel->_(facDim)    = frmModel->_(facDim);
+  toModel->_(learnRate) = frmModel->_(learnRate);
+  
+  //TODO: copy model description
+
+  for (i = 0; i < frmModel->_(nUsers); i++) {
+    memcpy(toModel->_(uFac[i]), frmModel->_(uFac[i]), 
+        sizeof(float)*frmModel->_(facDim));
+  }
+  
+  for (i = 0; i < frmModel->_(nItems); i++) {
+    memcpy(toModel->_(iFac[i]), frmModel->_(iFac[i]), 
+        sizeof(float)*frmModel->_(facDim));
+  }
+
+  //copy um param
+  memcpy(toModel->u_m, frmModel->u_m, sizeof(float)*toModel->_(nUsers));
+  
+  toModel->rhoRMS = frmModel->rhoRMS;
+  toModel->regUm  = frmModel->regUm;
+  toModel->g_k    = frmModel->g_k;
+  toModel->regG_k = frmModel->regG_k;
+}
+
+
 Model ModelAvgSigmoidProto = {
   .objective = ModelAvgSigmoid_objective,
   .setScore = ModelAvgSigmoid_setScore,
+  .copy = ModelAvgSigmoid_copy,
   .train = ModelAvgSigmoid_trainRMSProp
 };
 
@@ -585,9 +625,11 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
       params->regU, params->regI, params->learnRate);
   model->rhoRMS = params->rhoRMS;
   model->regUm = params->epsRMS;
+  model->regG_k = model->regUm;
 
   printf("\nrhoRMS = %f", params->rhoRMS);
   printf("\nregUm = %f", model->regUm);
+  printf("\nregG_k = %f", model->regG_k);
 
   //assign usermidps randomly between 0 to 5
   /*
@@ -610,8 +652,8 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   }
 
   //initialize steepness parameter
-  model->g_k = (float) rand()/ (float) (RAND_MAX);
-  //model->g_k = 1.0;
+  //model->g_k = (float) rand()/ (float) (RAND_MAX);
+  model->g_k = 1.0;
 
   //load user item weights from train: needed to compute training on indiv items
   //in training sets
@@ -623,7 +665,7 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   //transform set ratings via midP param
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
-    UserSets_transToSigm(userSet, data->userMidps);
+    UserSets_scaledTo01(userSet, 100); 
   }
   
   //printf("\nData is as follow: ");
@@ -633,9 +675,6 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   //printf("\nModel objective: %f", model->_(objective)(model, data, NULL));
   
   model->_(train) (model, data, params, NULL, valTest); 
- 
-  //write the learned u_m value
-  //writeFloatVector(model->u_m, data->nUsers, "um_users.txt");
 
   //save model latent factors
   //writeMat(model->_(uFac), params->nUsers, model->_(facDim), "uFacAvgSigm.txt");

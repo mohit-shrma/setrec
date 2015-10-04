@@ -13,7 +13,7 @@ typedef struct {
   float regG_k; //global steepness regularization
 } ModelAvgSigmoid;
 
-
+extern Model ModelAvgSigmoidProto;
 float ModelAvgSigmoid_setScore(void *self, int u, int *set, int setSz, 
     float**sim);
 float ModelAvgSigmoid_objective(void *self, Data *data, float **sim);
