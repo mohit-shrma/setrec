@@ -914,7 +914,10 @@ double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N) {
   avgSpearMan   = 0;
   gr80Spearman  = 0;
   less0Spearman = 0;
-  
+ 
+  FILE *fp = NULL;
+  //FILE *fp = fopen("testPred.txt", "w");
+
   for (u = 0; u < testMat->nrows; u++) {
     memset(actualRat, 0, sizeof(double)*N);
     memset(predRat, 0, sizeof(double)*N);
@@ -927,10 +930,16 @@ double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N) {
       actualRat[j] = testMat->rowval[ii];
       predRat[j]   = dotProd(model->uFac[u], model->iFac[item],
                               model->facDim);
+      if (fp) {
+        fprintf(fp, "%f ", predRat[j]);
+      }
     }
-    
+
+    if (fp) {
+      fprintf(fp, "\n");
+    }
     uSpearMan = gsl_stats_spearman(actualRat, 1, predRat, 1, N, spearmanWork);
-    
+   
     //nan check
     if (uSpearMan != uSpearMan) {
       nanCount++;    
@@ -947,7 +956,14 @@ double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N) {
     avgSpearMan += uSpearMan;
  
   }
+  
+  if (fp != NULL) {
+    fclose(fp);
+  }
 
+  printf("\nnanCount: %d gr80: %d less0:%d gr80+less0:%d", nanCount, 
+      gr80, less0, gr80+less0);
+  
   avgSpearMan = avgSpearMan/(gr80+less0);
   gr80Spearman = gr80Spearman/gr80;
   less0Spearman = less0Spearman/less0;
@@ -1040,6 +1056,8 @@ int Model_isTerminateClassModel(void *self, void *bestM, int iter, int *bestIter
     }
   }
   
+  fflush(stdout);
+
   if (iter == 0) {
     *bestObj = valTest->setObj;
     *bestIter = iter;

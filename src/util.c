@@ -142,7 +142,9 @@ void writeFloatVector(float *vec, int n, char *fileName) {
     }
   }
 
-  fclose(fp);
+  if (fp != NULL) {
+    fclose(fp);
+  }
 }
 
 

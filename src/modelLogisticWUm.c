@@ -306,6 +306,7 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
         }
       }
    
+      /*
       //compute user midp gradient
       umGrad = commGradCoeff*-1.0;
       umGrad += 2.0*model->u_m[u]*model->regUm;
@@ -315,6 +316,7 @@ void ModelLogisticWUm_trainRMSProp(void *self, Data *data, Params *params,
 
       //update
       model->u_m[u] -= (model->_(learnRate)/sqrt(umGradAcc[u] + 0.0000001))*umGrad;
+      */
     }
 
     //objective check
@@ -439,7 +441,7 @@ void modelLogisticWUm(Data *data, Params *params, ValTestRMSE *valTest) {
   //initialize u_m
   model->u_m = (float *) malloc(sizeof(float)*params->nUsers);
   for (u = 0; u < params->nUsers; u++) {
-    model->u_m[u] = (float) rand() / (float) (RAND_MAX);  
+    model->u_m[u] = 0;//(float) rand() / (float) (RAND_MAX);  
     //model->u_m[u] = data->userMidps[u]; 
   }
 
