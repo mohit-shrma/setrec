@@ -41,7 +41,7 @@ void parse_cmd_line(int argc, char **argv) {
     
     params->uFacFileName    = NULL;//argv[18];
     params->iFacFileName    = NULL;//argv[19];
-    params->uMidPFName      = argv[20];
+    params->uMidPFName      = NULL;//argv[20];
   }
 
   //initialize random seed
@@ -68,7 +68,7 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   //learn model
-  modelHingeSqrWUm(data, params, valTest);  
+  modelAvgSigmoid(data, params, valTest);  
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));
