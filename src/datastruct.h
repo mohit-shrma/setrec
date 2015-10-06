@@ -135,7 +135,6 @@ ItemWtSets* UserSets_search(UserSets *self, int item);
 void UserSets_transToBin(UserSets *self, float *userMidps);
 void UserSets_transToHingeBin(UserSets *self, float *userMidps);
 void UserSets_scaledTo01(UserSets *self, float maxRat); 
-void UserSets_transToHingeBin(UserSets *self, float *userMidps);
 void UserSets_transToBinWNoise(UserSets *self, float *userMidps);
 void UserSets_transToSigm(UserSets *self, float *userMidps);
 

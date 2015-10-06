@@ -348,7 +348,8 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
           model->_(iFac)[item][j] -= (model->_(learnRate)/sqrt(iGradsAcc[item][j] + 0.0000001))*temp;
         }
       }
-   
+
+      /*
       //compute user midp gradient
       umGrad = 0;
       if (r_us*r_us_est <= 1.0) {
@@ -361,6 +362,7 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
 
       //update
       model->u_m[u] -= (model->_(learnRate)/sqrt(umGradAcc[u] + 0.0000001))*umGrad;
+      */
     }
 
     //objective check
@@ -485,7 +487,8 @@ void modelHingeWUm(Data *data, Params *params, ValTestRMSE *valTest) {
   //initialize u_m
   model->u_m = (float *) malloc(sizeof(float)*params->nUsers);
   for (u = 0; u < params->nUsers; u++) {
-    model->u_m[u] = (float) rand() / (float) (RAND_MAX);  
+    //model->u_m[u] = (float) rand() / (float) (RAND_MAX);  
+    model->u_m[u] = 0;  
     //model->u_m[u] = data->userMidps[u]; 
   }
 

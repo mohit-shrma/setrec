@@ -409,9 +409,8 @@ void UserSets_transToSigm(UserSets *self, float *userMidps) {
 
 
 void UserSets_scaledTo01(UserSets *self, float maxRat) {
-  int i, u, s;
+  int i, s;
 
-  u = self->userId;
   for (s = 0; s < self->numSets; s++) {
     self->labels[s] = (self->labels[s])/maxRat;
   }
