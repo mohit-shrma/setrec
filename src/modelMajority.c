@@ -2300,9 +2300,10 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   valTest->valSetRMSE = bestModel->_(validationErr) (model, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
   
-  valTest->trainItemsRMSE = bestModel->_(indivTrainSetsErr) (model, data);
-  printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
+  //valTest->trainItemsRMSE = bestModel->_(indivTrainSetsErr) (model, data);
+  //printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
 
+  /*
   valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
                                                          data->valMat, 10); 
   printf("\nVal spearman: %f", valTest->valSpearman);
@@ -2310,7 +2311,8 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
                                                           data->testMat, 10); 
   printf("\nTest spearman: %f", valTest->testSpearman);
-  
+  */
+
   valTest->trainSetRMSE = bestModel->_(trainErr)(model, data, NULL); 
   printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
   
@@ -2318,8 +2320,8 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = bestModel->_(indivItemCSRErr) (model, data->testMat, NULL);
-  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
+  //valTest->testItemsRMSE = bestModel->_(indivItemCSRErr) (model, data->testMat, NULL);
+  //printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
   //    model->_(hitRate)(model, data->trainMat, data->testMat));
@@ -2759,6 +2761,7 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
     printf("\nNOT CONVERGED:Reached maximum iterations");
   }
 
+  /*
   valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
                                                          data->valMat, 10); 
   printf("\nVal spearman: %f", valTest->valSpearman);
@@ -2766,12 +2769,13 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
   valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
                                                           data->testMat, 10); 
   printf("\nTest spearman: %f", valTest->testSpearman);
+  */
 
   valTest->valSetRMSE = bestModel->_(validationErr) (bestModel, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
   
-  valTest->trainItemsRMSE = bestModel->_(indivTrainSetsErr) (bestModel, data);
-  printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
+  //valTest->trainItemsRMSE = bestModel->_(indivTrainSetsErr) (bestModel, data);
+  //printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
 
   valTest->trainSetRMSE = bestModel->_(trainErr)(bestModel, data, NULL); 
   printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
@@ -2780,8 +2784,8 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  valTest->testItemsRMSE = bestModel->_(indivItemCSRErr) (bestModel, data->testMat, NULL);
-  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
+  //valTest->testItemsRMSE = bestModel->_(indivItemCSRErr) (bestModel, data->testMat, NULL);
+  //printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   bestModel->_(free) (bestModel);
 
@@ -4748,11 +4752,11 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
 
 //model specifications
 Model ModelMajorityProto = {
-  .objective             = ModelMajority_objective,
+  .objective             = ModelMajority_objectiveAvg,
   //.objective             = ModelMajority_objectiveWOCons,
-  .setScore              = ModelMajority_setScore,
+  .setScore              = ModelMajority_setScoreAvg,
   //.setScore              = ModelMajority_setScoreAvg,
-  .train                 = ModelMajority_trainRMSProp //ModelMajority_train
+  .train                 = ModelMajority_trainRMSPropAvg //ModelMajority_train
 };
 
 
@@ -4884,7 +4888,7 @@ void modelMajority(Data *data, Params *params, ValTestRMSE *valTest) {
 
   //load user item weights from train: needed to compute training on indiv items
   //in training sets
-  loadUserItemWtsFrmTrain(data);
+  //loadUserItemWtsFrmTrain(data);
  
   //initialize model with latent factors given to the program
   //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 

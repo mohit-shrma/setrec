@@ -30,9 +30,9 @@ void parse_cmd_line(int argc, char **argv) {
     params->maxIter         = atoi(argv[10]);
     params->seed            = atoi(argv[11]);
 
-    params->train_mat_file  = argv[12];
-    params->test_mat_file   = argv[13];
-    params->val_mat_file    = argv[14];
+    params->train_mat_file  = NULL;//argv[12];
+    params->test_mat_file   = NULL;//argv[13];
+    params->val_mat_file    = NULL;//argv[14];
     
     params->ext_setSim_file = argv[15];
     
@@ -68,7 +68,7 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   //learn model
-  modelAvgSigmoid(data, params, valTest);  
+  modelMajority(data, params, valTest);  
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));

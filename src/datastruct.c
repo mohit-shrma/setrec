@@ -577,9 +577,12 @@ void Data_init(Data *self, int nUsers, int nItems) {
 
   self->itemSets = (ItemSets *) malloc(sizeof(ItemSets));
 
-  self->uFac = NULL;
-  self->iFac = NULL;
+  self->uFac      = NULL;
+  self->iFac      = NULL;
   self->userMidps = NULL;
+  self->trainMat  = NULL;
+  self->testMat   = NULL;
+  self->valMat    = NULL;
 }
 
 

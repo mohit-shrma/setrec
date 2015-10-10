@@ -247,16 +247,21 @@ void loadData(Data *data, Params *params) {
   fclose(fp);
   
   //read csr matrices
-  printf("\nReading CSR matrices..");
-  data->trainMat = gk_csr_Read(params->train_mat_file, GK_CSR_FMT_CSR, 1, 0);
-  gk_csr_CreateIndex(data->trainMat, GK_CSR_COL);
+  if (params->train_mat_file) {
+    printf("\nReading CSR matrices..");
+    data->trainMat = gk_csr_Read(params->train_mat_file, GK_CSR_FMT_CSR, 1, 0);
+    gk_csr_CreateIndex(data->trainMat, GK_CSR_COL);
+  }
 
-  data->valMat = gk_csr_Read(params->val_mat_file, GK_CSR_FMT_CSR, 1, 0);
-  gk_csr_CreateIndex(data->valMat, GK_CSR_COL);
-  
-  data->testMat = gk_csr_Read(params->test_mat_file, GK_CSR_FMT_CSR, 1, 0);
-  gk_csr_CreateIndex(data->testMat, GK_CSR_COL);
+  if (params->val_mat_file) {
+    data->valMat = gk_csr_Read(params->val_mat_file, GK_CSR_FMT_CSR, 1, 0);
+    gk_csr_CreateIndex(data->valMat, GK_CSR_COL);
+  }
 
+  if (params->test_mat_file) {
+    data->testMat = gk_csr_Read(params->test_mat_file, GK_CSR_FMT_CSR, 1, 0);
+    gk_csr_CreateIndex(data->testMat, GK_CSR_COL);
+  }
 
   //read latent factors if passed
   data->facDim = params->facDim;

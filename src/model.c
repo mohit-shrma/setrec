@@ -982,9 +982,14 @@ int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter,
   int ret               = 0;
   Model *model          = self;
   Model *bestModel      = bestM;
-  valTest->valItemsRMSE = model->indivItemCSRErr(model, data->valMat, NULL);
-  valTest->setObj       = model->objective(model, data, NULL);
-  valTest->valSpearman  = model->spearmanRankCorrN(model, data->valMat, 10);
+  if (data->valMat) {
+    valTest->valItemsRMSE = model->indivItemCSRErr(model, data->valMat, NULL);
+    valTest->valSpearman  = model->spearmanRankCorrN(model, data->valMat, 10);
+  } else {
+    valTest->valItemsRMSE = -1;
+    valTest->valSpearman = -1;
+  }
+  valTest->setObj = model->objective(model, data, NULL);
  
   printf("\nIter: %d Obj: %.10e valSpearman: %f valRMSE: %f", iter, 
       valTest->setObj, valTest->valSpearman, valTest->valItemsRMSE);
