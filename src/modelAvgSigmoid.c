@@ -206,8 +206,8 @@ float ModelAvgSigmoid_objective(void *self, Data *data, float **sim) {
 
   //TODO: regularization g_k parameter
 
-  printf("\nse: %f uRegErr: %f umRegErr: %f iRegErr: %f uNorm: %f umNorm:%f iNorm: %f", se, uRegErr,
-      umRegErr, iRegErr, uNorm, umNorm, iNorm);
+  //printf("\nse: %f uRegErr: %f umRegErr: %f iRegErr: %f uNorm: %f umNorm:%f iNorm: %f", se, uRegErr,
+  //    umRegErr, iRegErr, uNorm, umNorm, iNorm);
 
   return (se + uRegErr + umRegErr + iRegErr);
 }
@@ -259,7 +259,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
   printf("\nnumAllSets: %d", numAllSets);
 
   //get objective
-  printf("\nInit Obj: %f", model->_(objective)(model, data, sim));
+  printf("\nInit Obj: %.10e", model->_(objective)(model, data, sim));
 
   for (iter = 0; iter < params->maxIter; iter++) {
     for (subIter = 0; subIter < numAllSets; subIter++) {
@@ -664,7 +664,7 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
 
   //load user item weights from train: needed to compute training on indiv items
   //in training sets
-  loadUserItemWtsFrmTrain(data);
+  //loadUserItemWtsFrmTrain(data);
 
   //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
   //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
