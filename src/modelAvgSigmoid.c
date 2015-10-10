@@ -173,7 +173,9 @@ float ModelAvgSigmoid_objective(void *self, Data *data, float **sim) {
   ModelAvgSigmoid *model = self;
   int nSets = 0;
   int uSets = 0;  
-  
+  float uNorm = 0, iNorm = 0, umNorm = 0;
+
+
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
     uSets = 0;
@@ -190,19 +192,22 @@ float ModelAvgSigmoid_objective(void *self, Data *data, float **sim) {
       nSets++;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
+    uNorm += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
     umRegErr += model->regUm*model->u_m[u]*model->u_m[u];
+    umNorm += model->u_m[u]*model->u_m[u];
   }
   uRegErr = uRegErr*model->_(regU);
 
   for (i = 0; i < data->nItems; i++) {
-    iRegErr += dotProd(model->_(iFac)[i], model->_(iFac)[i], model->_(facDim)); 
+    iRegErr += dotProd(model->_(iFac)[i], model->_(iFac)[i], model->_(facDim));
+    iNorm   += dotProd(model->_(iFac)[i], model->_(iFac)[i], model->_(facDim)); 
   }
   iRegErr *= model->_(regI);
 
   //TODO: regularization g_k parameter
 
-  //printf("\nse: %f uRegErr: %f umRegErr: %f iRegErr: %f", se, uRegErr, 
-  //    umRegErr, iRegErr);
+  printf("\nse: %f uRegErr: %f umRegErr: %f iRegErr: %f uNorm: %f umNorm:%f iNorm: %f", se, uRegErr,
+      umRegErr, iRegErr, uNorm, umNorm, iNorm);
 
   return (se + uRegErr + umRegErr + iRegErr);
 }
@@ -369,7 +374,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
 
   printf("\nEnd Obj: %.10e bestObj: %.10e bestIter: %d", valTest->setObj, 
       bestObj, bestIter);
-  
+ 
   valTest->valSetRMSE = bestModel->_(validationErr) (model, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
 
@@ -379,6 +384,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
   valTest->testSetRMSE = bestModel->_(testErr) (model, data, NULL); 
   printf("\nTest set error: %f", valTest->testSetRMSE);
  
+  /*
   valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
                                                          data->valMat, 10); 
   printf("\nVal spearman: %f", valTest->valSpearman);
@@ -386,6 +392,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
   valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
                                                           data->testMat, 10); 
   printf("\nTest spearman: %f", valTest->testSpearman);
+  */
 
   free(bestModel->u_m);
   bestModel->_(free) (bestModel);
@@ -610,9 +617,9 @@ void ModelAvgSigmoid_copy(void *self, void *dest) {
 
 Model ModelAvgSigmoidProto = {
   .objective = ModelAvgSigmoid_objective,
-  .setScore = ModelAvgSigmoid_setScore,
-  .copy = ModelAvgSigmoid_copy,
-  .train = ModelAvgSigmoid_trainRMSProp
+  .setScore  = ModelAvgSigmoid_setScore,
+  .copy      = ModelAvgSigmoid_copy,
+  .train     = ModelAvgSigmoid_trainRMSProp
 };
 
 
@@ -665,7 +672,8 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   //transform set ratings via midP param
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
-    UserSets_scaledTo01(userSet, 100); 
+    //UserSets_transToSigm(userSet, data->userMidps);
+    UserSets_scaledTo01(userSet, MAX_RAT); 
   }
   
   //printf("\nData is as follow: ");
