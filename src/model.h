@@ -4,6 +4,7 @@
 #include "datastruct.h"
 #include "util.h"
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <gsl/gsl_statistics.h>
 
@@ -58,6 +59,11 @@ typedef struct {
   void (*writeUserSetSim) (void *self, Data *data, float **sim, char *fName); 
   float (*indivTrainSetsErr) (void *self, Data *data);
   float (*indivItemCSRErr) (void *self, gk_csr_t *mat, char *opName); 
+  float (*coldHitRate) (void *self, UserSets **userSets, gk_csr_t *testMat, 
+    gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N);
+  float (*coldHitRateTr) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat, 
+    gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N);
+  float (*itemFeatScore) (void *self, int u, int item, gk_csr_t *featMat);
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
   float (*hitRateOrigTopN) (void *self, gk_csr_t *trainMat, float **origUFac, 
       float **origIFac, int N);
@@ -67,11 +73,15 @@ typedef struct {
   int  (*isTerminateModel) (void *self, void *bestM, int iter, int *bestIter, 
       float *bestObj, float *prevObj, ValTestRMSE *valTest, Data *data); 
   int  (*isTerminateClassModel) (void *self, void *bestM, int iter, int *bestIter, 
-      float *bestObj, float *prevObj, ValTestRMSE *valTest, Data *data); 
+      float *bestObj, float *prevObj, ValTestRMSE *valTest, Data *data);
+  int (*isTerminateColdModel) (void *self, void *bestM, int iter, int *bestIter, 
+    float *bestObj, float *prevObj, ValTestRMSE *valTest, Data *data, 
+    int *testItemIds, int nTestItems);
   void (*free) (void *self);
   void (*reset) (void *self);
   void (*copy) (void *self, void *dest);  
 } Model;
+
 
 void Model_init(void *self, int nUsers, int nItems, int facDim, float regU, 
     float regI, float learnRate);
@@ -97,6 +107,11 @@ float Model_trainClassLoss(void *self, Data *data, float **sim);
 float Model_trainClass01Loss(void *self, Data *data, float **sim);
 float Model_userFacNorm(void *self, Data *data);
 float Model_itemFacNorm(void *Self, Data *data);
+float Model_itemFeatScore(void *self, int u, int item, gk_csr_t *featMat);
+float Model_coldHitRate(void *self, UserSets **userSets, gk_csr_t *testMat, 
+    gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N); 
+float Model_coldHitRateTr(void *self, gk_csr_t *trainMat, gk_csr_t *testMat, 
+    gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N); 
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat, float **origUFac, 
     float **origIFac, int N);
@@ -109,6 +124,9 @@ int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter, flo
     float *prevObj, ValTestRMSE *valTest, Data *data);
 int Model_isTerminateClassModel(void *self, void *bestM, int iter, int *bestIter, 
     float *bestObj, float *prevObj, ValTestRMSE *valTest, Data *data);
+int Model_isTerminateColdModel(void *self, void *bestM, int iter, int *bestIter, 
+    float *bestObj, float *prevObj, ValTestRMSE *valTest, Data *data, 
+    int *testItemIds, int nTestItems);
 void *Model_new(size_t size, Model proto, char *description);
 
 #define NEW(T, N) Model_new(sizeof(T), T##Proto, N)

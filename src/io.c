@@ -30,6 +30,67 @@ void loadVec(float *vec, char *fName, int sz) {
   free(line);
 }
 
+void loadIntVec(int *vec, char *fName, int sz) {
+  
+  FILE *fp   = NULL;
+  char *line = NULL;
+  size_t len = 100;
+  int i, j, read;
+  int val;
+
+  fp = fopen(fName, "r");
+  if (fp == NULL) {
+    printf("\nError reading file %s", fName);
+    exit(0);
+  }
+
+  line = (char*) malloc(len);
+  memset(line, 0, len);
+  
+  i = 0;
+  while((read = getline(&line, &len, fp)) != -1) {
+    if (read >= len) {
+      printf("\nErr: line > specified capacity");
+    }
+    vec[i++] = atoi(line);
+  }
+
+  assert(i == sz);
+  fclose(fp);
+  free(line);
+}
+
+
+int numLines(char *fName) {
+  
+  FILE *fp   = NULL;
+  char *line = NULL;
+  size_t len = 100;
+  int read;
+  int n = 0;
+
+  fp = fopen(fName, "r");
+  if (fp == NULL) {
+    printf("\nError reading file %s", fName);
+    exit(0);
+  }
+
+  line = (char*) malloc(len);
+  memset(line, 0, len);
+  
+  n = 0;
+  while((read = getline(&line, &len, fp)) != -1) {
+    if (read >= len) {
+      printf("\nErr: line > specified capacity");
+    }
+    n++;
+  }
+
+  fclose(fp);
+  free(line);
+  return n;
+}
+
 
 //read matrice from a file into variable mat
 void loadMat(float **mat, int nrows, int ncols, char *fileName) {
@@ -71,6 +132,46 @@ void loadMat(float **mat, int nrows, int ncols, char *fileName) {
 
   fclose(fp);
   free(line);
+}
+
+
+void writeTrTestValSetInd(Data *data) {
+  int i, j, k;
+  UserSets *userSet;
+  
+  FILE *fpTest = NULL;
+  FILE *fpVal = NULL;
+  
+  fpTest = fopen("testSetInd.txt", "w");
+  if (fpTest == NULL) {
+    printf("\nError opening file: testSetInd.txt");
+  }
+
+  fpVal = fopen("valSetInd.txt", "w");
+  if (fpVal == NULL) {
+    printf("\nError opening file: valSetInd.txt");
+  }
+
+  for (i = 0; i < data->nUsers; i++) {
+    userSet = data->userSets[i];
+    for (j = 0; j < userSet->szTestSet; j++) {
+      fprintf(fpTest, "%d ", userSet->testSets[j]);    
+    }
+    fprintf(fpTest, "\n");
+    
+    for (j = 0; j < userSet->szValSet; j++) {
+      fprintf(fpVal, "%d ", userSet->valSets[j]);
+    }
+    fprintf(fpVal, "\n");
+  }
+
+  if (fpVal) {
+    fclose(fpVal);
+  }
+
+  if (fpTest) {
+    fclose(fpTest);
+  }
 }
 
 
@@ -256,11 +357,41 @@ void loadData(Data *data, Params *params) {
   if (params->val_mat_file) {
     data->valMat = gk_csr_Read(params->val_mat_file, GK_CSR_FMT_CSR, 1, 0);
     gk_csr_CreateIndex(data->valMat, GK_CSR_COL);
+    printf("\nRead validation matrices...");
+    fflush(stdout);
   }
 
   if (params->test_mat_file) {
     data->testMat = gk_csr_Read(params->test_mat_file, GK_CSR_FMT_CSR, 1, 0);
     gk_csr_CreateIndex(data->testMat, GK_CSR_COL);
+    printf("\nRead test matrices...");
+    fflush(stdout);
+  }
+
+  //NOTE: reading 1 indexed feature mat
+  if (params->itemFeatFile) {
+    data->itemFeatMat = gk_csr_Read(params->itemFeatFile, GK_CSR_FMT_CSR, 1, 1);
+    gk_csr_CreateIndex(data->itemFeatMat, GK_CSR_COL);
+    printf("\nRead item features...");
+    fflush(stdout);
+  }
+
+  //read test items file
+  if (params->testItemsFName) {
+    data->nTestItems = numLines(params->testItemsFName);
+    data->testItemIds = (int*) malloc(sizeof(int)*data->nTestItems);
+    loadIntVec(data->testItemIds, params->testItemsFName, data->nTestItems);
+    printf("\nRead test items...");
+    fflush(stdout);
+  }
+
+  //read val items file
+  if (params->valItemsFName) {
+    data->nValItems = numLines(params->valItemsFName);
+    data->valItemIds = (int*) malloc(sizeof(int)*data->nValItems);
+    loadIntVec(data->valItemIds, params->valItemsFName, data->nValItems);
+    printf("\nRead val items...");
+    fflush(stdout);
   }
 
   //read latent factors if passed

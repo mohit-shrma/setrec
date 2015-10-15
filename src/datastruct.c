@@ -49,8 +49,8 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   self->userId     = user;
   self->numSets    = numSets;
   self->nUserItems = nUserItems;
-  self->szValSet   = 1;
-  self->szTestSet  = 1;
+  self->szValSet   = 0;
+  self->szTestSet  = 0;
 
   self->uSets = (int **) malloc(sizeof(int*)*numSets);
   memset(self->uSets, 0, sizeof(int*)*numSets);
@@ -73,7 +73,9 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   }
  
   //make sure you can always have a test and validation set
-  assert(numSets > self->szValSet + self->szTestSet);
+  //printf("\nu: %d %d %d %d", user, numSets, self->szValSet, self->szTestSet);
+  //fflush(stdout);
+  assert(numSets >= self->szValSet + self->szTestSet);
 
   //initialize test and val sets using random
   self->valSets = (int *) malloc(sizeof(int)*self->szValSet);
@@ -525,7 +527,7 @@ void ItemSets_init(ItemSets *itemSets, UserSets **userSets, int nUsers,
       itemUsers[item][u] = 1;
     }
   }
-  writeIMat(itemUsers, nItems, nUsers, "itemUser.txt");
+  //writeIMat(itemUsers, nItems, nUsers, "itemUser.txt");
 }
 
 
@@ -575,14 +577,16 @@ void Data_init(Data *self, int nUsers, int nItems) {
     self->userSets[i] = (UserSets*) malloc(sizeof(UserSets));
   }
 
-  self->itemSets = (ItemSets *) malloc(sizeof(ItemSets));
-
-  self->uFac      = NULL;
-  self->iFac      = NULL;
-  self->userMidps = NULL;
-  self->trainMat  = NULL;
-  self->testMat   = NULL;
-  self->valMat    = NULL;
+  self->itemSets    = (ItemSets *) malloc(sizeof(ItemSets));
+  self->uFac        = NULL;
+  self->iFac        = NULL;
+  self->userMidps   = NULL;
+  self->trainMat    = NULL;
+  self->testMat     = NULL;
+  self->valMat      = NULL;
+  self->itemFeatMat = NULL;
+  self->valItemIds  = NULL;
+  self->testItemIds = NULL;
 }
 
 
@@ -607,6 +611,7 @@ void Data_free(Data *self) {
   gk_csr_Free(&(self->trainMat));
   gk_csr_Free(&(self->testMat));
   gk_csr_Free(&(self->valMat));
+  gk_csr_Free(&(self->itemFeatMat));
   if (self->uFac) {
     for (i = 0; i < self->nUsers; i++) {
       free(self->uFac[i]);
@@ -623,6 +628,15 @@ void Data_free(Data *self) {
   if (self->userMidps) {
     free(self->userMidps);
   }
+
+  if (self->valItemIds) {
+    free(self->valItemIds);
+  }
+
+  if (self->testItemIds) {
+    free(self->testItemIds);
+  }
+  
   free(self);
 }
 

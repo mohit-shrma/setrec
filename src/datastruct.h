@@ -37,6 +37,7 @@ typedef struct {
 typedef struct {
   char *user_set_file;
   char *ext_setSim_file;
+  char *itemFeatFile;
 
   char *train_mat_file;
   char *val_mat_file;
@@ -46,6 +47,8 @@ typedef struct {
   char *iFacFileName;
  
   char *uMidPFName;
+  char *testItemsFName;
+  char *valItemsFName;
 
   int nUsers;
   int nItems;
@@ -161,6 +164,12 @@ typedef struct {
   gk_csr_t *trainMat;
   gk_csr_t *valMat;
   gk_csr_t *testMat;
+  gk_csr_t *itemFeatMat;
+  
+  int *valItemIds;
+  int nValItems;
+  int *testItemIds;
+  int nTestItems;
 
   int facDim;
   float **uFac;
@@ -175,6 +184,7 @@ void Data_init(Data *self, int nUsers, int nItems);
 void Data_free(Data *self);
 void Data_reset(Data *self, int nUsers, int nItems);
 void Data_jaccSim(Data *self, float **sim);
+void Data_initTestValColdItems(Data *self);
 
 void loadUserItemWtsFrmTrain(Data *data);
 
