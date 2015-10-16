@@ -7,6 +7,7 @@ typedef struct {
   Model proto;
   float rhoRMS; 
   float epsRMS;
+  float constrainWt;
 } ModelMajFeat;
 
 extern Model ModelMajFeatProto;
