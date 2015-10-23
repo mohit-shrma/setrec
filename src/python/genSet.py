@@ -1,6 +1,6 @@
 import sys
 import random
-
+import os
 
 def getEvalSet(userItemsRat, sampPerUser=1):
   evalSet = []
@@ -129,7 +129,7 @@ def getSetsForUser(itemRats, nSetsPerUser, setSize):
     if setSize %2 != 0:
       majSz = setSize/2 + 1
 
-    majSz = setSize
+    #majSz = setSize
 
     for i in range(majSz):
       sm += setItemRat[i][0]
@@ -241,31 +241,40 @@ def main():
   opPrefix     = opPrefix + '_' + str(setSize) + '_' + str(nSetsPerUser) \
                   + '_' + str(seed)
 
+  #create op dir in current dir
+  opDir = os.path.join(os.getcwd(), opPrefix)
+  os.mkdir(opDir)
+
   random.seed(seed)
 
-  uMapFName = opPrefix + '_u_map'
-  iMapFName = opPrefix + '_i_map'
+  uMapFName = os.path.join(opDir, opPrefix + '_u_map')
+  iMapFName = os.path.join(opDir, opPrefix + '_i_map')
   
   (userItemsRat, userMap, itemMap) = getUserItemsNMap(ratFileName, setSize)
   writeMap(userMap, uMapFName)
   writeMap(itemMap, iMapFName)
  
   #get test set
-  testSet = getEvalSet(userItemsRat)  
-  writeEvalSet(testSet, opPrefix + '_test', userMap, itemMap)
+  testSet = getEvalSet(userItemsRat)
+  testFName = os.path.join(opDir, opPrefix + '_test')
+  writeEvalSet(testSet, testFName, userMap, itemMap)
 
   #get validation set
   valSet = getEvalSet(userItemsRat)
-  writeEvalSet(valSet, opPrefix + '_val', userMap, itemMap)
+  valFName = os.path.join(opDir, opPrefix + '_val')
+  writeEvalSet(valSet, valFName, userMap, itemMap)
 
   #write train set
   trainSet = getTriplets(userItemsRat)
-  writeTriplets(userItemsRat, opPrefix + '_train', userMap, itemMap)
+  trainFName = os.path.join(opDir, opPrefix + '_train')
+  writeTriplets(userItemsRat, trainFName, userMap, itemMap)
   #writeEvalSet(trainSet, opFileName + '_train', userMap, itemMap)
 
-  genSetsNWrite(userItemsRat, opFileName, setSize, nSetsPerUser,
+  setFName = os.path.join(opDir, opPrefix + '_sets')
+  genSetsNWrite(userItemsRat, setFName, setSize, nSetsPerUser,
       userMap, itemMap)
 
 
 if __name__ == '__main__':
   main()
+
