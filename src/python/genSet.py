@@ -5,25 +5,18 @@ import random
 def getEvalSet(userItemsRat, sampPerUser=1):
   evalSet = []
   users = userItemsRat.keys()
-  
   for u in users:
-    
     itemRats = userItemsRat[u]
     nUItems = len(itemRats)
     randInds = set([])
-    
     while len(randInds) != sampPerUser:
       ind = random.randint(0, nUItems-1)
       randInds.add(ind)
-    
     uItems = itemRats.keys()
-    
     for ind in randInds:
       evalSet.append((u, uItems[ind], itemRats[uItems[ind]]))
-    
     for ind in randInds:
       del itemRats[uItems[ind]]
-
   return evalSet
 
 
@@ -108,7 +101,7 @@ def getUserItemsNMap(ratFileName, setSize):
   return (userItemsRat, userMap, itemMap)
 
 
-def getSetsForUser2(itemRats, nSetsPerUser, setSize, thresh):
+def getSetsForUser(itemRats, nSetsPerUser, setSize):
   nItems = len(itemRats)
   setLabels = set([])
 
@@ -136,19 +129,18 @@ def getSetsForUser2(itemRats, nSetsPerUser, setSize, thresh):
     if setSize %2 != 0:
       majSz = setSize/2 + 1
 
+    majSz = setSize
+
     for i in range(majSz):
       sm += setItemRat[i][0]
     avgTopRatItems = sm/(majSz*1.0)
    
-    """
-    label = 1.0
-    if avgTopRatItems < thresh:
-      label = -1.0
-    """
+    #get items in decrease order by rating
+    itemsInDecrOrder = map(lambda x: str(x[1]), setItemRat)
 
-    tempList = map(str, list(tempSet))
+    #tempList = map(str, list(tempSet))
     #TODO: ensure unique sets
-    setLabels.add(( ' '.join(tempList), float(avgTopRatItems)))
+    setLabels.add((' '.join(itemsInDecrOrder), float(avgTopRatItems)))
 
   setLabels = list(setLabels)
   for i in range(len(setLabels)):
@@ -156,51 +148,62 @@ def getSetsForUser2(itemRats, nSetsPerUser, setSize, thresh):
   return setLabels
 
 
-def getSetsForUser(itemRats, nSetsPerUser, setSize, thresh):
-  nItems = len(itemRats)
-  setLabels = []
+def getNonOverlapSetsForUser(itemRats, nSetsPerUser, setSize):
+  nItems    = len(itemRats)
+  setLabels = set([])
+  uItems    = set([])
 
   if nItems < 2 * setSize:
     return setLabels
   
   items = itemRats.keys()
 
-  for i in range(nSetsPerUser):
+  while len(setLabels) < nSetsPerUser:
     #generate set i
     tempSet = set([])
     while len(tempSet) < setSize:
       item = items[random.randint(0, nItems-1)]
-      tempSet.add(item)
-    
+      if item not in uItems:
+        tempSet.add(item)
+        uItems.add(item)
+
     #assign set label
     setItemRat = [] 
     for item in tempSet:
       setItemRat.append((itemRats[item], item))
-    setItemRat.sort()
+    setItemRat.sort(reverse=True)
     
     #get avg of top items
     sm = 0.0
-    nTopItems = 0.0
-    for i in range(setSize/2, setSize):
+    majSz = setSize/2
+    if setSize %2 != 0:
+      majSz = setSize/2 + 1
+
+    majSz = setSize
+
+    for i in range(majSz):
       sm += setItemRat[i][0]
-      nTopItems += 1
-    avgTopRatItems = sm/nTopItems
-    
-    label = 1.0
-    if avgTopRatItems < thresh:
-      label = -1.0
+    avgTopRatItems = sm/(majSz*1.0)
+   
+    #get items in decrease order by rating
+    itemsInDecrOrder = map(lambda x: str(x[1]), setItemRat)
 
-    setLabels.append((tempSet, int(avgTopRatItems)))
+    #tempList = map(str, list(tempSet))
+    #TODO: ensure unique sets
+    setLabels.add((' '.join(itemsInDecrOrder), float(avgTopRatItems)))
 
+  setLabels = list(setLabels)
+  for i in range(len(setLabels)):
+    setLabels[i] = (set(map(int, setLabels[i][0].split(' '))), setLabels[i][1]) 
   return setLabels
 
 
-def genSetsNWrite(userItemsRat, opFileName, setSize, thresh, nSetsPerUser, uMap,
+def genSetsNWrite(userItemsRat, opFileName, setSize, nSetsPerUser, uMap,
     iMap):
   with open(opFileName, 'w') as g:
     u = 0
     for user, itemRats in userItemsRat.iteritems():
-      setLabels = getSetsForUser2(itemRats, nSetsPerUser, setSize, thresh)
+      setLabels = getSetsForUser(itemRats, nSetsPerUser, setSize)
       if len(setLabels) == 0:
         print 'no set found'
       nSets = len(setLabels)
@@ -231,15 +234,17 @@ def writeMap(m, opName):
 def main():
   ratFileName  = sys.argv[1]
   setSize      = int(sys.argv[2])
-  thresh       = float(sys.argv[3])
-  nSetsPerUser = int(sys.argv[4])
-  seed         = int(sys.argv[5])
-  opFileName   = sys.argv[6]
+  nSetsPerUser = int(sys.argv[3])
+  seed         = int(sys.argv[4])
+  opPrefix     = sys.argv[5]
+
+  opPrefix     = opPrefix + '_' + str(setSize) + '_' + str(nSetsPerUser) \
+                  + '_' + str(seed)
 
   random.seed(seed)
 
-  uMapFName = opFileName + '_u_map'
-  iMapFName = opFileName + '_i_map'
+  uMapFName = opPrefix + '_u_map'
+  iMapFName = opPrefix + '_i_map'
   
   (userItemsRat, userMap, itemMap) = getUserItemsNMap(ratFileName, setSize)
   writeMap(userMap, uMapFName)
@@ -247,18 +252,18 @@ def main():
  
   #get test set
   testSet = getEvalSet(userItemsRat)  
-  writeEvalSet(testSet, opFileName + '_test', userMap, itemMap)
+  writeEvalSet(testSet, opPrefix + '_test', userMap, itemMap)
 
   #get validation set
   valSet = getEvalSet(userItemsRat)
-  writeEvalSet(valSet, opFileName + '_val', userMap, itemMap)
+  writeEvalSet(valSet, opPrefix + '_val', userMap, itemMap)
 
   #write train set
   trainSet = getTriplets(userItemsRat)
-  writeTriplets(userItemsRat, opFileName + '_train', userMap, itemMap)
+  writeTriplets(userItemsRat, opPrefix + '_train', userMap, itemMap)
   #writeEvalSet(trainSet, opFileName + '_train', userMap, itemMap)
 
-  genSetsNWrite(userItemsRat, opFileName, setSize, thresh, nSetsPerUser,
+  genSetsNWrite(userItemsRat, opFileName, setSize, nSetsPerUser,
       userMap, itemMap)
 
 
