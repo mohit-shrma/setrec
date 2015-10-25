@@ -30,17 +30,21 @@ void parse_cmd_line(int argc, char **argv) {
     params->maxIter         = atoi(argv[10]);
     params->seed            = atoi(argv[11]);
 
-    params->train_mat_file  = NULL;//argv[12];
-    params->test_mat_file   = NULL;//argv[13];
-    params->val_mat_file    = NULL;//argv[14];
+    params->train_mat_file  = argv[12];
+    params->test_mat_file   = argv[13];
+    params->val_mat_file    = argv[14];
     
-    params->ext_setSim_file = argv[15];
-    
+    params->ext_setSim_file = NULL;//argv[15];
+    params->itemFeatFile    = NULL;//argv[15];
+
     params->rhoRMS          = atof(argv[16]);
     params->epsRMS          = atof(argv[17]);
     
     params->uFacFileName    = NULL;//argv[18];
     params->iFacFileName    = NULL;//argv[19];
+
+    params->testItemsFName  = NULL;//argv[18];
+    params->valItemsFName   = NULL;//argv[19];
     params->uMidPFName      = NULL;//argv[20];
   }
 
@@ -59,6 +63,9 @@ void parse_cmd_line(int argc, char **argv) {
   
   printf("\nFinished loading data..");
   fflush(stdout);
+
+  //write test and val indices
+  //writeTrTestValSetInd(data);
 
   //load external similarities
   //loadSims(data, params);

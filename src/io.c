@@ -349,30 +349,42 @@ void loadData(Data *data, Params *params) {
   
   //read csr matrices
   if (params->train_mat_file) {
-    printf("\nReading CSR matrices..");
+    printf("\nReading train matrix(0 indexed)...");
     data->trainMat = gk_csr_Read(params->train_mat_file, GK_CSR_FMT_CSR, 1, 0);
     gk_csr_CreateIndex(data->trainMat, GK_CSR_COL);
+    printf("\ntrain rows: %d", data->trainMat->nrows);
+    printf("\ntrain cols: %d", data->trainMat->ncols);
   }
 
   if (params->val_mat_file) {
     data->valMat = gk_csr_Read(params->val_mat_file, GK_CSR_FMT_CSR, 1, 0);
     gk_csr_CreateIndex(data->valMat, GK_CSR_COL);
-    printf("\nRead validation matrices...");
+    printf("\nRead validation matrix(0 indexed)...");
+    printf("\nVal rows: %d", data->valMat->nrows);
+    printf("\nVal cols: %d", data->valMat->ncols);
     fflush(stdout);
   }
 
   if (params->test_mat_file) {
     data->testMat = gk_csr_Read(params->test_mat_file, GK_CSR_FMT_CSR, 1, 0);
     gk_csr_CreateIndex(data->testMat, GK_CSR_COL);
-    printf("\nRead test matrices...");
+    printf("\nRead test matrix(0 indexed)...");
+    printf("\nTest rows: %d", data->testMat->nrows);
+    printf("\nTest cols: %d", data->testMat->ncols);
     fflush(stdout);
   }
 
   //NOTE: reading 1 indexed feature mat
   if (params->itemFeatFile) {
+    printf("\nReading item features (1-indexed)...");
     data->itemFeatMat = gk_csr_Read(params->itemFeatFile, GK_CSR_FMT_CSR, 1, 1);
     gk_csr_CreateIndex(data->itemFeatMat, GK_CSR_COL);
+    //normalize item features
+    printf("\nNormalizing item features...");
+    gk_csr_Normalize(data->itemFeatMat, GK_CSR_ROW, 2);
     printf("\nRead item features...");
+    printf("\nItem feature rows: %d", data->itemFeatMat->nrows);
+    printf("\nItem feature cols: %d", data->itemFeatMat->ncols);
     fflush(stdout);
   }
 

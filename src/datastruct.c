@@ -49,8 +49,8 @@ void UserSets_init(UserSets * const self, int user, int numSets, int nItems,
   self->userId     = user;
   self->numSets    = numSets;
   self->nUserItems = nUserItems;
-  self->szValSet   = 0;
-  self->szTestSet  = 0;
+  self->szValSet   = 1;
+  self->szTestSet  = 1;
 
   self->uSets = (int **) malloc(sizeof(int*)*numSets);
   memset(self->uSets, 0, sizeof(int*)*numSets);

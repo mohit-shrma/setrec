@@ -1,5 +1,5 @@
 #include "model.h"
-
+#include <string.h>
 
 void Model_init(void *selfRef, int nUsers, int nItems, int facDim, float regU, 
     float regI, float learnRate) {
@@ -856,8 +856,8 @@ float Model_coldHitRateTr(void *self, gk_csr_t *trainMat,
   int nRelUsers               = 0;
   FILE *fp = NULL;
 
-  fp = fopen("topItemRat.txt", "w");
-
+  //fp = fopen("topItemRat.txt", "w");
+  
   //get number of test users and test users
   memset(isTestUsers, false, sizeof(bool)*nUsers);
   nRelUsers = 0;
@@ -897,7 +897,7 @@ float Model_coldHitRateTr(void *self, gk_csr_t *trainMat,
     
     if (fp) {
       for (j = 0; j < N; j++) {
-        fprintf(fp, "%d %f ", testItemsRatingKV[j].val, 
+        fprintf(fp, "%zu %f ", testItemsRatingKV[j].val, 
             testItemsRatingKV[j].key);
       }
       fprintf(fp, "\n");
@@ -929,8 +929,11 @@ float Model_coldHitRateTr(void *self, gk_csr_t *trainMat,
     }
     recallSum += recallU;
   }
-  
+ 
+  //printf("\nrecallSum: %f nRelUsers: %d", recallSum, nRelUsers);
+
   recallAvg = recallSum/nRelUsers;
+
 
   if (fp) {
     fclose(fp);
@@ -941,6 +944,350 @@ float Model_coldHitRateTr(void *self, gk_csr_t *trainMat,
 
   return recallAvg;
 }
+
+
+float Model_coldHitRateTrParBak(void *self, gk_csr_t *trainMat, 
+    gk_csr_t *testMat, gk_csr_t *itemFeatMat, int *testItemIds, 
+    int nTestItems, int N) {
+  
+  int i, j, k, u;
+  int nUserTestItems, nUserTopNItems, item;
+  float recallU, recallSum, recallAvg;
+  Model *model                = self;
+  const int nUsers                  = model->nUsers;
+  gk_fkv_t *testItemsRatingKV = NULL;
+  bool *isTestUsers           = (bool*) malloc(sizeof(bool)*nUsers);
+  int nRelUsers               = 0;
+  float *uRecalls = (float*) malloc((sizeof(float)*nUsers));
+
+  //get number of test users and test users
+  memset(isTestUsers, false, sizeof(bool)*nUsers);
+  nRelUsers = 0;
+  for (u = 0; u < model->nUsers; u++) {
+    if (trainMat->rowptr[u+1] - trainMat->rowptr[u] == 0) {
+      //user has no training items
+      continue;
+    }
+    for (j = testMat->rowptr[u]; j < testMat->rowptr[u+1]; j++) {
+      if (testMat->rowval[j] > 0) {
+        isTestUsers[u] = true;
+        nRelUsers++;
+        break;
+      }
+    }
+  }
+  
+  memset(uRecalls, 0, sizeof(float)*nUsers);
+
+  printf("\nnUsers: %d, nRelUsers: %d", nUsers, nRelUsers);
+
+  //compute ratings for test users on test items and keep top-N
+  //
+  recallU = 0;
+#pragma omp parallel default(none) shared(recallSum)
+  {
+    int t;
+  recallSum = 0;
+#pragma omp for reduction(+:recallSum) 
+for (t = 0; t < nUsers; t++) {
+    recallSum += 1.0;
+}
+}
+  printf("\nav recallSum: %f nRelUsers: %d", recallSum, nRelUsers);
+/*
+for (u = 0; u < nUsers; u++) {
+    recallU = 0;
+    if (isTestUsers[u]) {
+      testItemsRatingKV = gk_fkvmalloc(nTestItems, "testItemsRating");
+   
+      for (i = 0; i < nTestItems; i++) {
+        item = testItemIds[i];
+        //compute user rating on item
+        testItemsRatingKV[i].key = model->itemFeatScore(model, u, item, 
+            itemFeatMat);
+        testItemsRatingKV[i].val = item;
+      }
+
+      //get top-N in the beginning
+      gk_dfkvkselect(nTestItems, N, testItemsRatingKV); 
+      //sort top-N items in decreasing order
+      gk_fkvsortd(N, testItemsRatingKV);
+      
+      //compute hitrate for u
+      nUserTestItems = 0;
+      nUserTopNItems = 0;
+      for (j = testMat->rowptr[u]; j < testMat->rowptr[u+1]; j++) {
+        if (testMat->rowval[j] <= 0.0) {
+          continue;
+        }
+        item = testMat->rowind[j];
+        nUserTestItems++;
+
+        //check if item present in predicted Top-N items
+        for (k = 0; k < N; k++) {
+          if (testItemsRatingKV[k].val == item) {
+            nUserTopNItems++;
+          }
+        }
+      }
+     
+      gk_free((void**)&testItemsRatingKV, LTERM);
+      
+      //TODO: discuss it with George
+      if (N > nUserTestItems && nUserTestItems > 0) {
+        recallU = ((float)nUserTopNItems)/((float)nUserTestItems);
+      } else {
+        recallU = ((float)nUserTopNItems)/N;
+      }
+      recallU = 10.0;
+    
+    }
+     
+    //uRecalls[u] = 1.0;//recallU;
+    //recallSum += recallU;
+    recallSum += 1.0;//uRecalls[u];
+}
+*/
+  /*
+  FILE *fp = fopen("parURecalls.txt", "w");
+  for (u = 0; u < nUsers; u++) {
+    fprintf(fp, "%f\n", uRecalls[u]);
+  }
+  fclose(fp);
+  */
+
+  
+  recallAvg = recallSum/nRelUsers;
+
+  recallSum = 0;
+  for (u = 0; u < model->nUsers; u++) {
+    recallSum += uRecalls[u];
+  }
+
+  printf("\nrecallSum arr: %f", recallSum);
+
+  free(isTestUsers);
+  free(uRecalls);
+  return recallAvg;
+}
+
+
+float Model_coldHitRateTrPar(void *self, gk_csr_t *trainMat, 
+    gk_csr_t *testMat, gk_csr_t *itemFeatMat, int *testItemIds, 
+    const int nTestItems, const int N) {
+  
+  int i, j, k, u;
+  float recallSum, recallAvg;
+  Model *model                = self;
+  const int nUsers                  = model->nUsers;
+  bool *isTestUsers           = (bool*) malloc(sizeof(bool)*nUsers);
+  int nRelUsers               = 0;
+  float *uRecalls = (float*) malloc((sizeof(float)*nUsers));
+
+  //get number of test users and test users
+  memset(isTestUsers, false, sizeof(bool)*nUsers);
+  nRelUsers = 0;
+  for (u = 0; u < model->nUsers; u++) {
+    if (trainMat->rowptr[u+1] - trainMat->rowptr[u] == 0) {
+      //user has no training items
+      continue;
+    }
+    for (j = testMat->rowptr[u]; j < testMat->rowptr[u+1]; j++) {
+      if (testMat->rowval[j] > 0) {
+        isTestUsers[u] = true;
+        nRelUsers++;
+        break;
+      }
+    }
+  }
+  
+  memset(uRecalls, 0, sizeof(float)*nUsers);
+
+  printf("\nnUsers: %d, nRelUsers: %d", nUsers, nRelUsers);
+
+  //compute ratings for test users on test items and keep top-N
+  //
+#pragma omp parallel default(none) shared(recallSum, isTestUsers, testItemIds, model, testMat, itemFeatMat)
+{
+    int t, w, x, y, nUserTopNItems, nUserTestItems, item;
+    float recallU; 
+    gk_fkv_t *testItemsRatingKV = NULL;
+    recallSum = 0;
+#pragma omp for reduction(+:recallSum) 
+    for (t = 0; t < nUsers; t++) {
+      recallU = 0;
+      if (isTestUsers[t]) {
+        testItemsRatingKV = gk_fkvmalloc(nTestItems, "testItemsRating");
+     
+        for (w = 0; w < nTestItems; w++) {
+          item = testItemIds[w];
+          //compute user rating on item
+          testItemsRatingKV[w].key = model->itemFeatScore(model, t, item, 
+              itemFeatMat);
+          testItemsRatingKV[w].val = item;
+        }
+
+        //get top-N in the beginning
+        gk_dfkvkselect(nTestItems, N, testItemsRatingKV); 
+        //sort top-N items in decreasing order
+        gk_fkvsortd(N, testItemsRatingKV);
+        
+        //compute hitrate for t
+        nUserTestItems = 0;
+        nUserTopNItems = 0;
+        for (x = testMat->rowptr[t]; x < testMat->rowptr[t+1]; x++) {
+          if (testMat->rowval[x] <= 0.0) {
+            continue;
+          }
+          item = testMat->rowind[x];
+          nUserTestItems++;
+
+          //check if item present in predicted Top-N items
+          for (y = 0; y < N; y++) {
+            if (testItemsRatingKV[y].val == item) {
+              nUserTopNItems++;
+            }
+          }
+        }
+       
+        gk_free((void**)&testItemsRatingKV, LTERM);
+        
+        //TODO: discuss it with George
+        if (N > nUserTestItems && nUserTestItems > 0) {
+          recallU = ((float)nUserTopNItems)/((float)nUserTestItems);
+        } else {
+          recallU = ((float)nUserTopNItems)/N;
+        }
+        //recallU = 10.0;
+      
+      }
+      //uRecalls[u] = 1.0;//recallU;
+      recallSum += recallU;
+      //recallSum += 1.0;//uRecalls[u];
+    }
+}
+
+  recallAvg = recallSum/nRelUsers;
+  printf("\nav recallSum: %f nRelUsers: %d", recallSum, nRelUsers);
+
+  recallSum = 0;
+  for (u = 0; u < model->nUsers; u++) {
+    recallSum += uRecalls[u];
+  }
+
+  printf("\nrecallSum arr: %f", recallSum);
+
+  free(isTestUsers);
+  free(uRecalls);
+  return recallAvg;
+}
+
+
+/*
+float Model_coldHitRateTr(void *self, gk_csr_t *trainMat, 
+    gk_csr_t *testMat, gk_csr_t *itemFeatMat, int *testItemIds, 
+    int nTestItems, int N) {
+  
+  int u, i, j, k;
+  int nUserTestItems, nUserTopNItems, item;
+  float recallU, recallSum, recallAvg;
+  Model *model                = self;
+  int nUsers                  = model->nUsers;
+  gk_fkv_t *testItemsRatingKV = NULL;
+  bool *isTestUsers           = (bool*) malloc(sizeof(bool)*nUsers);
+  int nRelUsers               = 0;
+  float *uRecalls = (float*) malloc((sizeof(float)*nUsers));
+
+  //get number of test users and test users
+  memset(isTestUsers, false, sizeof(bool)*nUsers);
+  nRelUsers = 0;
+  for (u = 0; u < model->nUsers; u++) {
+    if (trainMat->rowptr[u+1] - trainMat->rowptr[u] == 0) {
+      //user has no training items
+      continue;
+    }
+    for (j = testMat->rowptr[u]; j < testMat->rowptr[u+1]; j++) {
+      if (testMat->rowval[j] > 0) {
+        isTestUsers[u] = true;
+        nRelUsers++;
+        break;
+      }
+    }
+  }
+  
+  recallSum = 0;
+
+  memset(uRecalls, 0, sizeof(float)*nUsers);
+
+
+  //compute ratings for test users on test items and keep top-N
+  //
+//#pragma omp parallel for private(u, i, j, k, item, testItemsRatingKV, nUserTestItems, nUserTopNItems, recallU) reduction(+:recallSum) 
+  for (u = 0; u < model->nUsers; u++) {
+    if (!isTestUsers[u]) {
+      continue;
+    }
+   
+    testItemsRatingKV = gk_fkvmalloc(nTestItems, "testItemsRating");
+ 
+    for (i = 0; i < nTestItems; i++) {
+      item = testItemIds[i];
+      //compute user rating on item
+      testItemsRatingKV[i].key = model->itemFeatScore(model, u, item, 
+          itemFeatMat);
+      testItemsRatingKV[i].val = item;
+    }
+
+    //get top-N in the beginning
+    gk_dfkvkselect(nTestItems, N, testItemsRatingKV); 
+    //sort top-N items in decreasing order
+    gk_fkvsortd(N, testItemsRatingKV);
+    
+    //compute hitrate for u
+    nUserTestItems = 0;
+    nUserTopNItems = 0;
+    for (j = testMat->rowptr[u]; j < testMat->rowptr[u+1]; j++) {
+      if (testMat->rowval[j] <= 0) {
+        continue;
+      }
+      item = testMat->rowind[j];
+      nUserTestItems++;
+
+      //check if item present in predicted Top-N items
+      for (k = 0; k < N; k++) {
+        if (testItemsRatingKV[k].val == item) {
+          nUserTopNItems++;
+        }
+      }
+    }
+   
+    gk_free((void**)&testItemsRatingKV, LTERM);
+    
+    //TODO: discuss it with George
+    if (N > nUserTestItems) {
+      recallU = ((float)nUserTopNItems)/((float)nUserTestItems);
+    } else {
+      recallU = ((float)nUserTopNItems)/((float)N);
+    }
+    recallSum += recallU;
+    uRecalls[u] = recallU;
+  }
+
+  FILE *fp = fopen("parURecalls.txt", "w");
+  for (u = 0; u < nUsers; u++) {
+    fprintf(fp, "%f\n", uRecalls[u]);
+  }
+  fclose(fp);
+  
+  printf("\nrecallSum: %f nRelUsers: %d", recallSum, nRelUsers);
+  
+  recallAvg = recallSum/nRelUsers;
+
+  free(isTestUsers);
+  free(uRecalls);
+  return recallAvg;
+}
+*/
 
 
 float Model_coldHitRate(void *self, UserSets **userSets, 
@@ -997,7 +1344,7 @@ float Model_coldHitRate(void *self, UserSets **userSets,
     
     if (fp) {
       for (j = 0; j < N; j++) {
-        fprintf(fp, "%d %f ", testItemsRatingKV[j].val, 
+        fprintf(fp, "%zu %f ", testItemsRatingKV[j].val, 
             testItemsRatingKV[j].key);
       }
       fprintf(fp, "\n");
@@ -1190,13 +1537,15 @@ int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter,
   Model *bestModel      = bestM;
   if (data->valMat) {
     valTest->valItemsRMSE = model->indivItemCSRErr(model, data->valMat, NULL);
-    valTest->valSpearman  = model->spearmanRankCorrN(model, data->valMat, 10);
+    valTest->valSpearman  = -1;//model->spearmanRankCorrN(model, data->valMat, 10);
   } else {
     valTest->valItemsRMSE = -1;
     valTest->valSpearman = -1;
   }
   valTest->setObj = model->objective(model, data, NULL);
  
+  //printf("\nIter: %d Obj: %.10e valSpearman: %f valRMSE: %f", iter, 
+  //    valTest->setObj, valTest->valSpearman, valTest->valItemsRMSE);
   printf("\nIter: %d Obj: %.10e valSpearman: %f valRMSE: %f", iter, 
       valTest->setObj, valTest->valSpearman, valTest->valItemsRMSE);
   
@@ -1384,7 +1733,7 @@ void Model_copy(void *self, void *dest) {
 }
 
 
-void *Model_new(size_t size, Model proto, char *description) {
+void *Model_new(size_t size, Model proto, const char *description) {
   
   //set up default methods if they are not set up
   if (!proto.init) proto.init                               = Model_init;
@@ -1422,6 +1771,7 @@ void *Model_new(size_t size, Model proto, char *description) {
   if (!proto.isTerminateClassModel) proto.isTerminateClassModel = Model_isTerminateClassModel;
   if (!proto.coldHitRate) proto.coldHitRate                  = Model_coldHitRate;
   if (!proto.coldHitRateTr) proto.coldHitRateTr              = Model_coldHitRateTr;
+  if (!proto.coldHitRateTrPar) proto.coldHitRateTrPar              = Model_coldHitRateTrPar;
   if (!proto.itemFeatScore) proto.itemFeatScore              = Model_itemFeatScore; 
   //struct of one size
   Model *model = calloc(1, size);

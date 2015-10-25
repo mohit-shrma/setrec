@@ -7,13 +7,14 @@
 #include <stdbool.h>
 #include <string.h>
 #include <gsl/gsl_statistics.h>
+#include <omp.h>
 
 #define EPS 0.000001
 #define OBJ_ITER 50
 #define VAL_CONV 1
 #define OBJ_CONV 1
 #define VAL_ITER 100
-#define MAX_SET_SZ 500
+#define MAX_SET_SZ 5
 #define MAX_RAT 5.0
 
 typedef struct { 
@@ -62,6 +63,8 @@ typedef struct {
   float (*coldHitRate) (void *self, UserSets **userSets, gk_csr_t *testMat, 
     gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N);
   float (*coldHitRateTr) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat, 
+    gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N);
+  float (*coldHitRateTrPar) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat, 
     gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N);
   float (*itemFeatScore) (void *self, int u, int item, gk_csr_t *featMat);
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
@@ -112,6 +115,8 @@ float Model_coldHitRate(void *self, UserSets **userSets, gk_csr_t *testMat,
     gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N); 
 float Model_coldHitRateTr(void *self, gk_csr_t *trainMat, gk_csr_t *testMat, 
     gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N); 
+float Model_coldHitRateTrPar(void *self, gk_csr_t *trainMat, gk_csr_t *testMat, 
+    gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N); 
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat, float **origUFac, 
     float **origIFac, int N);
@@ -127,7 +132,7 @@ int Model_isTerminateClassModel(void *self, void *bestM, int iter, int *bestIter
 int Model_isTerminateColdModel(void *self, void *bestM, int iter, int *bestIter, 
     float *bestObj, float *prevObj, ValTestRMSE *valTest, Data *data, 
     int *testItemIds, int nTestItems);
-void *Model_new(size_t size, Model proto, char *description);
+void *Model_new(size_t size, Model proto, const char *description);
 
 #define NEW(T, N) Model_new(sizeof(T), T##Proto, N)
 #define _(N) proto.N
