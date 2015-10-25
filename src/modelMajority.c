@@ -758,10 +758,12 @@ float ModelMajority_objectiveAvg(void *self, Data *data, float **sim) {
   }
   iRegErr *= model->_(regI);
   
+  /*
   printf("\nObj: %f SE: %f uRegErr: %f iRegErr: %f Constraint violation count: %d"
       " uNorm: %f iNorm: %f", 
       (rmse+uRegErr+iRegErr), rmse, uRegErr, iRegErr, constViolCt, uNorm, iNorm);
-  
+  */
+
   //fclose(fp);
   return (rmse + uRegErr + iRegErr);
 }

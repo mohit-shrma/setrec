@@ -1544,10 +1544,10 @@ int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter,
   }
   valTest->setObj = model->objective(model, data, NULL);
  
+  printf("\nIter: %d Obj: %.10e valRMSE: %f", iter, 
+      valTest->setObj, valTest->valItemsRMSE);
   //printf("\nIter: %d Obj: %.10e valSpearman: %f valRMSE: %f", iter, 
   //    valTest->setObj, valTest->valSpearman, valTest->valItemsRMSE);
-  printf("\nIter: %d Obj: %.10e valSpearman: %f valRMSE: %f", iter, 
-      valTest->setObj, valTest->valSpearman, valTest->valItemsRMSE);
   
   if (iter > 0) {
     if (valTest->setObj < *bestObj) {
