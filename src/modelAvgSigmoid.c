@@ -1,7 +1,6 @@
 #include "modelAvgSigmoid.h"
 
 
-
 void ModelAvgSigmoid_gradCheck(void *self, int u, int *set, int setSz, float r_us) {
   int i, j, item;
   float commGradCoeff, r_us_est, avgRat;
@@ -162,6 +161,26 @@ float ModelAvgSigmoid_setScore(void *self, int u, int *set, int setSz,
 }
 
 
+float ModelAvgSigmoid_itemFeatScore(void *self, int u, int item, gk_csr_t *featMat) {
+  
+  ModelAvgSigmoid *model = self;
+  int i, j, ii, jj;
+  int nFeats = featMat->rowptr[item+1] - featMat->rowptr[item];
+  int *set = (int *) malloc(sizeof(int)*nFeats);
+  float score = 0;
+
+  j = 0;
+  for (ii = featMat->rowptr[item]; ii < featMat->rowptr[item+1]; ii++) {
+     set[j++] = featMat->rowind[ii];
+  }
+  assert(j == nFeats);
+  score = ModelAvgSigmoid_setScore(model, u, set, nFeats, NULL);
+  
+  free(set);
+  return score;
+}
+
+
 float ModelAvgSigmoid_objective(void *self, Data *data, float **sim) {
   
   int u, i, s;
@@ -266,6 +285,9 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
       //sample u
       u = rand() % data->nUsers;
       userSet = data->userSets[u];
+      if (0 == userSet->numSets) {
+        continue;
+      }
       //select a non-test non-val set for user
       s = rand() % userSet->numSets;
       if (UserSets_isSetTestVal(userSet, s)) {
@@ -284,10 +306,10 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
       }
 
       //perform gradient checks
-      //if (iter % 100 == 0 && subIter % 100 == 0) {
-      //  ModelAvgSigmoid_gradCheck(model, u, set, setSz, r_us);
-      //continue;
-      //}
+      if (iter % 100 == 0 && subIter % 100 == 0) {
+        ModelAvgSigmoid_gradCheck(model, u, set, setSz, r_us);
+        //continue;
+      }
 
       memset(sumItemLatFac, 0, sizeof(float)*model->_(facDim));
       for (i = 0; i < setSz; i++) {
@@ -335,6 +357,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
         }
       }
       
+      
       //compute user midp gradient
       umGrad = commGradCoeff*-1.0*model->g_k + 2.0*model->u_m[u]*model->regUm;
       
@@ -343,7 +366,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
 
       //update
       model->u_m[u] -= (model->_(learnRate)/sqrt(umGradAcc[u] + 0.0000001))*umGrad;
-  
+       
       /*
       //compute global g_k gradient
       g_kGrad = commGradCoeff*dev + 2.0*model->g_k*model->regG_k;
@@ -375,25 +398,41 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
   printf("\nEnd Obj: %.10e bestObj: %.10e bestIter: %d", valTest->setObj, 
       bestObj, bestIter);
  
-  valTest->valSetRMSE = bestModel->_(validationErr) (model, data, NULL);
+  valTest->valSetRMSE = bestModel->_(validationErr) (bestModel, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
 
-  valTest->trainSetRMSE = bestModel->_(trainErr)(model, data, NULL); 
+  valTest->trainSetRMSE = bestModel->_(trainErr)(bestModel, data, NULL); 
   printf("\nTrain set error: %f", valTest->trainSetRMSE);
   
-  valTest->testSetRMSE = bestModel->_(testErr) (model, data, NULL); 
+  valTest->testSetRMSE = bestModel->_(testErr) (bestModel, data, NULL); 
   printf("\nTest set error: %f", valTest->testSetRMSE);
- 
+
+  //get maximum rating on individual item in train
+  temp = bestModel->_(getMaxEstTrainRat)(bestModel, data);
+  printf("\nmaxRat: %f", temp);
+  valTest->testItemsRMSE = bestModel->_(indivItemCSRScaledErr)(bestModel, 
+      data->testMat, temp, NULL); 
+  printf("\nTest items error indiv: %f", valTest->testItemsRMSE);
+
+  valTest->trainItemsRMSE = bestModel->_(indivTrainSetsScaledErr)(bestModel, 
+      data, temp);
+  printf("\nTrain items error indiv: %f", valTest->trainItemsRMSE);
+
   /*
-  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
-                                                         data->valMat, 10); 
-  printf("\nVal spearman: %f", valTest->valSpearman);
+  //valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
+  //                                                       data->valMat, 10); 
+  valTest->valSpearman = bestModel->_(coldHitRate)(bestModel, data->userSets,
+      data->valMat, data->itemFeatMat, data->valItemIds, data->nValItems, 10); 
+  printf("\nVal HR: %f", valTest->valSpearman);
 
-  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
-                                                          data->testMat, 10); 
-  printf("\nTest spearman: %f", valTest->testSpearman);
-  */
+  //valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
+  //                                                        data->testMat, 10); 
+  valTest->testSpearman = bestModel->_(coldHitRate)(bestModel, data->userSets, 
+      data->testMat, data->itemFeatMat, data->testItemIds, data->nTestItems, 10); 
+  printf("\nTest HR: %f", valTest->testSpearman);
+  */ 
 
+  bestModel->_(copy) (bestModel, model);
   free(bestModel->u_m);
   bestModel->_(free) (bestModel);
 
@@ -616,10 +655,11 @@ void ModelAvgSigmoid_copy(void *self, void *dest) {
 
 
 Model ModelAvgSigmoidProto = {
-  .objective = ModelAvgSigmoid_objective,
-  .setScore  = ModelAvgSigmoid_setScore,
-  .copy      = ModelAvgSigmoid_copy,
-  .train     = ModelAvgSigmoid_trainRMSProp
+  .objective               = ModelAvgSigmoid_objective,
+  .setScore                = ModelAvgSigmoid_setScore,
+  .itemFeatScore           = ModelAvgSigmoid_itemFeatScore,
+  .copy                    = ModelAvgSigmoid_copy,
+  .train                   = ModelAvgSigmoid_trainRMSProp
 };
 
 
@@ -639,7 +679,10 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   printf("\nregG_k = %f", model->regG_k);
 
   //assign usermidps randomly between 0 to 5
-  /*
+  if (NULL == data->userMidps) {
+    data->userMidps = (float*) malloc(sizeof(float)*data->nUsers);
+    memset(data->userMidps, 0, sizeof(float)*data->nUsers);
+  }
   for (u = 0; u < data->nUsers; u++) {
     data->userMidps[u] = (float) generateGaussianNoise(2.5, 2);
     //data->userMidps[u] = (float) (rand()%5);
@@ -649,7 +692,6 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
       data->userMidps[u] = 5;
     }
   }
-  */
   
   //initialize u_m
   model->u_m = (float *) malloc(sizeof(float)*params->nUsers);
@@ -670,10 +712,11 @@ void modelAvgSigmoid(Data *data, Params *params, ValTestRMSE *valTest) {
   //copyMat(data->iFac, model->_(iFac), data->nItems, data->facDim); 
 
   //transform set ratings via midP param
+  //printf("\nscaling by maxrat: %f", MAX_RAT);
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
-    //UserSets_transToSigm(userSet, data->userMidps);
-    UserSets_scaledTo01(userSet, MAX_RAT); 
+    UserSets_transToSigm(userSet, data->userMidps);
+    //UserSets_scaledTo01(userSet, MAX_RAT); 
   }
   
   //printf("\nData is as follow: ");

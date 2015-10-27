@@ -66,6 +66,12 @@ typedef struct {
     gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N);
   float (*coldHitRateTrPar) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat, 
     gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N);
+  
+  float (*indivTrainSetsScaledErr) (void *self, Data *data, float maxRat);
+  float (*getMaxEstTrainRat) (void *self, Data *data);
+  float (*indivItemCSRScaledErr) (void *self, gk_csr_t *mat, float maxRat, 
+    char *opFName);
+  
   float (*itemFeatScore) (void *self, int u, int item, gk_csr_t *featMat);
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
   float (*hitRateOrigTopN) (void *self, gk_csr_t *trainMat, float **origUFac, 
@@ -121,6 +127,10 @@ float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat, float **origUFac, 
     float **origIFac, int N);
 double Model_spearmanRankCorrN(void *self, gk_csr_t *testMat, int N);
+float Model_indivTrainSetsScaledErr(void *self, Data *data, float maxRat);
+float Model_getMaxEstTrainRat(void *self, Data *data);
+float Model_indivItemCSRScaledErr(void *self, gk_csr_t *mat, float maxRat, 
+    char *opFName);
 float Model_indivTrainSetsErr(void *self, Data *data);
 float Model_indivItemCSRErr(void *self, gk_csr_t *mat, char *opName);
 float Model_cmpLoadedFac(void *self, Data *data);

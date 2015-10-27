@@ -75,7 +75,7 @@ void parse_cmd_line(int argc, char **argv) {
   //writeData(data);
 
   //learn model
-  modelMajority(data, params, valTest);  
+  modelAvgSigmoid(data, params, valTest);  
 
   //reset test and val for next iter
   //srand(params->seed + (i+1));

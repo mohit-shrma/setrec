@@ -2423,17 +2423,17 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   printf("\nEnd Obj: %.10e bestObj: %.10e bestIter: %d", valTest->setObj, 
       bestObj, bestIter);
 
-  printf("\nFinal Constraint violation: %d", ModelMajority_constViol(model, data));
+  printf("\nFinal Constraint violation: %d", ModelMajority_constViol(bestModel, data));
   
   if (iter == params->maxIter) {
     printf("\nNOT CONVERGED:Reached maximum iterations");
   }
 
-  valTest->valSetRMSE = bestModel->_(validationErr) (model, data, NULL);
+  valTest->valSetRMSE = bestModel->_(validationErr) (bestModel, data, NULL);
   printf("\nValidation set err: %f", valTest->valSetRMSE);
   
-  //valTest->trainItemsRMSE = bestModel->_(indivTrainSetsErr) (model, data);
-  //printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
+  valTest->trainItemsRMSE = bestModel->_(indivTrainSetsErr) (bestModel, data);
+  printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
 
   /*
   valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
@@ -2445,21 +2445,22 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   printf("\nTest spearman: %f", valTest->testSpearman);
   */
 
-  valTest->trainSetRMSE = bestModel->_(trainErr)(model, data, NULL); 
+  valTest->trainSetRMSE = bestModel->_(trainErr)(bestModel, data, NULL); 
   printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
   
-  valTest->testSetRMSE = bestModel->_(testErr) (model, data, NULL); 
+  valTest->testSetRMSE = bestModel->_(testErr) (bestModel, data, NULL); 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);
 
   //get test eror
-  //valTest->testItemsRMSE = bestModel->_(indivItemCSRErr) (model, data->testMat, NULL);
-  //printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
+  valTest->testItemsRMSE = bestModel->_(indivItemCSRErr) (bestModel, data->testMat, NULL);
+  printf("\nTest items error(modelMajority): %f", valTest->testItemsRMSE);
 
   //printf("\nTest hit rate: %f", 
   //    model->_(hitRate)(model, data->trainMat, data->testMat));
 
   //model->_(writeUserSetSim)(self, data, "userSetsSim.txt");
   
+  bestModel->_(copy) (bestModel, model);
   bestModel->_(free)(bestModel);
 
   for (i = 0; i < params->nUsers; i++) {
@@ -5118,12 +5119,12 @@ void ModelMajority_trainSamp(void *self, Data *data, Params *params,
 
 //model specifications
 Model ModelMajorityProto = {
-  .objective             = ModelMajority_objectiveAvg,
+  .objective             = ModelMajority_objective,
   //.objective             = ModelMajority_objectiveWOCons,
-  .setScore              = ModelMajority_setScoreAvg,
+  .setScore              = ModelMajority_setScore,
   .itemFeatScore         = ModelMajority_itemFeatScoreAvg, 
   //.setScore              = ModelMajority_setScoreAvg,
-  .train                 = ModelMajority_trainRMSPropAvg //ModelMajority_train
+  .train                 = ModelMajority_trainRMSProp //ModelMajority_train
 };
 
 

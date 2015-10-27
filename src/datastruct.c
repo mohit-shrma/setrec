@@ -405,7 +405,7 @@ void UserSets_transToSigm(UserSets *self, float *userMidps) {
 
   u = self->userId;
   for (s = 0; s < self->numSets; s++) {
-    self->labels[s] = sigmoid(self->labels[s] - userMidps[u], 50.0);
+    self->labels[s] = sigmoid(self->labels[s] - userMidps[u], 1.0);
   }
 }
 

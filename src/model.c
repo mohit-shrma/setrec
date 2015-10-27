@@ -742,12 +742,61 @@ float Model_indivTrainSetsErr(void *self, Data *data) {
           dotProd(model->uFac[u], model->iFac[item], model->facDim));
       rmse += diff*diff;
       nItems++;
+     }
+   }
+  
+  rmse = sqrt(rmse/(nItems*1.0)); 
+
+  return rmse;
+}
+
+
+float Model_indivTrainSetsScaledErr(void *self, Data *data, float maxRat) {
+  
+  int u, i, item;
+  UserSets *userSet = NULL;
+  Model *model = self;
+  float rmse = 0, diff; 
+  int nItems = 0;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->nUserItems; i++) {
+      item = userSet->itemWtSets[i]->item;
+      //NOTE: following assumes that their actual ratings are loaded in
+      //itemWtSets->wt
+      diff = (userSet->itemWtSets[i]->wt - 
+          (dotProd(model->uFac[u], model->iFac[item], model->facDim)/maxRat)*MAX_RAT);
+      rmse += diff*diff;
+      nItems++;
     }
   }
   
   rmse = sqrt(rmse/(nItems*1.0)); 
 
   return rmse;
+}
+
+
+float Model_getMaxEstTrainRat(void *self, Data *data) {
+  int u, i, item;
+  UserSets *userSet = NULL;
+  Model *model = self;
+  int nItems = 0;
+  float rat, maxRat = -1;
+
+  for (u = 0; u < data->nUsers; u++) {
+    userSet = data->userSets[u];
+    for (i = 0; i < userSet->nUserItems; i++) {
+      item = userSet->itemWtSets[i]->item;
+      rat = dotProd(model->uFac[u], model->iFac[item], model->facDim);
+      if (rat > maxRat) {
+        maxRat = rat;
+      }
+    }
+  }
+  
+  return maxRat;
 }
 
 
@@ -771,6 +820,38 @@ float Model_indivItemCSRErr(void *self, gk_csr_t *mat, char *opFName) {
         fprintf(fp, "%d,%d,%f,%f\n", u, item, itemRat, estItemRat);
       }
 
+      diff += (itemRat - estItemRat)*(itemRat - estItemRat);
+      nnz++;
+    }
+  }
+  if (fp) {
+    fclose(fp);
+  }
+
+  return sqrt(diff/nnz);
+}
+
+
+float Model_indivItemCSRScaledErr(void *self, gk_csr_t *mat, float maxRat, 
+    char *opFName) {
+  int u, ii, i, jj, j, item;
+  float diff = 0, itemRat, estItemRat;
+  int nnz = 0;
+  Model *model = self;
+  FILE *fp = NULL;
+  
+  if (opFName) {
+    fp = fopen(opFName, "w");
+  }
+
+  for (u = 0; u < mat->nrows; u++) {
+    for (ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      item = mat->rowind[ii];
+      itemRat = mat->rowval[ii];
+      estItemRat = (dotProd(model->uFac[u], model->iFac[item], model->facDim)/maxRat)*MAX_RAT;
+      if (fp) {
+        fprintf(fp, "%d,%d,%f,%f\n", u, item, itemRat, estItemRat);
+      }
       diff += (itemRat - estItemRat)*(itemRat - estItemRat);
       nnz++;
     }
@@ -1771,8 +1852,13 @@ void *Model_new(size_t size, Model proto, const char *description) {
   if (!proto.isTerminateClassModel) proto.isTerminateClassModel = Model_isTerminateClassModel;
   if (!proto.coldHitRate) proto.coldHitRate                  = Model_coldHitRate;
   if (!proto.coldHitRateTr) proto.coldHitRateTr              = Model_coldHitRateTr;
-  if (!proto.coldHitRateTrPar) proto.coldHitRateTrPar              = Model_coldHitRateTrPar;
-  if (!proto.itemFeatScore) proto.itemFeatScore              = Model_itemFeatScore; 
+  if (!proto.coldHitRateTrPar) proto.coldHitRateTrPar           = Model_coldHitRateTrPar;
+  if (!proto.itemFeatScore) proto.itemFeatScore                 = Model_itemFeatScore;
+  if (!proto.indivItemCSRScaledErr) proto.indivItemCSRScaledErr = Model_indivItemCSRScaledErr; 
+  if (!proto.getMaxEstTrainRat) proto.getMaxEstTrainRat  = Model_getMaxEstTrainRat;   
+  if (!proto.indivTrainSetsScaledErr) proto.indivTrainSetsScaledErr = Model_indivTrainSetsScaledErr; 
+
+
   //struct of one size
   Model *model = calloc(1, size);
   //copy from proto to model or point a different pointer to cast it
