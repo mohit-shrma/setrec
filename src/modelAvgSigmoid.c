@@ -408,6 +408,7 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
   printf("\nTest set error: %f", valTest->testSetRMSE);
 
   //get maximum rating on individual item in train
+  /*
   temp = bestModel->_(getMaxEstTrainRat)(bestModel, data);
   printf("\nmaxRat: %f", temp);
   valTest->testItemsRMSE = bestModel->_(indivItemCSRScaledErr)(bestModel, 
@@ -417,20 +418,21 @@ void ModelAvgSigmoid_trainRMSProp(void *self, Data *data, Params *params,
   valTest->trainItemsRMSE = bestModel->_(indivTrainSetsScaledErr)(bestModel, 
       data, temp);
   printf("\nTrain items error indiv: %f", valTest->trainItemsRMSE);
+  */
 
-  /*
-  //valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
-  //                                                       data->valMat, 10); 
-  valTest->valSpearman = bestModel->_(coldHitRate)(bestModel, data->userSets,
-      data->valMat, data->itemFeatMat, data->valItemIds, data->nValItems, 10); 
-  printf("\nVal HR: %f", valTest->valSpearman);
+  
+  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
+                                                         data->valMat, 20); 
+  //valTest->valSpearman = bestModel->_(coldHitRate)(bestModel, data->userSets,
+  //    data->valMat, data->itemFeatMat, data->valItemIds, data->nValItems, 20); 
+  printf("\nVal spearman: %f", valTest->valSpearman);
 
-  //valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
-  //                                                        data->testMat, 10); 
-  valTest->testSpearman = bestModel->_(coldHitRate)(bestModel, data->userSets, 
-      data->testMat, data->itemFeatMat, data->testItemIds, data->nTestItems, 10); 
-  printf("\nTest HR: %f", valTest->testSpearman);
-  */ 
+  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
+                                                          data->testMat, 20); 
+  //valTest->testSpearman = bestModel->_(coldHitRate)(bestModel, data->userSets, 
+  //    data->testMat, data->itemFeatMat, data->testItemIds, data->nTestItems, 20); 
+  printf("\nTest spearman: %f", valTest->testSpearman);
+   
 
   bestModel->_(copy) (bestModel, model);
   free(bestModel->u_m);

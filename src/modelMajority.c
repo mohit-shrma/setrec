@@ -2434,16 +2434,12 @@ void ModelMajority_trainRMSProp(void *self, Data *data, Params *params, float **
   
   valTest->trainItemsRMSE = bestModel->_(indivTrainSetsErr) (bestModel, data);
   printf("\nTrain set indiv error(modelMajority): %f", valTest->trainItemsRMSE);
-
-  /*
-  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
-                                                         data->valMat, 10); 
-  printf("\nVal spearman: %f", valTest->valSpearman);
-
-  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, 
-                                                          data->testMat, 10); 
+ 
+  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->testMat, 20); 
   printf("\nTest spearman: %f", valTest->testSpearman);
-  */
+  
+  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->valMat, 20); 
+  printf("\nVal spearman: %f", valTest->valSpearman);
 
   valTest->trainSetRMSE = bestModel->_(trainErr)(bestModel, data, NULL); 
   printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
@@ -2927,9 +2923,11 @@ void ModelMajority_trainRMSPropAvg(void *self, Data *data, Params *params, float
   valTest->trainSetRMSE = bestModel->_(trainErr)(bestModel, data, NULL); 
   printf("\nTrain set error(modelMajority): %f", valTest->trainSetRMSE);
  
-  //valTest->testSpearman = bestModel->_(coldHitRate)(bestModel, data->userSets, 
-  //    data->testMat, data->itemFeatMat, data->testItemIds, data->nTestItems, 10); 
-  //printf("\nTest HR: %f", valTest->testSpearman);
+  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->testMat, 20); 
+  printf("\nTest spearman: %f", valTest->testSpearman);
+  
+  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->valMat, 20); 
+  printf("\nVal spearman: %f", valTest->valSpearman);
  
   valTest->testSetRMSE = bestModel->_(testErr) (bestModel, data, NULL); 
   printf("\nTest set error(modelMajority): %f", valTest->testSetRMSE);

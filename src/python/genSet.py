@@ -2,9 +2,10 @@ import sys
 import random
 import os
 
-def getEvalSet(userItemsRat, sampPerUser=1):
+def getEvalSet(userItemsRat, sampPerUser=20):
   evalSet = []
   users = userItemsRat.keys()
+  users.sort()
   for u in users:
     itemRats = userItemsRat[u]
     nUItems = len(itemRats)
@@ -15,6 +16,7 @@ def getEvalSet(userItemsRat, sampPerUser=1):
     uItems = itemRats.keys()
     for ind in randInds:
       evalSet.append((u, uItems[ind], itemRats[uItems[ind]]))
+    #evalSet = sorted(evalSet, key=lambda x: x[1])
     for ind in randInds:
       del itemRats[uItems[ind]]
   return evalSet
@@ -25,6 +27,31 @@ def writeEvalSet(evalSet, opFileName, uMap, iMap):
     for s in evalSet:
       g.write(str(uMap[s[0]]) + ' ' + str(iMap[s[1]]) 
           + ' ' + str(s[2]) + '\n')
+
+
+def writeEvalSetToCSR(evalSet, opFileName, uMap, iMap):
+ 
+  currRowInd = 0
+  currRow = []
+  
+  with open(opFileName + '.csr', 'w') as g:
+    for s in evalSet:
+      rowInd = uMap[s[0]]
+      colInd = iMap[s[1]]
+      rat    = s[2]  
+      if rowInd != currRowInd:
+        #new row found, write out current row
+        g.write(' '.join(map(str, currRow)) + '\n')
+        currRowInd += 1
+        while currRowInd < rowInd:
+          g.write('\n')
+          currRowInd += 1
+        currRow = []
+      if rat != 0:
+        currRow.append(colInd)
+        currRow.append(rat)
+    #write out last row
+    g.write(' '.join(map(str, currRow)) + '\n')
 
 
 def getTriplets(userItemsRat):
@@ -55,6 +82,22 @@ def writeTriplets(userItemsRat, opFileName, uMap, iMap):
   return rats
 
 
+def writeTripletsTOCSR(userItemsRat, opFileName, uMap, iMap):
+  rats = []
+  users = userItemsRat.keys()
+  users.sort()
+  with open(opFileName + '.csr', 'w') as g:
+    for u in users:
+      itemRats = userItemsRat[u]
+      items = itemRats.keys()
+      items.sort()
+
+      for item in items:
+        g.write(str(iMap[item]) + ' ' + str(userItemsRat[u][item]) + ' ')
+      g.write('\n')
+  return rats
+
+
 def getUserItemsNMap(ratFileName, setSize):
   userItemsRat = {}
   userMap = {}
@@ -80,8 +123,11 @@ def getUserItemsNMap(ratFileName, setSize):
   maxItemId = max(list(obsItemIds))
   if minItemId ==0 and maxItemId - minItemId + 1 == len(obsItemIds):
     #found all items in order
+    print 'found all items in order'
     for itemId in list(obsItemIds):
       itemMap[itemId] = itemId
+  else:
+    print 'found items not in order'
 
   for user in userKeys:
     itemRats = userItemsRat[user]
@@ -157,15 +203,21 @@ def getNonOverlapSetsForUser(itemRats, nSetsPerUser, setSize):
     return setLabels
   
   items = itemRats.keys()
-
+  
   while len(setLabels) < nSetsPerUser:
     #generate set i
     tempSet = set([])
-    while len(tempSet) < setSize:
+    nTry = 0
+    while len(tempSet) < setSize and nTry < 5000:
       item = items[random.randint(0, nItems-1)]
       if item not in uItems:
         tempSet.add(item)
         uItems.add(item)
+      nTry += 1
+
+    if nTry >= 5000 and len(tempSet) < setSize:
+      print 'Err: cant create sets with non overlapping items', len(items), len(setLabels)
+      break
 
     #assign set label
     setItemRat = [] 
@@ -179,7 +231,7 @@ def getNonOverlapSetsForUser(itemRats, nSetsPerUser, setSize):
     if setSize %2 != 0:
       majSz = setSize/2 + 1
 
-    majSz = setSize
+    #majSz = setSize
 
     for i in range(majSz):
       sm += setItemRat[i][0]
@@ -200,6 +252,7 @@ def getNonOverlapSetsForUser(itemRats, nSetsPerUser, setSize):
 
 def genSetsNWrite(userItemsRat, opFileName, setSize, nSetsPerUser, uMap,
     iMap):
+  uLess = []
   with open(opFileName, 'w') as g:
     u = 0
     for user, itemRats in userItemsRat.iteritems():
@@ -210,6 +263,7 @@ def genSetsNWrite(userItemsRat, opFileName, setSize, nSetsPerUser, uMap,
 
       if (nSets < nSetsPerUser):
         print 'less sets found: ', user, nSets, nSetsPerUser, len(itemRats)
+        uLess.append(user)
 
       setItems = set([])
       for (st, label) in setLabels:
@@ -223,6 +277,7 @@ def genSetsNWrite(userItemsRat, opFileName, setSize, nSetsPerUser, uMap,
         stItm = map(lambda x: iMap[x], st)
         g.write(str(label) + ' ' + str(len(stItm)) + ' ' 
             + ' '.join(map(str, list(stItm))) + '\n')
+  print 'nUsers with less set:', len(uLess)  
 
 
 def writeMap(m, opName):
@@ -258,16 +313,19 @@ def main():
   testSet = getEvalSet(userItemsRat)
   testFName = os.path.join(opDir, opPrefix + '_test')
   writeEvalSet(testSet, testFName, userMap, itemMap)
+  writeEvalSetToCSR(testSet, testFName, userMap, itemMap)
 
   #get validation set
   valSet = getEvalSet(userItemsRat)
   valFName = os.path.join(opDir, opPrefix + '_val')
   writeEvalSet(valSet, valFName, userMap, itemMap)
+  writeEvalSetToCSR(valSet, valFName, userMap, itemMap)
 
   #write train set
   trainSet = getTriplets(userItemsRat)
   trainFName = os.path.join(opDir, opPrefix + '_train')
   writeTriplets(userItemsRat, trainFName, userMap, itemMap)
+  writeTripletsTOCSR(userItemsRat, trainFName, userMap, itemMap)
   #writeEvalSet(trainSet, opFileName + '_train', userMap, itemMap)
 
   setFName = os.path.join(opDir, opPrefix + '_sets')

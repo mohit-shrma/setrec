@@ -1385,7 +1385,7 @@ float Model_coldHitRate(void *self, UserSets **userSets,
   int nRelUsers               = 0;
   FILE *fp = NULL;
 
-  fp = fopen("topItemRat.txt", "w");
+  //fp = fopen("topItemRat.txt", "w");
 
   //get number of test users and test users
   memset(isTestUsers, false, sizeof(bool)*nUsers);
@@ -1618,17 +1618,17 @@ int Model_isTerminateModel(void *self, void *bestM, int iter, int *bestIter,
   Model *bestModel      = bestM;
   if (data->valMat) {
     valTest->valItemsRMSE = model->indivItemCSRErr(model, data->valMat, NULL);
-    valTest->valSpearman  = -1;//model->spearmanRankCorrN(model, data->valMat, 10);
+    valTest->valSpearman  = model->spearmanRankCorrN(model, data->valMat, 20);
   } else {
     valTest->valItemsRMSE = -1;
     valTest->valSpearman = -1;
   }
   valTest->setObj = model->objective(model, data, NULL);
  
-  printf("\nIter: %d Obj: %.10e valRMSE: %f", iter, 
-      valTest->setObj, valTest->valItemsRMSE);
-  //printf("\nIter: %d Obj: %.10e valSpearman: %f valRMSE: %f", iter, 
-  //    valTest->setObj, valTest->valSpearman, valTest->valItemsRMSE);
+  //printf("\nIter: %d Obj: %.10e valRMSE: %f", iter, 
+  //    valTest->setObj, valTest->valItemsRMSE);
+  printf("\nIter: %d Obj: %.10e valSpearman: %f valRMSE: %f", iter, 
+      valTest->setObj, valTest->valSpearman, valTest->valItemsRMSE);
   
   if (iter > 0) {
     if (valTest->setObj < *bestObj) {
