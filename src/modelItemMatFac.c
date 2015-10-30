@@ -381,10 +381,10 @@ void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float 
   valTest->valItemsRMSE = bestModel->_(indivItemCSRErr) (bestModel, data->valMat, NULL);
   printf("\nValidation items error: %f", valTest->valItemsRMSE);
 
-  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->testMat, 10); 
+  valTest->testSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->testMat, 20); 
   printf("\nTest spearman: %f", valTest->testSpearman);
 
-  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->valMat, 10);
+  valTest->valSpearman = bestModel->_(spearmanRankCorrN)(bestModel, data->valMat, 20);
   printf("\nVal spearman: %f", valTest->valSpearman);
 
   if (iter == params->maxIter) {
@@ -407,7 +407,10 @@ void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float 
 
   //printf("\nTest hit rate: %f", 
   //    model->_(hitRate)(model, data->trainMat, data->testMat));
-  
+
+
+  bestModel->_(copy)(bestModel, model);
+
   bestModel->_(free)(bestModel);
 
   for (i = 0; i < params->nItems; i++) {
