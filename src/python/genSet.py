@@ -250,13 +250,165 @@ def getNonOverlapSetsForUser(itemRats, nSetsPerUser, setSize):
   return setLabels
 
 
+def getHRatNonOverlapSetsForUser(itemRats, nSetsPerUser, setSize):
+  nItems    = len(itemRats)
+  setLabels = set([])
+  uItems    = set([])
+
+  if nItems < 2 * setSize:
+    return setLabels
+  
+  items = itemRats.keys()
+  
+  ratItems = []
+  for item, rat in itemRats.iteritems():
+    ratItems.append((rat, item))
+  ratItems.sort()
+  midp = len(ratItems)/2
+  
+  majSz = setSize/2
+  if setSize %2 != 0:
+    majSz = setSize/2 + 1
+
+  while len(setLabels) < nSetsPerUser:
+    #generate set i
+    tempSet = set([])
+    nTry = 0
+    majSet = set([])
+    minSet = set([])
+   
+    nMajTry = 0
+    while len(majSet) < majSz and nMajTry < 1000:
+      item = ratItems[random.randint(midP, len(ratItems)-1)][1]
+      if item not in uItems and item not in majSet:
+        majSet.add(item)
+        uItems.add(item)
+      nMajTry += 1
+    
+    nMinTry = 0
+    while len(minSet) < setSize - majSz and nMinTry < 1000:
+      item = ratItems[random.randint(0, midP-1)][1]
+      if item not in uItems and item not in majSet:
+        minSet.add(item)
+        uItems.add(item)
+      nMinTry += 1
+    
+    tempSet = majSet | minSet
+
+    if nMinTry >= 1000 and nMajTry >= 1000 and len(tempSet) < setSize:
+      print 'Err: cant create sets with non overlapping items', len(items), len(setLabels)
+      break
+
+    #assign set label
+    setItemRat = [] 
+    for item in tempSet:
+      setItemRat.append((itemRats[item], item))
+    setItemRat.sort(reverse=True)
+    
+    #get avg of top items
+    sm = 0.0
+    #majSz = setSize
+
+    for i in range(majSz):
+      sm += setItemRat[i][0]
+    avgTopRatItems = sm/(majSz*1.0)
+   
+    #get items in decrease order by rating
+    itemsInDecrOrder = map(lambda x: str(x[1]), setItemRat)
+
+    #tempList = map(str, list(tempSet))
+    #TODO: ensure unique sets
+    setLabels.add((' '.join(itemsInDecrOrder), float(avgTopRatItems)))
+
+  setLabels = list(setLabels)
+  for i in range(len(setLabels)):
+    setLabels[i] = (set(map(int, setLabels[i][0].split(' '))), setLabels[i][1]) 
+  return setLabels
+
+
+def getLRatNonOverlapSetsForUser(itemRats, nSetsPerUser, setSize):
+  nItems    = len(itemRats)
+  setLabels = set([])
+  uItems    = set([])
+
+  if nItems < 2 * setSize:
+    return setLabels
+  
+  items = itemRats.keys()
+  
+  ratItems = []
+  for item, rat in itemRats.iteritems():
+    ratItems.append((rat, item))
+  ratItems.sort()
+  midp = len(ratItems)/2
+  
+  majSz = setSize/2
+  if setSize %2 != 0:
+    majSz = setSize/2 + 1
+
+  while len(setLabels) < nSetsPerUser:
+    #generate set i
+    tempSet = set([])
+    nTry = 0
+    majSet = set([])
+    minSet = set([])
+   
+    nMajTry = 0
+    while len(majSet) < majSz and nMajTry < 1000:
+      item = ratItems[random.randint(0, midP-1)][1]
+      if item not in uItems and item not in majSet:
+        majSet.add(item)
+        uItems.add(item)
+      nMajTry += 1
+    
+    nMinTry = 0
+    while len(minSet) < setSize - majSz and nMinTry < 1000:
+      item = ratItems[random.randint(midP, len(ratItems)-1)][1]
+      if item not in uItems and item not in majSet:
+        minSet.add(item)
+        uItems.add(item)
+      nMinTry += 1
+    
+    tempSet = majSet | minSet
+
+    if nMinTry >= 1000 and nMajTry >= 1000 and len(tempSet) < setSize:
+      print 'Err: cant create sets with non overlapping items', len(items), len(setLabels)
+      break
+
+    #assign set label
+    setItemRat = [] 
+    for item in tempSet:
+      setItemRat.append((itemRats[item], item))
+    setItemRat.sort(reverse=True)
+    
+    #get avg of top items
+    sm = 0.0
+    #majSz = setSize
+
+    for i in range(majSz):
+      sm += setItemRat[i][0]
+    avgTopRatItems = sm/(majSz*1.0)
+   
+    #get items in decrease order by rating
+    itemsInDecrOrder = map(lambda x: str(x[1]), setItemRat)
+
+    #tempList = map(str, list(tempSet))
+    #TODO: ensure unique sets
+    setLabels.add((' '.join(itemsInDecrOrder), float(avgTopRatItems)))
+
+  setLabels = list(setLabels)
+  for i in range(len(setLabels)):
+    setLabels[i] = (set(map(int, setLabels[i][0].split(' '))), setLabels[i][1]) 
+  return setLabels
+
+
 def genSetsNWrite(userItemsRat, opFileName, setSize, nSetsPerUser, uMap,
     iMap):
   uLess = []
   with open(opFileName, 'w') as g:
     u = 0
     for user, itemRats in userItemsRat.iteritems():
-      setLabels = getSetsForUser(itemRats, nSetsPerUser, setSize)
+      setLabels = getNonOverlapSetsForUser(itemRats, nSetsPerUser, setSize)
       if len(setLabels) == 0:
         print 'no set found'
       nSets = len(setLabels)
