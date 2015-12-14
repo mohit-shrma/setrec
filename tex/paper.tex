@@ -1,0 +1,58 @@
+
+
+
+\usepackage{sig-alternate-05-2015}
+
+
+\begin{document}
+
+\title{\Large Learning from Sets}
+\author{Mohit Sharma~\thanks{University of Minnesota.}}
+\date{}
+\maketitle
+
+\begin{abstract} \small
+Existing item recommendation methods rely on a user's preferences on the items
+consumed in the past. However, it is not easy to elicit the user's preferences
+on each and every item to improve the recommendation to user, particularly when
+we have a large number of items. In this paper, we present a method to elicit
+the user's preference on a set of items rather than on the items that constitute
+the set and use this preference on the set to estimate the preference of the
+constituting items. This method, compared to the process in which the user has
+to provide his/her preference for the individual items, can quickly gather the
+user's preferences on a few sets that span a large number of items. In the
+experiments on the real world data, we show that the estimated preferences on
+the individual items from these sets are comparable to the preferences when
+estimated using the individual preference on the items. 
+
+
+\end{abstract}
+
+\section{Introduction}
+\input{intro.tex}
+
+\section{Notations and Definitions}
+\input{notation.tex}
+
+\section{Related Work}
+\input{relatedwork.tex}
+
+\section{Methods}
+\input{methods.tex}
+
+\section{Experimental Evaluation}
+\input{experiments.tex}
+
+\section{Results and Discussion}
+\input{results.tex}
+
+\section{Conclusion}
+\input{conclusion.tex}
+
+\bibliography{refs}{}
+\bibliographystyle{plain}
+
+\end{document}
+
+
+

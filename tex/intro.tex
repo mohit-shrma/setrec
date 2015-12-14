@@ -1,0 +1,51 @@
+
+
+
+Recommender systems are widely deployed in various domains e.g. music(iTunes),
+movies(Netflix), e-commerce(Amazon) to suggest relevant products to the users
+based on their preferences. 
+
+One of the key methods used by the recommender systems is the collaborative
+filtering method, which uses the information from the previous transactions of the users 
+and generate the recommendations for the users. Generally, the collaborative
+filtering consists of two approaches: the neighborhood-based approach and the
+latent-factor models. In the neighborhood-based approach, the similarities
+between the items or the users are used to compute recommendations. While the
+latent-factor models transforms the users and the items to the same
+latent space where both of them are comparable to each other, the items closest
+to the users are served as the recommendations to the users.
+
+An important requirement of these collaborative filtering method is that the
+user should indicate his/her prefrence over a certain number of the items to
+generate recommendations for the future consumption. To overcome this drawback
+for a new user, most of the services deploying recommender systems elicit users' preferences on
+few items which the user may have consumed before. The recommendation quality
+improves with the number of the preferences provided by the user on the items.
+This process of eliciting the preferences of users on items can be time
+consuming as a user has to indicate his/her preferences on initial items one at a time. 
+
+In this work, we present a method which elicit preferences of the user on a set of
+items rather than rating those items individually in a sequence. Since, a set
+can be composed of multiple items the  user can indicate his preference on a large
+number of items by indicating his preference on few sets of items. In this
+manner, the time spent by the user indicating his initial preferences on the items is 
+reduced significantly before he begins to use the service. 
+
+%TODO: Introduce model in simple words, like non-linear and linear and sigmoid add citatons
+
+We make the following contributions: First, we propose various Learning from Set
+models that enables estimation of the user's preference on the idividual items.
+Second, we illustrate the effectiveness of these models with experiments on the 
+synthetic and the real datasets by comparing their performance with the state-of-the-art 
+matrix factorization methods when the user has indicated his/her preference on
+the individual items.
+
+
+
+
+
+
+
+
+
+
