@@ -1,0 +1,108 @@
+%!TEX root = paper.tex
+
+To estimate the preferences on individual items from the preference of the user on the
+sets, we need to understand how the user rate a given set of items. A user may
+rate a set of items by considering each item in the set or may chose to rate
+the set of the items based on few but majority of the items in the set.
+
+In the first case, when a user consider all the items in the set before 
+assigning a rating to a set then we can safely assume that the user most likely
+gives the set an average score of his preferences for all the items that constitutes 
+the set. Under this assumption the estimated rating of the user $u$ on a 
+set $S$ is given by: 
+
+\begin{equation} \label{avgSetEq}
+  \begin{split}
+    \tilde{r}^{avg}_{us} &= \frac{1}{|S|} \sum_{i \in \mathcal{S}} r_{u,i},
+  \end{split}
+\end{equation}
+
+where $\mathcal{S}$ denotes the set containing the items and $r_{u,i}$ is the
+preference score of the user $u$ on the item $i$ .
+
+Similarly, when a user considers only a few but the majority of the items in
+the set $\mathcal{S}$ then the user's estimated rating on the set $\mathcal{S}$ is given by:
+
+\begin{equation} \label{majSetEq}
+  \begin{split}
+    \tilde{r}^{maj}_{us} &= \frac{1}{|\mathcal{S}_{maj}|} \sum_{i \in
+    \mathcal{S}_{maj}} r_{u,i},
+  \end{split}
+\end{equation}
+
+where $\mathcal{S}_maj$ contains the majority of the top rated items in the set 
+$\mathcal{S}$.
+
+
+Assuming that the original user-item preference matrix $R$ is low-rank, we can write
+the estimated preference of the user $u$ for the item $i$ as follow:
+
+\begin{equation} 
+  \begin{split}
+    \tilde{r}_{ui} &= p_u^Tq_i, 
+  \end{split}
+\end{equation}
+
+where, $k$ is the rank of the matrix $R$, $p_u \in \mathcal{R}^k$ and $q_i \in \mathcal{R}^K$ denotes the latent factor of the user $u$ and the item $i$ respectively.  
+
+Following the low-rank assumption, we can rewrite the estimated score of the 
+user $u$ for a set $\mathcal{S}$ in equations \ref{avgSetEq} and \ref{majSetEq} as follow:
+
+\begin{equation} \label{avgSetLoEq}
+  \begin{split}
+    \tilde{r}^{avg}_{us} &= \frac{1}{|S|} \sum_{i \in \mathcal{S}} p_u^Tq_i,
+  \end{split}
+\end{equation}
+
+
+\begin{equation} \label{majSetLoEq}
+  \begin{split}
+    \tilde{r}^{maj}_{us} &= \frac{1}{|\mathcal{S}_{maj}|} \sum_{i \in
+    \mathcal{S}_{maj}} p_u^Tq_i,
+  \end{split}
+\end{equation}
+
+
+\subsection{Learning from Set Model}
+The learning from set model is parameterized by $\Theta=[P, Q]$, where the
+matrices $P$ and $Q$ contains the latent factors of the users and the items
+respectively. The model parameters are estimated by minimizing the squared error
+loss function, given by
+
+%
+\begin{equation} \label{eq_rmse}
+  \mathcal{L}_{rmse}(\Theta) \equiv \sum_{u \in U} \sum_{\substack{s \in
+  \mathcal{R}_{us}}} (\tilde{r}_{us} - r_{us})^2,
+\end{equation}
+%
+
+%TODO: need to add better connection to majority or average assumption
+
+where $\mathcal{R}_{us}$ contains all the sets preferred by the user $u$,
+$r_{us}$ is the original rating and $\tilde{r}_{us}$ is the estimated rating of
+the user $u$ on the set $s$. The estimated rating $\tilde{r}_{us}$ can be
+computed as per equation \ref{avgSetLoEq} or \ref{majSetLoEq} depending on
+whether the average or the majority assumption is used to estimate the rating of 
+the user $u$ on the set $s$. 
+
+To control model complexity, we add regularization of the model parameters
+thereby leading to an optimization process of the following form:
+
+%
+\begin{equation} \label{eq_obj}
+  \min_{P, Q} \sum_{u \in U} \sum_{\substack{s \in \mathcal{R}_{us}}} (\tilde{r}_{us} - r_{us})^2  + \lambda (\|P\|_F^2 + \|Q\|_F^2),
+\end{equation}
+%
+
+where $\lambda$ is the regularization parameter.
+
+%TODO: need to add better connection to majority or average assumption
+
+The optimization problem of equation \ref{eq_obj} is solved by stochastic
+gradient descent algorithm for the average assumption and stochastic
+sub-gradient descent algorithm for the majority assumption.
+
+%TODO: add pseudo-code algorithm
+%TODO: add sub-gradient details and why it is needed
+
+

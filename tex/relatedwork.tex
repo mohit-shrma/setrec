@@ -1,0 +1,27 @@
+%!TEX root = paper.tex
+
+\subsection{Collaborative Filtering}
+
+Collaborative filtering is one of the widely used methods in the recommender
+systems. It tries to estimate the rating on a user $u$ on item $i$ i.e.,
+$\tilde{r}_{ui}$  based on the  partially observed user-item rating matrix $R
+\in \mathcal{R}^{m \times n}$ for $m$ users and $n$ items. In order to generate
+recommendations of new items, we need to estimate the unobserved entries of the
+matrix $R$. The unobserved entries can be estimated by assuming the matrix $R$
+to be of low-rank and completing the matrix $R$ by minimizing a squared loss:
+
+%TODO: argmin (P,Q) equation, add citations
+
+\begin{equation}
+  (\tilde{P}, \tilde{Q}) = \arg \min_{P,Q} \sum_{(u,i)} ( R - [PQ^T]_{u,i})^2,
+\end{equation}
+
+where $P \in R^{m \times r}, Q \in R^{n \times r}$. The completed matrix
+$\tilde{R} = \tilde{P} \tilde{Q}^T$
+is used to serve the recommendation to the user for the items for which his
+preferences were unknown in the original matrix $R$.
+
+
+
+
+
