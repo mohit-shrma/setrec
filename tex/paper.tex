@@ -1,7 +1,28 @@
 
+\documentclass{sig-alternate-05-2015}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{bm} 
+\usepackage{xspace}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{varwidth}
+\usepackage{threeparttable}
+\usepackage{multirow,bigdelim} 
+\usepackage{booktabs}
+\usepackage{dsfont}
+\usepackage{epsfig}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xspace}
+\usepackage{color}
+\usepackage{epstopdf}
+\usepackage[font=footnotesize]{subfig}
+\usepackage{chngpage}
+\usepackage{subfig}
+\usepackage{setspace}
 
 
-\usepackage{sig-alternate-05-2015}
 
 
 \begin{document}
@@ -12,18 +33,23 @@
 \maketitle
 
 \begin{abstract} \small
-Existing item recommendation methods rely on a user's preferences on the items
-consumed in the past. However, it is not easy to elicit the user's preferences
-on each and every item to improve the recommendation to user, particularly when
-we have a large number of items. In this paper, we present a method to elicit
-the user's preference on a set of items rather than on the items that constitute
-the set and use this preference on the set to estimate the preference of the
-constituting items. This method, compared to the process in which the user has
-to provide his/her preference for the individual items, can quickly gather the
-user's preferences on a few sets that span a large number of items. In the
-experiments on the real world data, we show that the estimated preferences on
-the individual items from these sets are comparable to the preferences when
-estimated using the individual preference on the items. 
+Existing item recommendation methods rely on the availability of the user's preferences 
+on the items consumed in the past. Additionally, the performance of these recommendation methods
+is proportional to the amount of information available to the recommender
+system, i.e., the more availability of user's preferences on the items, the  better
+the quality of the recommendations for the user.
+However, it is not easy to elicit the user's preferences
+on items in order to improve the recommendations for the user, particularly when
+we have a large number of items. 
+In this paper, we propose a method in which we elicit the user's preference on a
+\textit{set} of items rather than on the individual items that constitute the
+\textit{set}. We use this preference on the set to estimate the user's preference on the items
+that constitute the set. This method, compared to the process in which the user
+has to sequentially provide his/her preference for the individual items, can
+quickly gather the user's preferences on a few sets that span a large number of
+items. In the experiments on real world data, we show that the quality of
+recommendations generated from these sets is comparable to the recommendations
+generated using the individual preference on the items.
 
 
 \end{abstract}
@@ -38,16 +64,16 @@ estimated using the individual preference on the items.
 \input{relatedwork.tex}
 
 \section{Methods}
-\input{methods.tex}
+\input{method.tex}
 
 \section{Experimental Evaluation}
-\input{experiments.tex}
+%\input{experiments.tex}
 
 \section{Results and Discussion}
-\input{results.tex}
+%\input{results.tex}
 
 \section{Conclusion}
-\input{conclusion.tex}
+%\input{conclusion.tex}
 
 \bibliography{refs}{}
 \bibliographystyle{plain}
