@@ -232,6 +232,7 @@ void loadData(Data *data, Params *params) {
   itemSetInd = (int*) malloc(sizeof(int)*params->nItems);
 
   //open file
+  if (NULL != params->user_set_file) {
   fp = fopen(params->user_set_file, "r");
   if (fp == NULL) {
     printf("\nError opening file: %s", params->user_set_file);
@@ -346,7 +347,7 @@ void loadData(Data *data, Params *params) {
       zeroCount);
 
   fclose(fp);
-  
+  }
   //read csr matrices
   if (params->train_mat_file) {
     printf("\nReading train matrix(0 indexed)...");

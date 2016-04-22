@@ -1,5 +1,5 @@
 import sys
-
+import random
 
 def convRatFName(yRatFName, uMap, trackMap, albumMap, opPrefix):
   opFName = opPrefix + '_ratConv.txt'
@@ -51,8 +51,8 @@ def writeMap(m, fName):
 
 def writeUserSet(user, userTracks, userAlbumRatTracks, g):
   nTracks = len(userTracks)
-  g.write(str(user) + ' ' + str(nTracks) + ' ' 
-      + ' '.join(map(str, userTracks)) + '\n')
+  g.write(str(user) + ' ' + str(len(userAlbumRatTracks)) + ' ' + str(nTracks) 
+      + ' ' + ' '.join(map(str, userTracks)) + '\n')
   for album, ratTracks in userAlbumRatTracks.iteritems():
     albumTracks = ratTracks[0]
     albumRat = ratTracks[1]
@@ -60,7 +60,7 @@ def writeUserSet(user, userTracks, userAlbumRatTracks, g):
         + ' '.join(map(str, albumTracks)) + '\n')
 
 
-def writeSets(fName, opPrefix):
+def writeSets(fName, userTestTracks, userValTracks, opPrefix):
   opName = opPrefix + '_set.txt'
   with open(fName, 'r') as f, open(opName, 'w') as g:
     userTracks = []
@@ -82,6 +82,8 @@ def writeSets(fName, opPrefix):
         userTracks = []
         userAlbumRatTracks = {}
         currUser = user
+      if track in userTestTracks[user] or track in userValTracks[user]:
+        continue
       userTracks.append(track)
       if album not in userAlbumRatTracks:
         userAlbumRatTracks[album] = [[], 0]
@@ -92,8 +94,11 @@ def writeSets(fName, opPrefix):
 
 
 def writeRatings(fName, opPrefix):
+  userTestTracks = {}
+  userValTracks  = {}
   trackRatOpName = opPrefix + '_trackRat.txt'
   albumRatOpName = opPrefix + '_albumRat.txt'
+  userAlbums     = {}
   with open(fName, 'r') as f, open(trackRatOpName, 'w') as g, open(albumRatOpName, 'w') as h:
     for line in f:
       cols     = map(int, line.strip().split())
@@ -103,13 +108,52 @@ def writeRatings(fName, opPrefix):
       track    = cols[3]
       trackRat = cols[4]
       g.write(str(user) + ' ' + str(track) + ' ' + str(trackRat) + '\n')  
-      h.write(str(user) + ' ' + str(album) + ' ' + str(albumRat) + '\n')
       
+      if user not in userTestTracks:
+        if random.randint(0,10) % 2 == 0:
+          userTestTracks[user] = [track, trackRat]
+      elif user not in userValTracks:
+        if random.randint(0,10) % 2 == 0:
+          userValTracks[user] = [track, trackRat]
+      
+      if user not in userAlbums:
+        userAlbums[user] = set([])
+      if album not in userAlbums[user]:
+        userAlbums[user].add(album)
+        h.write(str(user) + ' ' + str(album) + ' ' + str(albumRat) + '\n')
+  return (userTestTracks, userValTracks)
+
+
+def writeTrainTestValTriplets(fName, opPrefix, userTestTracks, userValTracks):
+  trainFName = opPrefix + '_train.triplet'
+  testFName  = opPrefix + '_test.triplet'
+  valFName   = opPrefix + '_val.triplet'
+  with open(fName, 'r') as f, open(trainFName, 'w') as g,\
+      open(testFName, 'w') as h, open(valFName, 'w') as p:
+        for line in f:
+          cols     = map(int, line.strip().split())
+          user     = cols[0]
+          album    = cols[1]
+          albumRat = cols[2]
+          track    = cols[3]
+          trackRat = cols[4]
+          if track == userTestTracks[user][0]:
+            h.write(str(user) + ' ' + str(track) + ' ' + str(trackRat) + '\n')
+          elif track == userValTracks[user][0]:
+            p.write(str(user) + ' ' + str(track) + ' ' + str(trackRat) + '\n')
+          else:
+            g.write(str(user) + ' ' + str(track) + ' ' + str(trackRat) + '\n')
+
+
 
 def main():
-  
-  yRatFName  = sys.argv[1]
-  opPrefix   = sys.argv[2]
+  yRatFName = sys.argv[1]
+  opPrefix  = sys.argv[2]
+  seed      = int(sys.argv[3])
+
+  opPrefix = opPrefix + '_' + str(seed) 
+
+  random.seed(seed)
 
   #get user and track map
   (uMap, trackMap, albumMap) = getUserTrackAlbumMap(yRatFName)
@@ -117,16 +161,36 @@ def main():
   writeMap(trackMap, opPrefix + '_trackMap.txt')
   writeMap(albumMap, opPrefix + '_albumMap.txt')
 
+  print 'Written maps...'
+
   #convert passed rating file 
   convFName = convRatFName(yRatFName, uMap, trackMap, albumMap, opPrefix)
   
+  #convFName = opPrefix + '_ratConv.txt' 
+  print 'Converted passed rating file...'
+
+  #write track and album rating triplets
+  (userTestTracks, userValTracks) = writeRatings(convFName, opPrefix)
+ 
+  print 'Wrote album and track ratings'
+
+  #make sure user testTRacks and val tracks are not empty
+  users = uMap.values()
+  for u in users:
+    if u not in userTestTracks:
+      print 'User not found in test: ', u
+    if u not in userValTracks:
+      print 'User not found in val: ', u
+
+  #write out training, test and validation triplets
+  writeTrainTestValTriplets(convFName, opPrefix, userTestTracks, userValTracks) 
+  
+  print 'Train, test and val written...'
+
   #use converted file to generate sets
   #NOTE: this assumes that file is in sorted order
-  writeSets(convFName, opPrefix)  
+  writeSets(convFName, userTestTracks, userValTracks, opPrefix)  
   
-  #write track and album rating triplets
-  writeRatings(convFName, opPrefix)
-
 
 if __name__ == '__main__':
   main()

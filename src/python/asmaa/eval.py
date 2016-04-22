@@ -26,6 +26,15 @@ def getTestItems(testItemsFName):
   return testItems
 
 
+def rating(u, item, itemFeats, uFac, fFac):
+  est_rat = 0
+  itemFeat = itemFeats[item]
+  for feat in itemFeat:
+    est_rat += np.dot(uFac[u], fFac[feat])
+  est_rat = est_rat/len(itemFeat)
+  return est_rat
+
+
 def evalHR(testCSRName, itemFeats, testItems, ignoreUs, nUsers, uFac, fFac):
   
   recallU = 0
@@ -34,15 +43,11 @@ def evalHR(testCSRName, itemFeats, testItems, ignoreUs, nUsers, uFac, fFac):
   
   with open(testCSRName, 'r') as f:
     u = -1
-    
     for line in f:
       u += 1
-      
       if u  in ignoreUs:
         continue
-      
       cols = line.strip().split()
-
       testItemRats = []
       for item in testItems:
         #estimate rating for item
@@ -51,7 +56,7 @@ def evalHR(testCSRName, itemFeats, testItems, ignoreUs, nUsers, uFac, fFac):
         for feat in itemFeat:
           rat_est += np.dot(uFac[u], fFac[feat])
         rat_est = rat_est/len(itemFeat)
-        rat_est = 1.0/(1.0 + np.exp(-rat_est))
+        #rat_est = 1.0/(1.0 + np.exp(-rat_est))
         testItemRats.append((rat_est, item))
       testItemRats.sort(reverse = True)
       top10TestItems = set(map(lambda x: x[1], testItemRats[:10]))

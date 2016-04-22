@@ -10,7 +10,7 @@
 #include <omp.h>
 
 #define EPS 0.000001
-#define OBJ_ITER 50
+#define OBJ_ITER 500
 #define VAL_CONV 1
 #define OBJ_CONV 1
 #define VAL_ITER 100
@@ -71,7 +71,8 @@ typedef struct {
   float (*getMaxEstTrainRat) (void *self, Data *data);
   float (*indivItemCSRScaledErr) (void *self, gk_csr_t *mat, float maxRat, 
     char *opFName);
-  
+  float (*subMatKnownRankErr) (void *self, float **uFac, float **iFac, 
+    int facDim, int uStart, int uEnd, int iStart, int iEnd); 
   float (*itemFeatScore) (void *self, int u, int item, gk_csr_t *featMat);
   float (*hitRate) (void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
   float (*hitRateOrigTopN) (void *self, gk_csr_t *trainMat, float **origUFac, 
@@ -123,6 +124,8 @@ float Model_coldHitRateTr(void *self, gk_csr_t *trainMat, gk_csr_t *testMat,
     gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N); 
 float Model_coldHitRateTrPar(void *self, gk_csr_t *trainMat, gk_csr_t *testMat, 
     gk_csr_t *itemFeatMat, int *testItemIds, int nTestItems, int N); 
+float Model_subMatKnownRankErr(void *self, float **uFac, float **iFac, 
+    int facDim, int uStart, int uEnd, int iStart, int iEnd);
 float Model_hitRate(void *self, gk_csr_t *trainMat, gk_csr_t *testMat);
 float Model_hitRateOrigTopN(void *self, gk_csr_t *trainMat, float **origUFac, 
     float **origIFac, int N);

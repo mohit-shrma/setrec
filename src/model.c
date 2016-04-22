@@ -644,10 +644,30 @@ float Model_trainErr(void *self, Data *data, float **sim) {
       rmse += diff*diff;
       nTrainSets++;
     }
-  }
+   }
   
   rmse = sqrt(rmse/nTrainSets);
   
+  return rmse;
+} 
+
+
+float Model_subMatKnownRankErr(void *self, float **uFac, float **iFac, 
+    int facDim, int uStart, int uEnd, int iStart, int iEnd) {
+  float r_ui_est, r_ui_orig, diff, rmse;
+  int u, item, j;
+  Model *model = self;
+  rmse = 0;
+ 
+  for (u = uStart; u <= uEnd; u++) {
+    for (item = iStart; item <= iEnd; item++) {
+      r_ui_est = dotProd(model->uFac[u], model->iFac[item], model->facDim);
+      r_ui_orig = dotProd(uFac[u], iFac[item], facDim);
+      diff = (r_ui_est - r_ui_orig);
+      rmse += diff*diff;
+    }
+  }
+  rmse = sqrt(rmse/((uEnd-uStart+1)*(iEnd-iStart+1)));
   return rmse;
 }
 
@@ -1857,6 +1877,7 @@ void *Model_new(size_t size, Model proto, const char *description) {
   if (!proto.indivItemCSRScaledErr) proto.indivItemCSRScaledErr = Model_indivItemCSRScaledErr; 
   if (!proto.getMaxEstTrainRat) proto.getMaxEstTrainRat  = Model_getMaxEstTrainRat;   
   if (!proto.indivTrainSetsScaledErr) proto.indivTrainSetsScaledErr = Model_indivTrainSetsScaledErr; 
+  if (!proto.subMatKnownRankErr) proto.subMatKnownRankErr = Model_subMatKnownRankErr;
 
 
   //struct of one size

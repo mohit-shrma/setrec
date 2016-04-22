@@ -372,7 +372,7 @@ void ModelHingeWUm_trainRMSProp(void *self, Data *data, Params *params,
         break;
       }
     }
-
+    
   }
 
   valTest->setObj = bestObj;

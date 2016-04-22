@@ -140,14 +140,14 @@ float MHingeProdSim_objective(void *self, Data *data, float **sim) {
   int u, i, s, item, setSz, isTestValSet;
   UserSets *userSet = NULL;
   int *set = NULL;
-  float loss = 0, hingeLoss = 0, userSetPref = 0;
+  float loss = 0, hingeLoss = 0, userSetPref = 0, classLoss = 0;
   float uRegErr = 0, iRegErr = 0;
   MHingeProdSim *model = self;
 
   for (u = 0; u < data->nUsers; u++) {
     userSet = data->userSets[u];
-    isTestValSet = 0;
     for (s = 0; s < userSet->numSets; s++) {
+      isTestValSet = 0;
       
       //check if set in test sets
       for (i = 0; i < userSet->szTestSet; i++) {
@@ -181,6 +181,10 @@ float MHingeProdSim_objective(void *self, Data *data, float **sim) {
         hingeLoss = 1.0 - userSetPref*userSet->labels[s];  
       }
       
+      if (userSetPref*userSet->labels[s] < 0) {
+        classLoss += 1;
+      }
+
       loss += hingeLoss;
     }
     uRegErr += dotProd(model->_(uFac)[u], model->_(uFac)[u], model->_(facDim));
@@ -191,8 +195,8 @@ float MHingeProdSim_objective(void *self, Data *data, float **sim) {
     iRegErr += dotProd(model->_(iFac)[i], model->_(iFac)[i], model->_(facDim)); 
   }
   iRegErr *= model->_(regI);
-  printf("\nObj: %f loss: %f uRegErr: %f iRegErr: %f", (loss+uRegErr+iRegErr),
-      loss, uRegErr, iRegErr);
+  printf("\nObj: %f loss: %f classLoss: %f uRegErr: %f iRegErr: %f", (loss+uRegErr+iRegErr),
+      loss, classLoss, uRegErr, iRegErr);
   return (loss + uRegErr + iRegErr);
 }
 
@@ -266,21 +270,14 @@ void MHingeProdSim_train(void *self, Data *data, Params *params, float **sim,
       computeUGradHingeProdSim(model, u, set, setSz, avgSetSim, r_us, 
           sumItemLatFac, uGrad, setPref);
     
-      /*
-      if (setPref*r_us > 1) {
-        //dont update on correct classification
-        continue;
-      }
-      */
-
       //update user + reg
       for (k = 0; k < model->_(facDim); k++) {
         model->_(uFac)[u][k] -= model->_(learnRate)*(uGrad[k] + model->_(regU)*model->_(uFac)[u][k]);
       }
 
       //compute  gradient of item and update their latent factor in sets
-      for (i = 0; i < setSz; i++) {
-        item = set[i];
+      //for (i = 0; i < setSz; i++) {
+        item = set[rand()%setSz];
         //get item gradient
         computeIGradHingeProdSim(model, u, item, set, setSz, avgSetSim, r_us, sumItemLatFac,
            iGrad, setPref);
@@ -290,7 +287,7 @@ void MHingeProdSim_train(void *self, Data *data, Params *params, float **sim,
         }
         //coefficientNormUpdate(model->_(iFac)[item], iGrad, model->_(regI), 
         //    model->_(learnRate), model->_(facDim));
-      }
+      //}
 
     }
     
@@ -300,8 +297,8 @@ void MHingeProdSim_train(void *self, Data *data, Params *params, float **sim,
     //validation check
     if (iter % VAL_ITER == 0) {
       //validation err
-      valTest[0] = model->_(validationClassLoss) (model, data, sim);
-      //valTest[0] = model->_(hingeValidationErr) (model, data, sim);
+      //valTest[0] = model->_(validationClassLoss) (model, data, sim);
+      valTest[0] = model->_(hingeValidationErr) (model, data, sim);
       printf("\nIter:%d validation error: %f", iter, valTest[0]);
       if (VAL_CONV && iter > 0) {
         if (fabs(prevVal - valTest[0]) < EPS) {
@@ -319,7 +316,7 @@ void MHingeProdSim_train(void *self, Data *data, Params *params, float **sim,
       obj = model->_(objective)(model, data, sim);
       
       if (obj != obj) {
-        printf("\nFound NaN");
+        printf("\nFound nan");
         isNan = 1;
         break;
       }
@@ -339,6 +336,12 @@ void MHingeProdSim_train(void *self, Data *data, Params *params, float **sim,
   
   //get train error
   //printf("\nTrain error: %f", model->_(trainErr) (model, data, sim));
+  //printf("\nTrain class loss: %f", model->_(trainClassLoss) (model, data, sim));
+
+  model->_(updateSim)(model, sim);
+  
+  printf("\nUser factor norm: %f, Item factor norm: %f", 
+      model->_(userFacNorm)(model, data), model->_(itemFacNorm)(model, data));
 
   obj = model->_(objective)(model, data, sim);
  
@@ -349,7 +352,7 @@ void MHingeProdSim_train(void *self, Data *data, Params *params, float **sim,
   valTest[1] = model->_(testClassLoss) (model, data, sim);
   //valTest[1] = model->_(testErr) (model, data, sim);
 
-  //model->_(writeUserSetSim)(self, data, "userSetsSim.txt");
+  //model->_(writeUserSetSim)(self, data, sim, "userSetsHingeSim.txt");
 
   free(sumItemLatFac);
   free(uGrad);

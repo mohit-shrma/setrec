@@ -292,7 +292,7 @@ void ModelItemMatFac_train(void *self, Data *data, Params *params, float **sim,
   
   free(iGrad);
   free(uGrad);
-}
+} 
 
 
 void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float **sim,
@@ -428,6 +428,28 @@ void ModelItemMatFac_trainRMSProp(void *self, Data *data, Params *params, float 
 }
 
 
+void evalKnownMat(void *self, Data *data) {
+  ModelItemMatFac *model = self;
+  int facDim = data->facDim;
+  float **origUFac = data->uFac;
+  float **origIFac = data->iFac;
+  float D00RMSE = model->_(subMatKnownRankErr)(model, origUFac, origIFac, 
+                    facDim, 0, 499, 0, 449);
+  float D11RMSE = model->_(subMatKnownRankErr)(model, origUFac, origIFac,
+                    facDim, 500, 999, 450, 899);
+  float S01RMSE = model->_(subMatKnownRankErr)(model, origUFac, origIFac,
+                    facDim, 0, 499, 450, 899);
+  float S10RMSE = model->_(subMatKnownRankErr)(model, origUFac, origIFac,
+                    facDim, 500, 999, 0, 449);
+  float GluRMSE = model->_(subMatKnownRankErr)(model, origUFac, origIFac,
+                    facDim, 0, 999, 900, 999);
+  float fullRMSE = model->_(subMatKnownRankErr)(model, origUFac, origIFac,
+                    facDim, 0, 999, 0, 999);
+  printf("\nD00RMSE: %f D11RMSE: %f S01RMSE: %f S10RMSE: %f GluRMSE: %f fullRMSE: %f",
+      D00RMSE, D11RMSE, S01RMSE, S10RMSE, GluRMSE, fullRMSE);
+}
+
+
 void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **sim,
     ValTestRMSE *valTest) {
   
@@ -515,12 +537,14 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
   valTest->testItemsRMSE = model->_(indivItemCSRErr) (model, data->testMat, NULL);
   printf("\nTest items error(matfac): %f", valTest->testItemsRMSE);
  
-  //get train error
-  valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
-  printf("\nTrain set indiv error(matfac): %f", valTest->trainItemsRMSE);
+  //get train sets error
+  //valTest->trainItemsRMSE = model->_(indivTrainSetsErr) (model, data);
+  //printf("\nTrain set indiv error(matfac): %f", valTest->trainItemsRMSE);
 
-  //valTest->trainItemsRMSE = model->_(indivItemCSRErr)(model, data->trainMat, NULL);
-  //printf("\nTrain items indiv error(matfac): %f", valTest->trainItemsRMSE);
+  valTest->trainItemsRMSE = model->_(indivItemCSRErr)(model, data->trainMat, NULL);
+  printf("\nTrain items indiv error(matfac): %f", valTest->trainItemsRMSE);
+  
+  evalKnownMat(model, data);
 
   //copyMat(data->uFac, model->_(uFac), data->nUsers, data->facDim); 
   //writeMat(model->_(uFac), data->nUsers, data->facDim, "copyUFac.txt");
@@ -538,9 +562,9 @@ void ModelItemMatFac_trainSamp(void *self, Data *data, Params *params, float **s
 
 
 Model ModelItemMatFacProto = {
-  .objective               = ModelItemMatFac_objective,
+  .objective               = ModelItemMatFac_objectiveSamp,
   .setScore                = ModelItemMatFac_majSetScore,
-  .train                   = ModelItemMatFac_trainRMSProp,
+  .train                   = ModelItemMatFac_trainSamp,
   .validationErr           = ModelItemMatFac_validationErr
 };
 
@@ -563,7 +587,7 @@ void modelItemMatFac(Data *data, Params *params, ValTestRMSE *valTest) {
   //initUserItemWeights(data);
 
   //load user item weights from train
-  loadUserItemWtsFrmTrain(data);
+  //loadUserItemWtsFrmTrain(data);
   
   printf("\nmodel mat fac Init obj: %.10e", model->_(objective)(model, data, NULL));
   //get train error

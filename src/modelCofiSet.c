@@ -160,6 +160,9 @@ void ModelCofi_train(void *self, Data *data, Params *params, float **sim,
   valTest[1] = model->_(hitRate)(model, data->trainMat, data->testMat);
   printf("\nTest hit rate: %f", valTest[1]);
 
+  //get test error
+  printf("\nTest rmse error: %f", model->_(indivItemSetErr)(model, data->testSet));
+
   free(iGrad);
   free(uGrad);
   free(diffLatFac);

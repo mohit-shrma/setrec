@@ -1,8 +1,15 @@
+import sys
+
 itemUserFreq = {}
 itemSetFreq = {}
+itemTop50PcFreq = {}
 nUsers = 1000
 
-with open('simulMajSet_split1', 'r') as f:
+fName = sys.argv[1]
+
+#assuming item in sets are in decreasing order of their rating
+with open(fName, 'r') as f:
+  
   u = 0
 
   while (u < 1000):
@@ -14,9 +21,9 @@ with open('simulMajSet_split1', 'r') as f:
     
     nSets  = cols[1]
     
-    for item in cols[1:]:
+    for item in cols[2:]:
       if item not in itemUserFreq:
-        itemUserFreq[item] = 0
+        itemUserFreq[item] = 0.0
       itemUserFreq[item] += 1
     
     #go over sets
@@ -24,14 +31,26 @@ with open('simulMajSet_split1', 'r') as f:
       setStr = f.readline()
       setCols = setStr.split()
       setItems = map(int, setCols[2:])
-      for item in setItems:
+      for k in range(len(setItems)):
+        item = setItems[k]
         if item not in itemSetFreq:
-          itemSetFreq[item] = 0
+          itemTop50PcFreq[item] = 0.0
+          itemSetFreq[item] = 0.0
         itemSetFreq[item] += 1
         
+        if k <= 2:
+          itemTop50PcFreq[item] += 1
+
     u += 1
     
 
+items = itemUserFreq.keys()
+with open('itemFreq.txt', 'w') as g:
+  for item in items:
+    g.write(str(item) + ' ' + str(itemTop50PcFreq[item]) + ' ' \
+        + str(itemSetFreq[item]) +  ' ' \
+        +  '%.3f' % (itemTop50PcFreq[item]/itemSetFreq[item])  + ' ' \
+        +   str(itemUserFreq[item]) + '\n')
 
 
 

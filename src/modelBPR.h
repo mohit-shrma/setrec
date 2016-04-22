@@ -9,8 +9,8 @@ typedef struct{
 
 
 void ModelBPR_train(void *self, Data *data, Params *params, float **sim, 
-    float *valTest);
-void modelBPR(Data *data, Params *params, float *valTest);
+    ValTestRMSE *valTest);
+void modelBPR(Data *data, Params *params, ValTestRMSE *valTest);
 
 #endif
 
