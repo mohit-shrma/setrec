@@ -7,3 +7,6 @@ setrec*
 makefile
 *.pyc
 *.bak
+*.aux
+*.log
+*.out
