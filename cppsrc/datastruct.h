@@ -19,7 +19,8 @@ class Params {
     float uReg;
     float iReg;
     float learnRate;
-    
+    float constWt;
+
     char *trainSetFile;
     char *testSetFile;
     char *valSetFile;
@@ -27,12 +28,12 @@ class Params {
     char *prefix;
 
     Params(int nUsers, int nItems, int facDim, int maxIter, int seed,
-        float uReg, float iReg, float learnRate,
+        float uReg, float iReg, float learnRate, float constWt,
         char *trainSetFile, char *testSetFile, char *valSetFile, 
         char *ratMatFile, char *prefix)
       : nUsers(nUsers), nItems(nItems), facDim(facDim), maxIter(maxIter), 
       seed(seed), 
-      uReg(uReg), iReg(iReg), learnRate(learnRate),
+      uReg(uReg), iReg(iReg), learnRate(learnRate), constWt(constWt),
       trainSetFile(trainSetFile), testSetFile(testSetFile), 
       valSetFile(valSetFile), ratMatFile(ratMatFile), prefix(prefix) {}
 

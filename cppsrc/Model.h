@@ -32,7 +32,7 @@ class Model {
       std::cerr << "Base class: estSetRating not defined" << std::endl;
       return -1;
     }
-    float objective(const std::vector<UserSets>& uSets);
+    virtual float objective(const std::vector<UserSets>& uSets);
     virtual void train(const Data& data, const Params& params, Model& bestModel) {
       std::cerr << "Base class: train not defined" << std::endl;
     }
