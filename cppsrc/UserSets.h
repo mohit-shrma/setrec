@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <vector>
-#include <set>
+#include <unordered_set>
 #include <map>
 
 class UserSets {
@@ -24,7 +24,7 @@ class UserSets {
           auto itemSet = itemSets[i];
           for (auto&& item: itemSet) {
             //check if item occur in multiple sets for the user
-            if (uItemsSet.find(item) != uItemsSet.end()) {
+            if (items.find(item) != items.end()) {
               //found item across multiple sets for user
               std::cerr << "\n!!! found item again: " << item << " " << user
                 << std::endl;
@@ -36,6 +36,6 @@ class UserSets {
       
       }
 
-}
+};
 
 #endif

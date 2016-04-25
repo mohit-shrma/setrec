@@ -20,7 +20,6 @@ std::vector<UserSets> readSets(const char* fileName) {
   std::vector<float> setScores;
 
   if (inFile.is_open()) { 
-  
     while (getline(inFile, line)) {
       //split the header line
       //get user
@@ -54,7 +53,7 @@ std::vector<UserSets> readSets(const char* fileName) {
         uItems.push_back(std::stoi(token)); 
         line.erase(0, pos + delimiter.length());
       }
-      if (line.length > 0) {
+      if (line.length() > 0) {
         uItems.push_back(std::stoi(line));
       }
       
@@ -87,13 +86,13 @@ std::vector<UserSets> readSets(const char* fileName) {
         }
 
         //items in the set
-        itemSet.clear() 
+        itemSet.clear(); 
         while((pos = line.find(delimiter)) != std::string::npos) {
           token = line.substr(0, pos);
           itemSet.push_back(std::stoi(token)); 
           line.erase(0, pos + delimiter.length());
         }
-        if (line.length > 0) {
+        if (line.length() > 0) {
           itemSet.push_back(std::stoi(line));
         }
         
@@ -108,7 +107,9 @@ std::vector<UserSets> readSets(const char* fileName) {
       uSets.push_back(UserSets(user, itemSets, setScores));
 
     }
-  
+    inFile.close(); 
+  } else {
+    std::cerr << "Can't open file: " << fileName << std::endl;
   }
   
   return uSets;
@@ -116,9 +117,32 @@ std::vector<UserSets> readSets(const char* fileName) {
 
 
 void writeSets(std::vector<UserSets> uSets, const char* opFName) {
-  //TODO:
-
-  
+  std::ofstream opFile(opFName);
+  if (opFile.is_open()) {
+    
+    for (auto&& uSet: uSets) {
+      //write out user , number of sets, items
+      opFile << uSet.user << " " << uSet.itemSets.size() << " " 
+        << uSet.items.size() << " ";
+      for (auto&& item: uSet.items) {
+        opFile << item << " ";
+      }
+      opFile << std::endl;
+      
+      //write out set ratings and set details
+      for (size_t i = 0; i < uSet.itemSets.size(); i++) {
+        opFile << uSet.setScores[i] << " " << uSet.itemSets[i].size() << " ";
+        for (auto&& item: uSet.itemSets[i]) {
+          opFile << item << " ";
+        }
+        opFile << std::endl;
+      }
+    }
+   
+    opFile.close();
+  } else {
+    std::cerr << "Can't open file: " << opFName << std::endl;
+  } 
 }
 
 

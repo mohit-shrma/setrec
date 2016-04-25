@@ -5,7 +5,7 @@
 
 #include "GKlib.h"
 #include "UserSets.h"
-
+#include "io.h"
 
 class Params {
 
@@ -34,42 +34,62 @@ class Params {
       seed(seed), 
       uReg(uReg), iReg(iReg), learnRate(learnRate),
       trainSetFile(trainSetFile), testSetFile(testSetFile), 
-      valSetFile(valSetFile), ratMatFile(ratMatFile), prefix(prefix);
+      valSetFile(valSetFile), ratMatFile(ratMatFile), prefix(prefix) {}
+
+    void display() {
+      std::cout << "******* PARAMETERS ********";
+      std::cout << "\nnUsers: " << nUsers;
+      std::cout << "\nnItems: " << nItems;
+      std::cout << "\nfacDim: " << facDim;
+    }
+
 };
 
 
-
 class Data {
- 
-  std::vector<UserSets> trainSets;
-  std::vector<UserSets> testSets;
-  std::vector<UserSets> valSets;
- 
-  gk_csr_t* ratMat;
+  public:
 
-  int nUsers, nItems;
-  
-  char* prefix;
+    std::vector<UserSets> trainSets;
+    std::vector<UserSets> testSets;
+    std::vector<UserSets> valSets;
+   
+    gk_csr_t* ratMat;
 
-  Data(const Params& params) {
+    int nUsers, nItems;
     
-    nUsers = params.nUsers;
-    nItems = params.nItems;
-    prefix = params.prefix;
+    char* prefix;
 
-    if (NULL != params.ratMatFile) {
-      std::cout << "\nReading rating matrix 0 indexed...";
-      ratMat = gk_csr_Read(params.ratMatFile, GK_CSR_FMT_CSR, 1, 0);
+    Data(const Params& params) {
+      
+      nUsers = params.nUsers;
+      nItems = params.nItems;
+      prefix = params.prefix;
+
+      if (NULL != params.ratMatFile) {
+        std::cout << "\nReading rating matrix 0 indexed...";
+        ratMat = gk_csr_Read(params.ratMatFile, GK_CSR_FMT_CSR, 1, 0);
+      }
+      
+      if (NULL != params.trainSetFile) {
+        trainSets  = readSets(params.trainSetFile);    
+      }
+
+      if (NULL != params.testSetFile) {
+        testSets = readSets(params.testSetFile);
+      }
+
+      if (NULL != params.valSetFile) {
+        valSets = readSets(params.valSetFile);
+      }
+
     }
-    
-  }
 
 
-  ~Data() {
-    if (NULL != ratMat) {
-      gk_csr_Free(&ratMat);
+    ~Data() {
+      if (NULL != ratMat) {
+        gk_csr_Free(&ratMat);
+      }
     }
-  }
 
 };
 
