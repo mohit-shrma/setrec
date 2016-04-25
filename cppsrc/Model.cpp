@@ -37,7 +37,7 @@ float Model::estItemRating(int user, int item) {
 }
 
 
-float Model::objective(std::vector<UserSets>& uSets) {
+float Model::objective(const std::vector<UserSets>& uSets) {
   
   float obj = 0.0, uRegErr = 0.0, iRegErr = 0.0;
   float norm, setScore, diff;
@@ -66,7 +66,7 @@ float Model::objective(std::vector<UserSets>& uSets) {
 }
 
 
-float Model::rmse(std::vector<UserSets>& uSets) {
+float Model::rmse(const std::vector<UserSets>& uSets) {
   float rmse = 0;
   int nSets = 0;
 
@@ -111,5 +111,62 @@ void Model::save(std::string opPrefix) {
     vOpFile << V << std::endl;
     vOpFile.close();
   }
+}
+
+
+bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
+    int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
+    float& prevValRMSE) {
+
+  bool ret = false;  
+  float currObj = objective(data.trainSets);
+  float currValRMSE = -1;
+  
+  currValRMSE = rmse(data.valSets); 
+
+  if (iter > 0) {
+    if (currValRMSE < bestValRMSE) {
+      bestModel = *this;
+      bestValRMSE = currValRMSE;
+      bestIter = iter;
+    } 
+  
+    if (iter - bestIter >= CHANCE_ITER) {
+      //cant improve validation RMSE
+      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
+        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
+        << iter << " currObj: " << currObj << " currValRMSE:" 
+        << currValRMSE << std::endl;
+      ret = true;
+    }
+    
+    if (fabs(prevObj - currObj) < EPS) {
+      //objective converged
+      std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
+        << " bestValRMSE:" << bestValRMSE;
+      ret = true;
+    }
+
+    if (fabs(prevValRMSE - currValRMSE) < EPS) {
+      //Validation rmse converged
+      std::cout << "CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
+        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
+        << iter << " currObj: " << currObj << " currValRMSE:" 
+        << currValRMSE << std::endl;
+      ret = true;
+    }
+
+  }
+  
+  if (0 == iter) {
+    bestObj = currObj;
+    bestValRMSE = currValRMSE;
+    bestIter = iter;
+  }
+  
+  prevObj = currObj;
+  prevValRMSE = currValRMSE;
+
+  return ret;
 }
 

@@ -16,7 +16,7 @@ CPPFLAGS=-g -O3 -Wall -std=c++11 -I$(GKINCHOME) -I$(EIGENPATH)
 LDFLAGS=-g
 LDLIBS=$(STDLIBS) $(EXT_LIBS_DIR) $(EXT_LIBS)  
 
-SRCS=io.cpp Model.cpp  main.cpp
+SRCS=io.cpp Model.cpp ModelAverage.cpp main.cpp
 OBJS=$(subst .cpp,.o,$(SRCS))
 
 all: setrec

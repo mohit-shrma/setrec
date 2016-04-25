@@ -1,6 +1,8 @@
 #include <iostream>
 #include <cstdlib>
+
 #include "datastruct.h"
+#include "ModelAverage.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 13) {
@@ -19,6 +21,14 @@ int main(int argc, char *argv[]) {
   Params params = parse_cmd_line(argc, argv);
   params.display();
   Data data(params);
+
+  ModelAverage modelAvg(params);
+  Model bestModel(modelAvg);
+  modelAvg.train(data, params, bestModel);
+
+  std::cout << "Val RMSE: " << bestModel.rmse(data.valSets) << std::endl;
+  std::cout << "Test RMSE: " << bestModel.rmse(data.testSets) << std::endl;
+
   return 0;
 }
 
