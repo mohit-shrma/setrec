@@ -8,12 +8,12 @@ std::vector<UserSets> readSets(const char* fileName) {
   std::ifstream inFile(fileName);
   std::string delimiter = " ";
 
-  int user, numSets, nUItems;
+  int user = -1, numSets = -1, nUItems = -1;
   std::vector<int> uItems;
   std::vector<int> setItems;
   
-  float rating;
-  int setSz;
+  float rating = -1;
+  int setSz = -1;
   std::vector<int> itemSet;
 
   std::vector<std::vector<int>> itemSets;
@@ -57,7 +57,7 @@ std::vector<UserSets> readSets(const char* fileName) {
         uItems.push_back(std::stoi(line));
       }
       
-      if (nUItems != uItems.size()) {
+      if (nUItems != (int)uItems.size()) {
         std::cerr << "No. of set items dont match." << std::endl;
         exit(1);
       }
@@ -96,7 +96,7 @@ std::vector<UserSets> readSets(const char* fileName) {
           itemSet.push_back(std::stoi(line));
         }
         
-        if (setSz != itemSet.size()) {
+        if (setSz != (int)itemSet.size()) {
           //size of the set didnt match the specified number
           std::cerr << "No. of items in the set dont match." << std::endl;
         }

@@ -10,3 +10,4 @@ makefile
 *.aux
 *.log
 *.out
+*.depend
