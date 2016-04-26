@@ -18,6 +18,8 @@ class Params {
     
     float uReg;
     float iReg;
+    float u_mReg;
+    float g_kReg;
     float learnRate;
     float constWt;
 
@@ -28,12 +30,13 @@ class Params {
     char *prefix;
 
     Params(int nUsers, int nItems, int facDim, int maxIter, int seed,
-        float uReg, float iReg, float learnRate, float constWt,
+        float uReg, float iReg, float u_mReg, float g_kReg, float learnRate, 
+        float constWt, 
         char *trainSetFile, char *testSetFile, char *valSetFile, 
         char *ratMatFile, char *prefix)
       : nUsers(nUsers), nItems(nItems), facDim(facDim), maxIter(maxIter), 
       seed(seed), 
-      uReg(uReg), iReg(iReg), learnRate(learnRate), constWt(constWt),
+      uReg(uReg), iReg(iReg), u_mReg(u_mReg), g_kReg(g_kReg), learnRate(learnRate), constWt(constWt),
       trainSetFile(trainSetFile), testSetFile(testSetFile), 
       valSetFile(valSetFile), ratMatFile(ratMatFile), prefix(prefix) {}
 
@@ -46,6 +49,8 @@ class Params {
       std::cout << "\nseed: " << seed;
       std::cout << "\nuReg: " << uReg;
       std::cout << "\niReg: " << iReg;
+      std::cout << "\nu_mReg: " << u_mReg;
+      std::cout << "\ng_kReg: " << g_kReg;
       std::cout << "\nlearnRate: " << learnRate;
       std::cout << "\nconstWt: " << constWt;
       std::cout << "\ntrainSetFile: " << trainSetFile;
