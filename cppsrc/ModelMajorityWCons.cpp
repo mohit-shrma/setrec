@@ -1,4 +1,4 @@
-#include "ModelMajorityConst.h"
+#include "ModelMajorityWCons.h"
 
 std::pair<float, float> ModelMajorityWCons::setRatingNMaxRat(int user,
     std::vector<int>& items) {

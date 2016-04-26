@@ -1,4 +1,4 @@
-#include "ModelAverageConst.h"
+#include "ModelAverageWCons.h"
 
 
 std::pair<float, float> ModelAverageWCons::setRatingNMaxRat(
