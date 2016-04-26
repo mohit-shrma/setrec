@@ -23,6 +23,9 @@ int main(int argc, char *argv[]) {
   params.display();
   Data data(params);
 
+  //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
+  //writeSets(data.trainSets, opFName.c_str());
+
   ModelAverage modelAvg(params);
   Model bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);

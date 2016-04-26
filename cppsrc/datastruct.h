@@ -42,6 +42,17 @@ class Params {
       std::cout << "\nnUsers: " << nUsers;
       std::cout << "\nnItems: " << nItems;
       std::cout << "\nfacDim: " << facDim;
+      std::cout << "\nmaxIter: " << maxIter;
+      std::cout << "\nseed: " << seed;
+      std::cout << "\nuReg: " << uReg;
+      std::cout << "\niReg: " << iReg;
+      std::cout << "\nlearnRate: " << learnRate;
+      std::cout << "\nconstWt: " << constWt;
+      std::cout << "\ntrainSetFile: " << trainSetFile;
+      std::cout << "\ntestSetFile: " << testSetFile;
+      std::cout << "\nvalSetFile: " << valSetFile;
+      std::cout << "\nratMatFile: " << ratMatFile;
+      std::cout << "\nprefix: " << prefix;
     }
 
 };
@@ -73,6 +84,7 @@ class Data {
       
       if (NULL != params.trainSetFile) {
         trainSets  = readSets(params.trainSetFile);    
+        std::cout << "No. of train sets: " << trainSets.size() << std::endl;
       }
 
       if (NULL != params.testSetFile) {

@@ -11,15 +11,16 @@ std::vector<UserSets> readSets(const char* fileName) {
   int user = -1, numSets = -1, nUItems = -1;
   std::vector<int> uItems;
   std::vector<int> setItems;
-  
+  int maxUser = -1, maxItem = -1; 
   float rating = -1;
   int setSz = -1;
   std::vector<int> itemSet;
-
+  std::unordered_set<int> items;
   std::vector<std::vector<int>> itemSets;
   std::vector<float> setScores;
 
-  if (inFile.is_open()) { 
+  if (inFile.is_open()) {
+    std::cout << "Reading..." << fileName << std::endl;
     while (getline(inFile, line)) {
       //split the header line
       //get user
@@ -28,6 +29,10 @@ std::vector<UserSets> readSets(const char* fileName) {
         token = line.substr(0, pos);
         user = std::stoi(token);
         line.erase(0, pos + delimiter.length());
+      }
+
+      if (user > maxUser) {
+        maxUser = user;
       }
 
       //get numsets
@@ -57,6 +62,12 @@ std::vector<UserSets> readSets(const char* fileName) {
         uItems.push_back(std::stoi(line));
       }
       
+      for (auto&& item: uItems) {
+        if (maxItem < item) {
+          maxItem = item;
+        }
+      }
+
       if (nUItems != (int)uItems.size()) {
         std::cerr << "No. of set items dont match." << std::endl;
         exit(1);
@@ -66,8 +77,7 @@ std::vector<UserSets> readSets(const char* fileName) {
       itemSets.clear();
       setScores.clear();
       int i = 0;
-      while (getline(inFile, line) && i < numSets) {
-        
+      while (i < numSets && getline(inFile, line)) {
         //rating
         pos = line.find(delimiter);
         if (pos != std::string::npos) {
@@ -89,19 +99,25 @@ std::vector<UserSets> readSets(const char* fileName) {
         itemSet.clear(); 
         while((pos = line.find(delimiter)) != std::string::npos) {
           token = line.substr(0, pos);
-          itemSet.push_back(std::stoi(token)); 
+          itemSet.push_back(std::stoi(token));
+          items.insert(std::stoi(token));
           line.erase(0, pos + delimiter.length());
         }
         if (line.length() > 0) {
           itemSet.push_back(std::stoi(line));
+          items.insert(std::stoi(line));
         }
         
         if (setSz != (int)itemSet.size()) {
           //size of the set didnt match the specified number
-          std::cerr << "No. of items in the set dont match." << std::endl;
+          std::cerr << "No. of items in the set dont match: " << setSz 
+            << " " << itemSet.size() << " " << user << " " << rating 
+            << " " << setSz << std::endl;
+          exit(1);
         }
         itemSets.push_back(itemSet);
-
+        
+        i++;
       }
       
       uSets.push_back(UserSets(user, itemSets, setScores));
@@ -111,7 +127,12 @@ std::vector<UserSets> readSets(const char* fileName) {
   } else {
     std::cerr << "Can't open file: " << fileName << std::endl;
   }
-  
+
+  std::cout << "No. of UserSets: " << uSets.size() << std::endl;
+  std::cout << "No. of items: " << items.size() << std::endl;
+  std::cout << "max user: " << maxUser << std::endl;  
+  std::cout << "max item: " << maxItem << std::endl;  
+
   return uSets;
 }
 

@@ -40,6 +40,8 @@ class Model {
     bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
         float& prevValRMSE); 
+    bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
+        int& bestIter, float& bestObj, float& prevObj); 
     float rmse(const std::vector<UserSets>& uSets);
     std::string modelSign();
     void save(std::string opPrefix);

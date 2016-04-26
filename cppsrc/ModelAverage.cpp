@@ -57,19 +57,18 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
       grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors;
       
       //update user
-      U.row(user) -= learnRate*(grad + 2.0*uReg*U.row(user));
+      U.row(user) -= learnRate*(grad.transpose() + 2.0*uReg*U.row(user));
 
       //update items
       grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
       for (auto&& item: items) {
-        V.row(item) -= learnRate*(grad + 2.0*iReg*V.row(item));
+        V.row(item) -= learnRate*(grad.transpose() + 2.0*iReg*V.row(item));
       }
     }
     
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
-            bestValRMSE, prevValRMSE)) {
+      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj)) {
         break;
       }
       std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 

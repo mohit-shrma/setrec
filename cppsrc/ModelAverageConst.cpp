@@ -111,10 +111,10 @@ void ModelAverageWCons::train(const Data& data, const Params& params,
       }
 
       //update user
-      U.row(user) -= learnRate*(grad + 2.0*uReg*U.row(user));
+      U.row(user) -= learnRate*(grad.transpose() + 2.0*uReg*U.row(user));
 
       //update items
-      auto tempgrad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
+      tempgrad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
       for (auto&& item: items) {
         grad = tempgrad;
         if (item == maxRatItem && maxRat < r_us) {
@@ -122,7 +122,7 @@ void ModelAverageWCons::train(const Data& data, const Params& params,
           grad += -1*constWt*U.row(user);
         }
         //update item
-        V.row(item) -= learnRate*(grad + 2.0*iReg*V.row(item));
+        V.row(item) -= learnRate*(grad.transpose() + 2.0*iReg*V.row(item));
       }
     }
     

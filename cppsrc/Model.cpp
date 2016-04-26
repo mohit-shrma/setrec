@@ -33,7 +33,7 @@ Model::Model(const Params &params) {
 
 
 float Model::estItemRating(int user, int item) {
-  return U.row(user).dot(V.row(item));
+  return (U.row(user)).dot(V.row(item));
 }
 
 
@@ -155,7 +155,7 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
         << currValRMSE << std::endl;
       ret = true;
     }
-
+    
   }
   
   if (0 == iter) {
@@ -170,3 +170,43 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
   return ret;
 }
 
+bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
+    int& bestIter, float& bestObj, float& prevObj) {
+
+  bool ret = false;  
+  float currObj = objective(data.trainSets);
+  
+
+  if (iter > 0) {
+    if (currObj < bestObj) {
+      bestModel = *this;
+      bestObj = currObj;
+      bestIter = iter;
+    } 
+  
+    if (iter - bestIter >= CHANCE_ITER) {
+      //cant improve validation RMSE
+      std::cout << "NOT CONVERGED obj: bestIter:" << bestIter << " bestObj:" 
+        << bestObj << " bestValRMSE: " << " currIter:"
+        << iter << " currObj: " << currObj  << std::endl;
+      ret = true;
+    }
+    
+    if (fabs(prevObj - currObj) < EPS) {
+      //objective converged
+      std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
+        << std::endl;
+      ret = true;
+    }
+    
+  }
+  
+  if (0 == iter) {
+    bestObj = currObj;
+    bestIter = iter;
+  }
+  
+  prevObj = currObj;
+
+  return ret;
+}
