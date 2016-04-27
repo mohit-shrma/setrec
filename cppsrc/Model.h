@@ -3,10 +3,12 @@
 
 #include <Eigen/Dense>
 #include <random>
+#include <tuple>
 
 #include "datastruct.h"
 #include "const.h"
 #include "mathUtil.h"
+#include "util.h"
 
 class Model {
   
@@ -48,6 +50,8 @@ class Model {
     float spearmanRankN(gk_csr_t *mat, int N);
     std::string modelSign();
     void save(std::string opPrefix);
+    float recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
+      int N);
 };
 
 

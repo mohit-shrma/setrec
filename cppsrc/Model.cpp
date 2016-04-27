@@ -128,6 +128,60 @@ float Model::spearmanRankN(gk_csr_t *mat, int N) {
 }
 
 
+float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
+    int N) {
+  float recN;
+  int uCount = 0;
+  std::vector<std::pair<int, float>> itemPredRatings;
+  std::vector<std::pair<int, float>> itemActRatings;
+  std::unordered_set<int> predTopN;
+  for (auto&& uSet: uSets) {
+    int u = uSet.user;
+    auto setItems = uSet.items;
+    itemPredRatings.clear();
+    itemActRatings.clear();
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      //item not in setItems
+      if (setItems.find(item) == setItems.end()) {
+        //item not in user set
+        itemPredRatings.push_back(std::make_pair(item, 
+              estItemRating(u, item)));
+        itemActRatings.push_back(std::make_pair(item, mat->rowval[ii]));
+      }
+    }
+    
+    if (itemActRatings.size() > 0) {
+      continue;
+    }
+
+    //arrange such that Nth element is in its place
+    std::nth_element(itemActRatings.begin(), itemActRatings.begin()+(N-1), 
+        itemActRatings.end(), descComp);
+    std::nth_element(itemPredRatings.begin(), itemPredRatings.begin()+(N-1), 
+        itemPredRatings.end(), descComp);
+    
+    predTopN.clear();
+    for (int j = 0; j < N && (int)j < itemPredRatings.size(); j++) {
+      predTopN.insert(itemPredRatings.first);
+    }
+    
+    int overlapCt = 0;
+    for (auto&& itemRating: itemActRatings) {
+      if (predTopN.find(itemRating.first) != predTopN.end()) {
+        //found in predicted top N
+        overlapCt++;
+      }
+    }
+    recN += (float)overlapCt/predTopN.size();
+    uCount++;
+  }
+
+  recN = recN/uCount;
+  return recN;
+}
+
+
 std::string Model::modelSign() {
   std::string sign;
   sign = std::to_string(facDim) + "_" + std::to_string(uReg) + "_" 
