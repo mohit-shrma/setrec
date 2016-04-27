@@ -130,7 +130,7 @@ float Model::spearmanRankN(gk_csr_t *mat, int N) {
 
 float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     int N) {
-  float recN;
+  float recN = 0;
   int uCount = 0;
   std::vector<std::pair<int, float>> itemPredRatings;
   std::vector<std::pair<int, float>> itemActRatings;
@@ -163,7 +163,7 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     
     predTopN.clear();
     for (int j = 0; j < N && (int)j < itemPredRatings.size(); j++) {
-      predTopN.insert(itemPredRatings.first);
+      predTopN.insert(itemPredRatings[j].first);
     }
     
     int overlapCt = 0;
