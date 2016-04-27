@@ -86,6 +86,48 @@ float Model::rmse(const std::vector<UserSets>& uSets) {
 }
 
 
+float Model::rmse(gk_csr_t *mat) {
+  float rmse = 0;
+  float r_ui, r_ui_est, diff;
+  int nnz = 0;
+  for (int u = 0; u < mat->nrows; u++) {
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      r_ui = mat->rowval[ii];
+      r_ui_est = estItemRating(u, item);
+      diff = r_ui - r_ui_est;
+      rmse += diff*diff;
+      nnz++;
+    }
+  }
+  rmse = sqrt(rmse/nnz);
+  return rmse;
+}
+
+
+float Model::spearmanRankN(gk_csr_t *mat, int N) {
+  
+  int j, item, nUsers = 0;
+  std::vector<float> actualRatings, predRatings;
+  float uSpearman, avgSpearMan = 0;
+  for (int u = 0; u < mat->nrows; u++) {
+    j = 0;
+    actualRatings.clear();
+    predRatings.clear();
+    for ( int ii = mat->rowptr[u]; ii < mat->rowptr[u+1] && j < N; ii++, j++) { 
+      item = mat->rowind[ii];
+      actualRatings.push_back(mat->rowval[ii]);
+      predRatings.push_back(estItemRating(u, item));
+      uSpearman = spearmanRankCorrN(actualRatings, predRatings, N);
+      avgSpearMan += uSpearman;
+      nUsers++;
+    }
+  }
+  avgSpearMan = avgSpearMan/nUsers;
+  return avgSpearMan;
+}
+
+
 std::string Model::modelSign() {
   std::string sign;
   sign = std::to_string(facDim) + "_" + std::to_string(uReg) + "_" 

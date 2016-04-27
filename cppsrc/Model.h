@@ -6,6 +6,7 @@
 
 #include "datastruct.h"
 #include "const.h"
+#include "mathUtil.h"
 
 class Model {
   
@@ -43,6 +44,8 @@ class Model {
     bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj); 
     float rmse(const std::vector<UserSets>& uSets);
+    float rmse(gk_csr_t *mat);
+    float spearmanRankN(gk_csr_t *mat, int N);
     std::string modelSign();
     void save(std::string opPrefix);
 };

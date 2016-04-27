@@ -7,13 +7,15 @@ float sigmoid(float x, float k) {
 }
 
 
-double spearManRankCorrN(std::vector<float> x, std::vector<float> y, int N) {
+double spearmanRankCorrN(std::vector<float> x, std::vector<float> y, int N) {
 
   double *actualRat     = (double*) malloc(sizeof(double)*N);
+  memset(actualRat, 0, sizeof(double)*N);
   double *predRat       = (double*) malloc(sizeof(double)*N);
+  memset(predRat, 0, sizeof(double)*N);
   double *spearmanWork  = (double*) malloc(sizeof(double)*2*N);
   double uSpearMan;
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < N && i < (int)x.size(); i++) {
     actualRat[i] = x[i];
     predRat[i] = y[i];
   }

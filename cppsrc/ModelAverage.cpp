@@ -73,7 +73,8 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
       }
       std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
         << prevValRMSE << " best val RMSE:" << bestValRMSE 
-        << " train RMSE:" << rmse(data.trainSets) << std::endl;
+        << " train RMSE:" << rmse(data.trainSets) 
+        << " ratings RMSE: " << rmse(data.ratMat) << std::endl;
     }
 
   }
