@@ -70,6 +70,13 @@ class Data {
     std::vector<UserSets> testSets;
     std::vector<UserSets> valSets;
    
+    std::unordered_set<int> trainItems;
+    std::unordered_set<int> trainUsers;
+
+    int nTrainSets;
+    int nTestSets;
+    int nValSets;
+
     gk_csr_t* ratMat;
 
     int nUsers, nItems;
@@ -89,17 +96,77 @@ class Data {
       
       if (NULL != params.trainSetFile) {
         trainSets  = readSets(params.trainSetFile);    
-        std::cout << "No. of train sets: " << trainSets.size() << std::endl;
-      }
+        std::cout << "No. of train users: " << trainSets.size() << std::endl;
+        nTrainSets = 0;
+        for (auto&& uSet: trainSets) {
+          nTrainSets += uSet.itemSets.size();
+          for (auto&& itemSet: uSet.itemSets) {
+            for (auto&& item: itemSet.first) {
+              trainItems.insert(item);
+            }
+          }
+          trainUsers.insert(uSet.user);
+        }
+        std::cout << "nTrainSets: " << nTrainSets << std::endl;
+        std::cout << "nTrainUsers: " << trainUsers.size() << std::endl;
+        std::cout << "nTrainItems: " << trainItems.size() << std::endl;
+      } 
 
       if (NULL != params.testSetFile) {
         testSets = readSets(params.testSetFile);
+        nTestSets = 0;
+        //remove test sets which contain items not present in train
+        auto it = std::begin(testSets);
+        while (it != std::end(testSets)) {
+          (*it).removeInvalSets(trainItems);
+          if ((*it).itemSets.size() == 0) {
+            it = testSets.erase(it);
+          } else {
+            ++it;
+          }
+        }
+
+        for (auto&& uSet: testSets) {
+          nTestSets += uSet.itemSets.size();
+        }
+        std::cout << "No. of test users: " << testSets.size() << std::endl;
+        std::cout << "nTestSets: " << nTestSets << std::endl;
       }
 
       if (NULL != params.valSetFile) {
         valSets = readSets(params.valSetFile);
+        nValSets = 0;
+        
+        //remove val sets which contain items not present in train
+        auto it = std::begin(valSets);
+        while (it != std::end(valSets)) {
+          (*it).removeInvalSets(trainItems);
+          if ((*it).itemSets.size() == 0) {
+            it = valSets.erase(it);
+          } else {
+            ++it;
+          }
+        }
+
+        for (auto&& uSet: valSets) {
+          nValSets += uSet.itemSets.size();
+        }
+        std::cout << "No. of val users: " << valSets.size() << std::endl;
+        std::cout << "nValSets: " << nValSets << std::endl;
       }
 
+    }
+
+
+    void scaleSetsToSigm(std::vector<UserSets> uSets, 
+        std::map<int, float> uMidps, float g_k) {
+      for (auto&& uSet: uSets) {
+        int user = uSet.user;
+        if (uMidps.find(user) != uMidps.end()) {
+          //found user midp
+          uSet.scaleToSigm(uMidps[user], g_k);
+        }
+      }
     }
 
 

@@ -8,7 +8,7 @@ std::vector<UserSets> readSets(const char* fileName) {
   std::ifstream inFile(fileName);
   std::string delimiter = " ";
 
-  int user = -1, numSets = -1, nUItems = -1;
+  int user = -1, numSets = -1, nUItems = -1, nSets = 0;
   std::vector<int> uItems;
   std::vector<int> setItems;
   int maxUser = -1, maxItem = -1; 
@@ -16,8 +16,7 @@ std::vector<UserSets> readSets(const char* fileName) {
   int setSz = -1;
   std::vector<int> itemSet;
   std::unordered_set<int> items;
-  std::vector<std::vector<int>> itemSets;
-  std::vector<float> setScores;
+  std::vector<std::pair<std::vector<int>,float>> itemSets;
 
   if (inFile.is_open()) {
     std::cout << "Reading..." << fileName << std::endl;
@@ -75,7 +74,6 @@ std::vector<UserSets> readSets(const char* fileName) {
 
       //read sets for the user
       itemSets.clear();
-      setScores.clear();
       int i = 0;
       while (i < numSets && getline(inFile, line)) {
         //rating
@@ -85,7 +83,6 @@ std::vector<UserSets> readSets(const char* fileName) {
           rating = std::stof(token);  
           line.erase(0, pos + delimiter.length());
         }
-        setScores.push_back(rating);
 
         //nItems in set
         pos = line.find(delimiter);
@@ -115,12 +112,17 @@ std::vector<UserSets> readSets(const char* fileName) {
             << " " << setSz << std::endl;
           exit(1);
         }
-        itemSets.push_back(itemSet);
+        itemSets.push_back(std::make_pair(itemSet, rating));
         
         i++;
+        nSets++;
       }
       
-      uSets.push_back(UserSets(user, itemSets, setScores));
+      uSets.push_back(UserSets(user, itemSets));
+      
+      if (itemSets.size() == 0) {
+        std::cerr << "size of itemsets is 0 " << user << std::endl;
+      }
 
     }
     inFile.close(); 
@@ -129,6 +131,7 @@ std::vector<UserSets> readSets(const char* fileName) {
   }
 
   std::cout << "No. of UserSets: " << uSets.size() << std::endl;
+  std::cout << "No. of sets: " << nSets << std::endl;
   std::cout << "No. of items: " << items.size() << std::endl;
   std::cout << "max user: " << maxUser << std::endl;  
   std::cout << "max item: " << maxItem << std::endl;  
@@ -152,8 +155,8 @@ void writeSets(std::vector<UserSets> uSets, const char* opFName) {
       
       //write out set ratings and set details
       for (size_t i = 0; i < uSet.itemSets.size(); i++) {
-        opFile << uSet.setScores[i] << " " << uSet.itemSets[i].size() << " ";
-        for (auto&& item: uSet.itemSets[i]) {
+        opFile << uSet.itemSets[i].second << " " << uSet.itemSets[i].first.size() << " ";
+        for (auto&& item: uSet.itemSets[i].first) {
           opFile << item << " ";
         }
         opFile << std::endl;

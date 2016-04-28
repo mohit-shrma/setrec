@@ -29,11 +29,11 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  //ModelAverageWCons modelAvg(params);
-  ModelMajorityWCons modelMaj(params);
+  ModelAverage modelAvg(params);
+  //ModelMajorityWCons modelMaj(params);
   
-  Model bestModel(modelMaj);
-  modelMaj.train(data, params, bestModel);
+  ModelAverage bestModel(modelAvg);
+  modelAvg.train(data, params, bestModel);
 
   std::cout << "Val RMSE: " << bestModel.rmse(data.valSets) << std::endl;
   std::cout << "Test RMSE: " << bestModel.rmse(data.testSets) << std::endl;

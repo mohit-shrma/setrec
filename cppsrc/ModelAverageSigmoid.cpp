@@ -62,8 +62,8 @@ void ModelAverageSigmoid::train(const Data& data, const Params& params,
             
       //select a set at random
       int setInd = dist(mt) % uSet.itemSets.size();
-      items = uSet.itemSets[setInd];
-      float r_us = uSet.setScores[setInd];
+      items = uSet.itemSets[setInd].first;
+      float r_us = uSet.itemSets[setInd].second;
 
       //estimate rating on the set and latent factor sum
       float r_us_est = 0;

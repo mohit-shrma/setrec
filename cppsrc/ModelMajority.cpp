@@ -76,8 +76,8 @@ void ModelMajority::train(const Data& data, const Params& params, Model& bestMod
             
       //select a set at random
       int setInd = dist(mt) % uSet.itemSets.size();
-      items = uSet.itemSets[setInd];
-      float r_us = uSet.setScores[setInd];
+      items = uSet.itemSets[setInd].first;
+      float r_us = uSet.itemSets[setInd].second;
       float majSz = std::ceil(((float)items.size()) / 2); 
       float r_us_est = 0;
       

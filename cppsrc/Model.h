@@ -46,6 +46,7 @@ class Model {
     bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj); 
     float rmse(const std::vector<UserSets>& uSets);
+    float rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat);
     float rmse(gk_csr_t *mat);
     float spearmanRankN(gk_csr_t *mat, int N);
     std::string modelSign();

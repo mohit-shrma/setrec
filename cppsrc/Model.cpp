@@ -46,9 +46,9 @@ float Model::objective(const std::vector<UserSets>& uSets) {
   for (auto&& uSet: uSets) {
     user = uSet.user;
     for (size_t i = 0; i < uSet.itemSets.size(); i++) {
-      auto items = uSet.itemSets[i];
+      auto items = uSet.itemSets[i].first;
       setScore = estSetRating(user, items);
-      diff = setScore - uSet.setScores[i];
+      diff = setScore - uSet.itemSets[i].second;
       obj += diff*diff;
       nSets++;
     }
@@ -73,9 +73,9 @@ float Model::rmse(const std::vector<UserSets>& uSets) {
   for (auto&& uSet: uSets) {
     int user = uSet.user;
     for (size_t i = 0; i < uSet.itemSets.size(); i++) {
-      auto items = uSet.itemSets[i];
+      auto items = uSet.itemSets[i].first;
       float predSetScore = estSetRating(user, items);
-      float diff = predSetScore - uSet.setScores[i];
+      float diff = predSetScore - uSet.itemSets[i].second;
       rmse += diff*diff;
       nSets++;
     }
@@ -98,6 +98,29 @@ float Model::rmse(gk_csr_t *mat) {
       diff = r_ui - r_ui_est;
       rmse += diff*diff;
       nnz++;
+    }
+  }
+  rmse = sqrt(rmse/nnz);
+  return rmse;
+}
+
+
+//compute RMSE for items in the sets
+float Model::rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
+  float rmse = 0, r_ui_est, r_ui, diff;
+  int nnz = 0, item, u;
+  for (auto&& uSet: uSets) {
+    u = uSet.user;
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      item = mat->rowind[ii];
+      if (uSet.items.find(item) != uSet.items.end()) {
+        //item present in set
+        r_ui_est = estItemRating(u, item);
+        r_ui = mat->rowval[ii];
+        diff = r_ui - r_ui_est;
+        rmse += diff*diff;
+        nnz++;
+      }
     }
   }
   rmse = sqrt(rmse/nnz);
@@ -162,7 +185,7 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
         itemPredRatings.end(), descComp);
     
     predTopN.clear();
-    for (int j = 0; j < N && (int)j < itemPredRatings.size(); j++) {
+    for (int j = 0; j < N && j < (int)itemPredRatings.size(); j++) {
       predTopN.insert(itemPredRatings[j].first);
     }
     
