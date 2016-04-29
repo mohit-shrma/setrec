@@ -67,6 +67,7 @@ void ModelAverageWCons::train(const Data& data, const Params& params,
 
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
+  int nUsers = (int)uInds.size(); 
  
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
@@ -78,67 +79,70 @@ void ModelAverageWCons::train(const Data& data, const Params& params,
 
   for (int iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uInds.begin(), uInds.end(), mt);
-    for (auto&& uInd: uInds) {
-      UserSets uSet = data.trainSets[uInd];
-      int user = uSet.user;
-            
-      //select a set at random
-      int setInd = dist(mt) % uSet.itemSets.size();
-      auto items = uSet.itemSets[setInd].first;
-      float r_us = uSet.itemSets[setInd].second;
-      int maxRatItem = -1;
-      float maxRat = -1;
-      float r_us_est = 0, r_ui_est;
-      
-      //estimate rating on the set, sum item latent factor and get max rating
-      sumItemFactors.fill(0);
-      for (auto item: items) {
-        sumItemFactors += V.row(item);
-        r_ui_est = estItemRating(user, item);
-        r_us_est += r_ui_est;
-        if (r_ui_est > maxRat || maxRatItem == -1) {
-          maxRatItem = item;
-          maxRat = r_ui_est;
+    for (int i = 0; i < data.nTrainSets/nUsers; i++) {
+      for (auto&& uInd: uInds) {
+        UserSets uSet = data.trainSets[uInd];
+        int user = uSet.user;
+              
+        //select a set at random
+        int setInd = dist(mt) % uSet.itemSets.size();
+        auto items = uSet.itemSets[setInd].first;
+        float r_us = uSet.itemSets[setInd].second;
+        int maxRatItem = -1;
+        float maxRat = -1;
+        float r_us_est = 0, r_ui_est;
+        
+        //estimate rating on the set, sum item latent factor and get max rating
+        sumItemFactors.fill(0);
+        for (auto item: items) {
+          sumItemFactors += V.row(item);
+          r_ui_est = estItemRating(user, item);
+          r_us_est += r_ui_est;
+          if (r_ui_est > maxRat || maxRatItem == -1) {
+            maxRatItem = item;
+            maxRat = r_ui_est;
+          }
+        }
+        r_us_est = r_us_est/items.size();
+
+        //user gradient
+        grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors;
+        if (maxRat < r_us) {
+          //if constraint violated
+          grad += -1.0*constWt*V.row(maxRatItem);
+        }
+
+        //update user
+        U.row(user) -= learnRate*(grad.transpose() + 2.0*uReg*U.row(user));
+
+        //update items
+        tempgrad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
+        for (auto&& item: items) {
+          grad = tempgrad;
+          if (item == maxRatItem && maxRat < r_us) {
+            //constraint violated
+            grad += -1*constWt*U.row(user);
+          }
+          //update item
+          V.row(item) -= learnRate*(grad.transpose() + 2.0*iReg*V.row(item));
         }
       }
-      r_us_est = r_us_est/items.size();
-
-      //user gradient
-      grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors;
-      if (maxRat < r_us) {
-        //if constraint violated
-        grad += -1.0*constWt*V.row(maxRatItem);
-      }
-
-      //update user
-      U.row(user) -= learnRate*(grad.transpose() + 2.0*uReg*U.row(user));
-
-      //update items
-      tempgrad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
-      for (auto&& item: items) {
-        grad = tempgrad;
-        if (item == maxRatItem && maxRat < r_us) {
-          //constraint violated
-          grad += -1*constWt*U.row(user);
-        }
-        //update item
-        V.row(item) -= learnRate*(grad.transpose() + 2.0*iReg*V.row(item));
-      }
-    }
-    
+    } 
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj)) {
+      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
+            bestValRMSE, prevValRMSE)) {
         break;
       }
       std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
         << prevValRMSE << " best val RMSE:" << bestValRMSE 
-        << " train RMSE:" << rmse(data.trainSets) << std::endl;
+        << " train RMSE:" << rmse(data.trainSets)
+        << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
+        << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
+        << std::endl;
     }
 
   }
-
-  
 
 }
 

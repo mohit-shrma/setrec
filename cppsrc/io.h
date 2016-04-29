@@ -4,6 +4,7 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <Eigen/Dense>
 #include "UserSets.h"
 
 std::vector<UserSets> readSets(const char* fileName);

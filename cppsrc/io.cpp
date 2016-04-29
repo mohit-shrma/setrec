@@ -128,7 +128,7 @@ std::vector<UserSets> readSets(const char* fileName) {
     inFile.close(); 
   } else {
     std::cerr << "Can't open file: " << fileName << std::endl;
-  }
+  } 
 
   std::cout << "No. of UserSets: " << uSets.size() << std::endl;
   std::cout << "No. of sets: " << nSets << std::endl;
@@ -167,6 +167,37 @@ void writeSets(std::vector<UserSets> uSets, const char* opFName) {
   } else {
     std::cerr << "Can't open file: " << opFName << std::endl;
   } 
+}
+
+//TODO:verify
+void readEigenMat(const char* fileName, Eigen::MatrixXf& mat, int nrows, 
+    int ncols) {
+  
+  size_t pos;
+  std::string line, token;
+  std::ifstream ipFile(fileName);
+  std::string delimiter = " ";
+  int rowInd = 0, colInd = 0;
+
+  if (ipFile.is_open()) {
+    std::cout << "Reading... " << fileName << std::endl;  
+    while (getline(ipFile, line)) {
+      int colInd = 0;
+      while((pos = line.find(delimiter)) != std::string::npos) {
+        token = line.substr(0, pos);
+        mat(rowInd, colInd) = std::stof(token);
+        colInd++;
+        line.erase(0, pos + delimiter.length());
+      }
+      if (line.length() > 0) {
+        mat(rowInd, colInd) = std::stof(line);
+      }
+      rowInd++;
+    } 
+    ipFile.close();
+  }
+  
+  std::cout << "Read: nrows" << rowInd << " ncols: " << colInd << std::endl;
 }
 
 

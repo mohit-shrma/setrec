@@ -169,6 +169,12 @@ class Data {
       }
     }
 
+    void scaleSetsTo01(std::vector<UserSets> uSets, 
+        float maxRat) {
+      for (auto&& uSet: uSets) {
+        uSet.scaleTo01(maxRat);
+      }
+    }
 
     ~Data() {
       if (NULL != ratMat) {

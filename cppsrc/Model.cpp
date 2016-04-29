@@ -129,22 +129,59 @@ float Model::rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
 
 
 float Model::spearmanRankN(gk_csr_t *mat, int N) {
-  
-  int j, item, nUsers = 0;
+  int item, nUsers = 0;
   std::vector<float> actualRatings, predRatings;
   float uSpearman, avgSpearMan = 0;
   for (int u = 0; u < mat->nrows; u++) {
-    j = 0;
     actualRatings.clear();
     predRatings.clear();
-    for ( int ii = mat->rowptr[u]; ii < mat->rowptr[u+1] && j < N; ii++, j++) { 
+    for (int ii = mat->rowptr[u], j = 0; 
+        ii < mat->rowptr[u+1] && j < N; ii++, j++) { 
       item = mat->rowind[ii];
       actualRatings.push_back(mat->rowval[ii]);
       predRatings.push_back(estItemRating(u, item));
-      uSpearman = spearmanRankCorrN(actualRatings, predRatings, N);
-      avgSpearMan += uSpearman;
-      nUsers++;
     }
+    uSpearman = spearmanRankCorrN(actualRatings, predRatings, N);
+    if (uSpearman != uSpearman) {
+      //NaN check
+      continue;
+    }
+    avgSpearMan += uSpearman;
+    nUsers++;
+  }
+  avgSpearMan = avgSpearMan/nUsers;
+  return avgSpearMan;
+}
+
+
+float Model::spearmanRankN(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
+    int N) {
+  int item, nUsers = 0;
+  std::vector<float> actualRatings, predRatings;
+  float uSpearman, avgSpearMan = 0;
+
+  for (auto&& uSet: uSets) {
+    int u = uSet.user;
+    auto setItems = uSet.items;
+    actualRatings.clear();
+    predRatings.clear();
+    for (int ii = mat->rowptr[u], j = 0; 
+        ii < mat->rowptr[u+1] && j < N; ii++) {
+      item = mat->rowind[ii];
+      if (setItems.find(item) == setItems.end()) {
+        //item not in userSet
+        actualRatings.push_back(mat->rowval[ii]);
+        predRatings.push_back(estItemRating(u, item));
+        j++;
+      }
+    }
+    uSpearman = spearmanRankCorrN(actualRatings, predRatings, N);
+    if (uSpearman != uSpearman) {
+      //NaN check
+      continue;
+    }
+    avgSpearMan += uSpearman;
+    nUsers++;
   }
   avgSpearMan = avgSpearMan/nUsers;
   return avgSpearMan;
@@ -165,7 +202,6 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     itemActRatings.clear();
     for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
       int item = mat->rowind[ii];
-      //item not in setItems
       if (setItems.find(item) == setItems.end()) {
         //item not in user set
         itemPredRatings.push_back(std::make_pair(item, 
@@ -174,7 +210,7 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
       }
     }
     
-    if (itemActRatings.size() > 0) {
+    if (itemPredRatings.size() == 0) {
       continue;
     }
 
@@ -190,7 +226,8 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     }
     
     int overlapCt = 0;
-    for (auto&& itemRating: itemActRatings) {
+    for (int j = 0; j < N && j < (int)itemPredRatings.size(); j++) {
+      auto itemRating = itemActRatings[j];
       if (predTopN.find(itemRating.first) != predTopN.end()) {
         //found in predicted top N
         overlapCt++;
@@ -199,7 +236,7 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     recN += (float)overlapCt/predTopN.size();
     uCount++;
   }
-
+  
   recN = recN/uCount;
   return recN;
 }
@@ -215,11 +252,17 @@ std::string Model::modelSign() {
 
 void Model::save(std::string opPrefix) {
   std::string sign = modelSign();
+  
   //save U
   std::string fName = opPrefix + "_" + sign + "_U.eigen";
   std::ofstream uOpFile(fName);
   if (uOpFile.is_open()) {
-    uOpFile << U << std::endl;
+    for (int u = 0; u < nUsers; u++) {
+      for (int k = 0; k < facDim; k++) {
+        uOpFile << U(u, k) << " ";
+      }
+      uOpFile << std::endl;
+    }
     uOpFile.close();
   }
 
@@ -227,9 +270,27 @@ void Model::save(std::string opPrefix) {
   fName = opPrefix + "_" + sign + "_V.eigen";
   std::ofstream vOpFile(fName);
   if (vOpFile.is_open()) {
-    vOpFile << V << std::endl;
+    for (int item = 0; item < nItems; item++) {
+      for (int k = 0; k < facDim; k++) {
+        vOpFile << V(item, k) << " ";
+      }
+      vOpFile << std::endl;
+    }
     vOpFile.close();
   }
+
+}
+
+//TODO
+void Model::load(std::string opPrefix) {
+  std::string sign = modelSign();
+  
+  //load U
+  std::string fName = opPrefix + "_" + sign + "_U.eigen";
+  
+  //load V
+  fName = opPrefix + "_" + sign + "_V.eigen";
+
 }
 
 
@@ -248,6 +309,7 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
       bestModel = *this;
       bestValRMSE = currValRMSE;
       bestIter = iter;
+      bestObj = currObj;
     } 
   
     if (iter - bestIter >= CHANCE_ITER) {
@@ -259,13 +321,16 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
       ret = true;
     }
     
+    
     if (fabs(prevObj - currObj) < EPS) {
       //objective converged
       std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
         << " bestValRMSE:" << bestValRMSE;
       ret = true;
     }
-
+    
+     
+    /*
     if (fabs(prevValRMSE - currValRMSE) < EPS) {
       //Validation rmse converged
       std::cout << "CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
@@ -274,7 +339,7 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
         << currValRMSE << std::endl;
       ret = true;
     }
-    
+    */
   }
   
   if (0 == iter) {
@@ -288,6 +353,7 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
 
   return ret;
 }
+
 
 bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
     int& bestIter, float& bestObj, float& prevObj) {
@@ -329,3 +395,5 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
 
   return ret;
 }
+
+

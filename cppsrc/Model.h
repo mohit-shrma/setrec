@@ -30,7 +30,7 @@ class Model {
 
     Model(const Params &params);
     
-    float estItemRating(int user, int item);
+    virtual float estItemRating(int user, int item);
     virtual float estSetRating(int user, std::vector<int>& items) {
       std::cerr << "Base class: estSetRating not defined" << std::endl;
       return -1;
@@ -49,8 +49,11 @@ class Model {
     float rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat);
     float rmse(gk_csr_t *mat);
     float spearmanRankN(gk_csr_t *mat, int N);
+    float spearmanRankN(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
+        int N);
     std::string modelSign();
     void save(std::string opPrefix);
+    void load(std::string opPrefix);
     float recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
       int N);
 };

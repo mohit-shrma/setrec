@@ -85,6 +85,14 @@ class UserSets {
         itemSet.second = sigmoid(score - u_m, g_k);
       } 
     }
+
+    //scale score to 0 - 1
+    void scaleTo01(float maxRat) {
+      for (auto&& itemSet: itemSets) {
+        itemSet.second = itemSet.second/maxRat;
+      }
+    }
+
 };
 
 #endif

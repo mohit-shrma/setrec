@@ -6,6 +6,7 @@
 #include "ModelAverageWCons.h"
 #include "ModelMajority.h"
 #include "ModelMajorityWCons.h"
+#include "ModelBaseline.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 16) {
@@ -30,13 +31,15 @@ int main(int argc, char *argv[]) {
   //writeSets(data.trainSets, opFName.c_str());
 
   ModelAverage modelAvg(params);
+  //ModelBaseline modelBase(params);
+  //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
   ModelAverage bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
 
-  std::cout << "Val RMSE: " << bestModel.rmse(data.valSets) << std::endl;
-  std::cout << "Test RMSE: " << bestModel.rmse(data.testSets) << std::endl;
+  //std::cout << "Val RMSE: " << bestModel.rmse(data.valSets) << std::endl;
+  //std::cout << "Test RMSE: " << bestModel.rmse(data.testSets) << std::endl;
 
   return 0;
 }
