@@ -1,5 +1,6 @@
 #include "Model.h"
 
+
 Model::Model(const Params &params) {
   
   nUsers    = params.nUsers;
@@ -13,22 +14,33 @@ Model::Model(const Params &params) {
   std::mt19937 mt(params.seed);
   std::uniform_real_distribution<> dis(0, 1);
 
-  //initialize User factors
+  //initialize User factors and biases
   U = Eigen::MatrixXf(nUsers, facDim);
+  uBias = Eigen::VectorXf(nUsers);
   for (int u = 0; u < nUsers; u++) {
+    uBias(u) = dis(mt);
     for (int k = 0; k < facDim; k++) {
       U(u, k) = dis(mt);
     }
   }
 
-  //initialize item factors
+  //initialize item factors and biases
   V = Eigen::MatrixXf(nItems, facDim);
+  iBias = Eigen::VectorXf(nItems);
   for (int item = 0; item < nItems; item++) {
+    iBias(item) = dis(mt);
     for (int k = 0; k < facDim; k++) {
       V(item, k) = dis(mt);
     }
   }
 
+}
+
+
+Model::Model(const Params &params, const char* uFacName, 
+    const char* iFacName):Model(params) {
+  readEigenMat(uFacName, U, nUsers, facDim);
+  readEigenMat(iFacName, V, nItems, facDim);
 }
 
 
@@ -279,17 +291,72 @@ void Model::save(std::string opPrefix) {
     vOpFile.close();
   }
 
+  //save user biases
+  fName = opPrefix + "_" + sign + "_ubias";
+  std::ofstream uBiasOpFile(fName);
+  if (uBiasOpFile.is_open()) {
+    for (int u = 0; u < nUsers; u++) {
+      uBiasOpFile << uBias[u] << std::endl;
+    }
+    uBiasOpFile.close();
+  }
+
+  //save item biases
+  fName = opPrefix + "_" + sign + "_ibias";
+  std::ofstream iBiasOpFile(fName);
+  if (iBiasOpFile.is_open()) {
+    for (int item = 0; item < nItems; item++) {
+      iBiasOpFile << iBias[item] << std::endl;
+    }
+    iBiasOpFile.close();
+  }
+  
+  //save global bias
+  fName = opPrefix + "_" + sign + "_gbias";
+  std::ofstream gBiasOpfile(fName);
+  if (gBiasOpfile.is_open()) {
+    gBiasOpfile << gBias << std::endl;
+    gBiasOpfile.close();
+  }
+
 }
 
-//TODO
+
 void Model::load(std::string opPrefix) {
   std::string sign = modelSign();
   
   //load U
   std::string fName = opPrefix + "_" + sign + "_U.eigen";
-  
+  readEigenMat(fName.c_str(), U, nUsers, facDim);
+
   //load V
   fName = opPrefix + "_" + sign + "_V.eigen";
+  readEigenMat(fName.c_str(), V, nItems, facDim);
+
+  //load user biases
+  fName = opPrefix + "_" + sign + "_ubias";
+  std::vector<float> fVec = readFVector(fName.c_str());
+  for (int u = 0; u < nUsers; u++) {
+    uBias(u) = fVec[u];
+  }
+
+  //load item biases
+  fName = opPrefix + "_" + sign + "_ibias";
+  fVec = readFVector(fName.c_str());
+  for (int item = 0; item < nItems; item++) {
+    iBias(item) = fVec[item];
+  }
+
+  //load global bias
+  fName = opPrefix + "_" + sign + "_gbias";
+  std::ifstream ipFile(fName);
+  if (ipFile.is_open()) {
+    std::string line;
+    if (getline(ipFile, line)) {
+      gBias = std::stof(line);
+    }
+    ipFile.close();
+  }
 
 }
 

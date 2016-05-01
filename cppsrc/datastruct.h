@@ -6,6 +6,7 @@
 #include "GKlib.h"
 #include "UserSets.h"
 #include "io.h"
+#include "util.h"
 
 class Params {
 
@@ -22,6 +23,7 @@ class Params {
     float g_kReg;
     float learnRate;
     float constWt;
+    float rhoRMS;
 
     char *trainSetFile;
     char *testSetFile;
@@ -31,12 +33,12 @@ class Params {
 
     Params(int nUsers, int nItems, int facDim, int maxIter, int seed,
         float uReg, float iReg, float u_mReg, float g_kReg, float learnRate, 
-        float constWt, 
+        float constWt, float rhoRMS,
         char *trainSetFile, char *testSetFile, char *valSetFile, 
         char *ratMatFile, char *prefix)
       : nUsers(nUsers), nItems(nItems), facDim(facDim), maxIter(maxIter), 
       seed(seed), 
-      uReg(uReg), iReg(iReg), u_mReg(u_mReg), g_kReg(g_kReg), learnRate(learnRate), constWt(constWt),
+      uReg(uReg), iReg(iReg), u_mReg(u_mReg), g_kReg(g_kReg), learnRate(learnRate), constWt(constWt), rhoRMS(rhoRMS),
       trainSetFile(trainSetFile), testSetFile(testSetFile), 
       valSetFile(valSetFile), ratMatFile(ratMatFile), prefix(prefix) {}
 
@@ -53,6 +55,7 @@ class Params {
       std::cout << "\ng_kReg: " << g_kReg;
       std::cout << "\nlearnRate: " << learnRate;
       std::cout << "\nconstWt: " << constWt;
+      std::cout << "\nrhoRMS: " << rhoRMS;
       std::cout << "\ntrainSetFile: " << trainSetFile;
       std::cout << "\ntestSetFile: " << testSetFile;
       std::cout << "\nvalSetFile: " << valSetFile;
@@ -72,6 +75,9 @@ class Data {
    
     std::unordered_set<int> trainItems;
     std::unordered_set<int> trainUsers;
+
+    std::unordered_set<int> invalUsers;
+    std::unordered_set<int> invalItems;
 
     int nTrainSets;
     int nTestSets;
@@ -169,12 +175,51 @@ class Data {
       }
     }
 
-    void scaleSetsTo01(std::vector<UserSets> uSets, 
-        float maxRat) {
-      for (auto&& uSet: uSets) {
+
+    void scaleSetsTo01(float maxRat) {
+      for (auto&& uSet: trainSets) {
+        uSet.scaleTo01(maxRat);
+      }
+      for (auto&& uSet: testSets) {
+        uSet.scaleTo01(maxRat);
+      }
+      for (auto&& uSet: valSets) {
         uSet.scaleTo01(maxRat);
       }
     }
+
+
+    void removeInvalUI() {
+      //set of valid items = trainItems - invalItems
+      std::unordered_set<int> valItems;
+      for (auto item: trainItems) {
+        if (invalItems.find(item) == invalItems.end()) {
+          //train item is valid
+          valItems.insert(item);
+        }
+      }
+
+      //set of valid users = trainUsers - invalUsers
+      std::unordered_set<int> valUsers;
+      for (auto user: trainUsers) {
+        if (invalUsers.find(user) == invalUsers.end()) {
+          //train user is valid
+          valUsers.insert(user);
+        }
+      }
+      
+      removeInvalUIFrmSets(trainSets, valUsers, valItems);
+      //update train users and items
+      userItemsFrmSets(trainSets, trainUsers, trainItems);
+      nTrainSets = trainSets.size();
+
+      removeInvalUIFrmSets(testSets, valUsers, valItems);
+      nTestSets = testSets.size();
+
+      removeInvalUIFrmSets(valSets, valUsers, valItems);
+      nValSets = valSets.size();
+    }
+
 
     ~Data() {
       if (NULL != ratMat) {

@@ -19,6 +19,13 @@ class Model {
     //user-item latent factors
     Eigen::MatrixXf U;
     Eigen::MatrixXf V;
+ 
+    //user-item bias
+    Eigen::VectorXf uBias;
+    Eigen::VectorXf iBias;
+    
+    //global set bias
+    float gBias;
     
     //size of latent factors
     int facDim;
@@ -29,7 +36,8 @@ class Model {
     float learnRate;
 
     Model(const Params &params);
-    
+    Model(const Params &params, const char* uFacName, const char* iFacName);
+
     virtual float estItemRating(int user, int item);
     virtual float estSetRating(int user, std::vector<int>& items) {
       std::cerr << "Base class: estSetRating not defined" << std::endl;

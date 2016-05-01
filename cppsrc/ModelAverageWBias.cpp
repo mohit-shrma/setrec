@@ -1,22 +1,40 @@
-#include "ModelAverage.h"
+#include "ModelAverageWBias.h"
 
-
-float ModelAverage::estSetRating(int user, std::vector<int>& items) {
-  int setSz = items.size();
-  float ratSum = 0;
-  
-  for (auto&& item: items) {
-    ratSum += estItemRating(user, item);
-  }
-
-  return ratSum/setSz;
+float ModelAverageWBias::estItemRating(int user, int item) {
+  float rating = uBias(user) + iBias(item) + U.row(user).dot(V.row(item));
+  return rating;
 }
 
 
-void ModelAverage::train(const Data& data, const Params& params, Model& bestModel) {
-  
-  std::cout << "ModelAverage::train" << std::endl;
+float ModelAverageWBias::estSetRating(int user, std::vector<int>& items) {
+  int setSz = items.size();
+  float r_us = 0;
+  for (auto&& item: items) {
+    r_us += estItemRating(user, item);
+  }
+  r_us = r_us/setSz;// + gBias;
+  return r_us;
+}
 
+
+float ModelAverageWBias::objective(const std::vector<UserSets>& uSets) {
+  float obj = Model::objective(uSets);
+  float norm = 0;
+  
+  //add biases regularization
+  norm = uBias.norm();
+  obj += norm*norm*uReg;
+
+  norm = iBias.norm();
+  obj += norm*norm*iReg;
+
+  return obj;
+}
+
+
+void ModelAverageWBias::train(const Data& data, const Params& params, 
+    Model& bestModel) {
+  std::cout << "ModelAverageWBias::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
   std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
   
@@ -34,6 +52,20 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
 
+  //initialize global bias
+  int nTrainSets = 0;
+  float meanSetRating = 0;
+  for (auto&& uInd: uInds) {
+    const auto& uSet = data.trainSets[uInd];
+    for (auto&& itemSet: uSet.itemSets) {
+      meanSetRating += itemSet.second;
+      nTrainSets++;
+    } 
+  }
+  meanSetRating = meanSetRating/nTrainSets;
+  gBias = meanSetRating;
+
+
   //initialize random engine
   std::mt19937 mt(params.seed);
   std::uniform_int_distribution<int> dist(0, 1000);
@@ -42,7 +74,7 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
     std::shuffle(uInds.begin(), uInds.end(), mt);
     for (int i = 0; i < data.nTrainSets/nTrUsers; i++) {
       for (auto&& uInd: uInds) {
-        UserSets uSet = data.trainSets[uInd];
+        const UserSets& uSet = data.trainSets[uInd];
         int user = uSet.user;
               
         if (uSet.itemSets.size() == 0) {
@@ -81,6 +113,10 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
         //for (int k = 0; k < facDim; k++) {
         //  U(user, k) -= (learnRate/(sqrt(uGradsAcc(user, k) + 0.0000001)))*grad[k];
         //}
+        
+        //update user bias
+        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)/items.size()) 
+            + 2.0*uReg*uBias(user));
 
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
@@ -93,12 +129,19 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
           //  V(item, k) -= (learnRate/(sqrt(iGradsAcc(item, k) + 0.0000001)))*tempGrad[k];
           //}
           V.row(item) -= learnRate*(tempGrad.transpose());
+          
+          //update item bias
+          iBias(item) -= learnRate*((2.0*(r_us_est - r_us)/items.size()) 
+              + 2.0*iReg*iBias(item));
         }
+
       }
     }    
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj)) {
+        //save best model
+        bestModel.save(params.prefix);
         break;
       }
       std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
@@ -109,13 +152,14 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
         << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
         << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
         << std::endl;
+      bestModel.save(params.prefix);
     }
 
   }
 
+
+
 }
-
-
 
 
 

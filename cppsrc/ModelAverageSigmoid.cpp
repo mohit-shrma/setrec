@@ -99,21 +99,29 @@ void ModelAverageSigmoid::train(const Data& data, const Params& params,
         float u_mGrad = commGradCoeff*-1.0*g_k + 2.0*u_m[user]*u_mReg;
         //update u_m
         u_m[user] -= learnRate*u_mGrad;
-        
+       
+        /*
         //compute g_k grad
         float g_kGrad = commGradCoeff*dev + 2.0*g_k*g_kReg;
         //update g_k
         g_k -= learnRate*g_kGrad;
+        */
       }
     } 
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj)) {
+      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
+            bestValRMSE, prevValRMSE)) {
         break;
       }
       std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
         << prevValRMSE << " best val RMSE:" << bestValRMSE 
-        << " train RMSE:" << rmse(data.trainSets) << std::endl;
+        << " train RMSE:" << rmse(data.trainSets)
+        << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
+        << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
+        << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
+        << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
+        << std::endl;
     }
 
   }

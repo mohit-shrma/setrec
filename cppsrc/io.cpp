@@ -169,6 +169,7 @@ void writeSets(std::vector<UserSets> uSets, const char* opFName) {
   } 
 }
 
+
 //TODO:verify
 void readEigenMat(const char* fileName, Eigen::MatrixXf& mat, int nrows, 
     int ncols) {
@@ -198,6 +199,51 @@ void readEigenMat(const char* fileName, Eigen::MatrixXf& mat, int nrows,
   }
   
   std::cout << "Read: nrows" << rowInd << " ncols: " << colInd << std::endl;
+  std::cout << "mat norm: " << mat.norm() << std::endl;
+}
+
+
+std::vector<int> readVector(const char *ipFileName) {
+  std::vector<int> vec;
+  std::ifstream ipFile(ipFileName);
+  std::string line; 
+  if (ipFile.is_open()) {
+    while(getline(ipFile, line)) {
+      if (line.length() > 0) {
+        vec.push_back(std::stoi(line));
+      }
+    }
+    ipFile.close();
+  } else {
+    std::cerr <<  "\nCan't open file: " << ipFileName;
+    exit(0);
+  }
+  return vec;
+}
+
+
+std::vector<float> readFVector(const char *ipFileName) {
+  std::vector<float> vec;
+  std::ifstream ipFile(ipFileName);
+  std::string line; 
+  if (ipFile.is_open()) {
+    while(getline(ipFile, line)) {
+      if (line.length() > 0) {
+        vec.push_back(std::stof(line));
+      }
+    }
+    ipFile.close();
+  } else {
+    std::cerr <<  "\nCan't open file: " << ipFileName;
+    exit(0);
+  }
+  return vec;
+}
+
+
+bool isFileExist(const char *fileName) {
+  std::ifstream infile(fileName);
+  return infile.good();
 }
 
 
