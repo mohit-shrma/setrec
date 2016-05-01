@@ -3,11 +3,6 @@
 
 #include "datastruct.h"
 #include "ModelAverage.h"
-#include "ModelAverageWCons.h"
-#include "ModelMajority.h"
-#include "ModelMajorityWCons.h"
-#include "ModelBaseline.h"
-#include "ModelAverageSigmoid.h"
 #include "ModelAverageWBias.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
