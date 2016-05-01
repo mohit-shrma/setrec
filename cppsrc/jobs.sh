@@ -1,5 +1,5 @@
 #!/bin/bash
-
+export LD_LIBRARY_PATH=$HOME/dev/gsl/lib
 SETREC=""
 DATA=""
 NUSERS="854"
