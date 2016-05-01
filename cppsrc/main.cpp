@@ -72,10 +72,21 @@ int main(int argc, char *argv[]) {
   ModelAverageWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
 
-  std::cout << "Val RMSE: " << bestModel.rmse(data.valSets) << std::endl;
-  std::cout << "Test RMSE: " << bestModel.rmse(data.testSets) << std::endl;
+  float trainRMSE = bestModel.rmse(data.trainSets);
+  float testRMSE = bestModel.rmse(data.testSets);
+  float valRMSE = bestModel.rmse(data.valSets);
 
-  //loadModelNRMSEs(data, params);
+  float trainRatingsRMSE = bestModel.rmse(data.trainSets, data.ratMat);
+  float testRatingsRMSE = bestModel.rmse(data.testSets, data.ratMat);
+  float valRatingsRMSE = bestModel.rmse(data.valSets, data.ratMat);
+  
+  float recN = bestModel.recallTopN(data.ratMat, data.trainSets, 10);
+  float spN = bestModel.spearmanRankN(data.ratMat, data.trainSets, 10);
+
+  std::cout << "\nRE: " <<  params.facDim << " " << params.uReg << " " << params.iReg << " " 
+    << params.learnRate << " " << trainRMSE << " " << testRMSE << " " << valRMSE 
+    << " " << trainRatingsRMSE << " " << testRatingsRMSE << " " << valRatingsRMSE
+    << " " << recN <<  " " << spN << std::endl;
 
   return 0;
 }

@@ -139,7 +139,8 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
     }    
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj)) {
+      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
+            bestValRMSE, prevValRMSE)) {
         //save best model
         bestModel.save(params.prefix);
         break;
