@@ -1,4 +1,5 @@
 import sys
+import random
 
 def checkRatingsExist(uSetRatings, uiRatings):
   for user, setRatings in uSetRatings.iteritems():
@@ -101,18 +102,47 @@ def toLFS(uSetRatings, opFName, uMap, iMap):
     for user, setRatings in uSetRatings.iteritems():
       writeSetRating(user, setRatings, g, uMap, iMap)
 
-
-def toLFSTrainTestVal(uSetRatings, opTrainName, opTestName, opValName, 
-    uMap, iMap):
+def toLFSTrainTestVal(uSetRatings, opCombName, opTrainName, opTestName, 
+    opValName, uMap, iMap):
   invalUsers = []
-  with open(opTrainName, 'w') as tr, open(opTestName, 'w') as te, open(opValName, 'w') as va:
+  with open(opTrainName, 'w') as tr, open(opTestName, 'w') as te, \
+      open(opValName, 'w') as va, open(opCombName, 'w') as comb:
     for user, setRatings in uSetRatings.iteritems():
       if len(setRatings) <= 2:
         invalUsers.append(user)
+        continue
+      random.shuffle(setRatings)
+      writeSetRating(user, setRatings, comb, uMap, iMap)
       writeSetRating(user, setRatings[:-2], tr, uMap, iMap)
       writeSetRating(user, setRatings[-2:-1], te, uMap, iMap)
       writeSetRating(user, setRatings[-1:], va, uMap, iMap)
   print 'No. of users not split: ', len(invalUsers)
+
+
+def ratingsNotInUSets(uiRatings, uSetRatings, notOpFName, inTrainFName,
+    uMap, iMap):
+  
+  revUMap = {}
+  for k, v in uMap.iteritems():
+    revUMap[v] = k
+  with open(notOpFName, 'w') as g, open(inTrainFName, 'w') as h:
+    for u in range(len(uMap)):
+      revU = revUMap[u]
+      setRatings = uSetRatings[revU]
+      setItems = set([])
+      for setRating in setRatings:
+        for item in setRating[0]:
+          setItems.add(item)
+      itemRatings = uiRatings[revU]
+      for item, rating in itemRatings.iteritems():
+        if item not in setItems and item in iMap:
+          #write item and rating
+          g.write(str(iMap[item]) + ' ' + str(rating) + ' ')
+        elif item in setItems and item in iMap:
+          #write item nd rating
+          h.write(str(iMap[item]) + ' ' + str(rating) + ' ')
+      g.write('\n')
+      h.write('\n')
 
 
 def main():
@@ -132,13 +162,17 @@ def main():
   writeMap(iMap, opPrefix + '_iMap.txt')
   
   toLFS(uSetRatings, opPrefix + "_set.lfs", uMap, iMap)
-  toLFSTrainTestVal(uSetRatings, opPrefix + "_set.train.lfs", 
+  toLFSTrainTestVal(uSetRatings, opPrefix + "_set.comb.lfs",
+      opPrefix + "_set.train.lfs", 
       opPrefix + "_set.test.lfs",
       opPrefix + "_set.val.lfs",
       uMap, iMap)
 
   writeUIRatingsCSR(uiRatings, opPrefix + "_ratings.csr", uMap, iMap)
-
+  ratingsNotInUSets(uiRatings, uSetRatings, 
+      opPrefix + "_notTrainSet.csr",
+      opPrefix + "_inTrainSet.csr",
+      uMap, iMap)
 
 if __name__ == '__main__':
   main()

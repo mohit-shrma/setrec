@@ -134,7 +134,7 @@ def getUserItemRatings(cur, users, items, opFileName):
   #query to get join of ratings and set_ratings
   cur.execute('select A.userId, A.movieId, A.rating, A.tstamp from \
       user_rating_pairs A INNER JOIN expt_set_user_rating B ON \
-      A.userId=B.userId;')
+      A.userId=B.userId and A.rating != -1;')
   uIRat = {}
   nnz = 0
   with open(opFileName, 'w') as g:
@@ -150,6 +150,8 @@ def getUserItemRatings(cur, users, items, opFileName):
           nnz += 1
           strRow = map(str, row)
           g.write(','.join(strRow) + '\n')
+        elif uIRat[user][item] != rating:
+          print 'Duplicate rating don\'t match: ', user, item
   print 'no. of uIRatings: ', nnz
   return uIRat
 
@@ -172,7 +174,8 @@ def main():
 
   invalUserByTS = getInvalidUsersByTS(setFName)
   invalUserByRat = getInvalidUsersWRat(uiRat, uSetRatings)
-  
+  writeList(list(invalUserByRat), opPrefix + '_invalU_by_rat.txt')
+
   invalUsers = invalUserByTS.union(invalUserByRat)
   print "Total invalid users: ", len(invalUsers) 
   writeList(list(invalUsers), opPrefix + '_invalid_users.txt')
