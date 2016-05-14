@@ -247,3 +247,35 @@ bool isFileExist(const char *fileName) {
 }
 
 
+void writeItemRMSEFreq(std::map<int, int>& itemFreq, 
+    std::map<int, float>& itemRMSE, const char *opFName) {
+  std::ofstream opFile(opFName);
+  if (opFile.is_open()) {
+    for (auto const& kv: itemRMSE) {
+      int item = kv.first;
+      float rmse = kv.second;
+      opFile << item << " " << rmse << " " << itemFreq[item] << std::endl;
+    }
+    opFile.close();
+  } else {
+    std::cerr << "Can't open file: " << opFName << std::endl;
+  }
+}
+
+
+void statSets(std::vector<UserSets>& uSets) {
+  int nUsers = uSets.size();
+  int nSets = 0;
+  std::unordered_set<int> items;
+  for (auto&& uSet: uSets) {
+    nSets += uSet.itemSets.size();
+    for (auto&& item: uSet.items) {
+      items.insert(item);
+    }
+  }
+  std::cout << "No. of users: " << nUsers << std::endl;
+  std::cout << "No. of items: " << items.size() << std::endl;
+  std::cout << "No. of sets: " << nSets << std::endl;
+}
+
+

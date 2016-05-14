@@ -31,4 +31,7 @@ void dispContainer(Iter it, Iter end) {
       std::cout << *it << std::endl;
     }
 }
+void writeItemRMSEFreq(std::map<int, int>& itemFreq, 
+    std::map<int, float>& itemRMSE, const char *opFName);
+void statSets(std::vector<UserSets>& uSets);
 #endif
