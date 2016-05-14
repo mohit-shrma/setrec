@@ -4,6 +4,7 @@
 #include "datastruct.h"
 #include "ModelAverage.h"
 #include "ModelAverageWBias.h"
+#include "ModelAverageWBiasConst.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 17) {
@@ -57,6 +58,8 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
+
+
   ModelAverageWBias modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
@@ -74,13 +77,66 @@ int main(int argc, char *argv[]) {
   float trainRatingsRMSE = bestModel.rmse(data.trainSets, data.ratMat);
   float testRatingsRMSE = bestModel.rmse(data.testSets, data.ratMat);
   float valRatingsRMSE = bestModel.rmse(data.valSets, data.ratMat);
-  
+ 
+  std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
+  std::cout << "Underrated sets b4 rem stats: " << std::endl;
+  statSets(undSets);
+  removeSetsWOVal(undSets, data.trainUsers, data.trainItems);
+  std::cout << "Underrated sets aftr rem stats: " << std::endl;
+  statSets(undSets);
+
+  std::vector<UserSets> ovrSets = readSets("ml_set.ovr.lfs");
+  std::cout << "Overrated sets b4 rem stats: " << std::endl;
+  statSets(ovrSets);
+  removeSetsWOVal(ovrSets, data.trainUsers, data.trainItems);
+  std::cout << "Overrated sets aftr rem stats: " << std::endl;
+  statSets(ovrSets);
+
+  std::vector<UserSets> allSets;
+  //allSets.insert(allSets.end(), data.trainSets.begin(), data.trainSets.end());
+  allSets.insert(allSets.end(), data.testSets.begin(), data.testSets.end());
+  //allSets.insert(allSets.end(), data.valSets.begin(), data.valSets.end());
+  allSets.insert(allSets.end(), undSets.begin(), undSets.end());
+  allSets.insert(allSets.end(), ovrSets.begin(), ovrSets.end());
+
+  std::cout << "All sets b4 rem stats: " << std::endl;
+  statSets(allSets);
+  removeSetsWOVal(allSets, data.trainUsers, data.trainItems);
+  std::cout << "All sets aftr rem stats: " << std::endl;
+  statSets(allSets);
+ 
+  std::cout << "Train RMSE: " << trainRatingsRMSE << std::endl;
+  std::cout << "Test RMSE: " << testRatingsRMSE << std::endl;
+  std::cout << "Val RMSE: " << valRatingsRMSE << std::endl; 
+  std::cout << "Under RMSE: " << bestModel.rmse(undSets, data.ratMat) << std::endl;
+  std::cout << "Over RMSE: " << bestModel.rmse(ovrSets, data.ratMat) << std::endl;
+  std::cout << "All RMSE: " << bestModel.rmse(allSets, data.ratMat) << std::endl;
+
+  std::cout << "Train sets RMSE: " << trainRMSE << std::endl;
+  std::cout << "Test sets RMSE: " << testRMSE << std::endl;
+  std::cout << "Under sets RMSE: " << bestModel.rmse(undSets) << std::endl;
+  std::cout << "Over sets RMSE: " << bestModel.rmse(ovrSets) << std::endl;
+
   float recN = bestModel.recallTopN(data.ratMat, data.trainSets, 10);
   float spN = bestModel.spearmanRankN(data.ratMat, data.trainSets, 10);
 
-  std::cout << "\nRE: " <<  params.facDim << " " << params.uReg << " " << params.iReg << " " 
-    << params.learnRate << " " << trainRMSE << " " << testRMSE << " " << valRMSE 
-    << " " << trainRatingsRMSE << " " << testRatingsRMSE << " " << valRatingsRMSE
+  /*
+  auto itemFreq = getItemFreq(data.trainSets);
+  
+  auto trainItemsRMSE = bestModel.itemRMSE(data.trainSets, data.ratMat);
+  writeItemRMSEFreq(itemFreq, trainItemsRMSE, "trainItemsRMSE.txt");
+
+  auto testItemsRMSE = bestModel.itemRMSE(data.testSets, data.ratMat);
+  writeItemRMSEFreq(itemFreq, testItemsRMSE, "testItemsRMSE.txt");
+  
+  auto valItemsRMSE = bestModel.itemRMSE(data.valSets, data.ratMat);
+  writeItemRMSEFreq(itemFreq, valItemsRMSE, "valItemsRMSE.txt");
+  */
+
+  std::cout << "\nRE: " <<  params.facDim << " " << params.uReg << " " 
+    << params.iReg << " " << params.learnRate << " " << trainRMSE << " " 
+    << testRMSE << " " << valRMSE << " " << trainRatingsRMSE << " " 
+    << testRatingsRMSE << " " << valRatingsRMSE
     << " " << recN <<  " " << spN << std::endl;
 
   return 0;

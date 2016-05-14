@@ -56,9 +56,10 @@ float ModelAverageWBiasConst::objective(const std::vector<UserSets>& uSets) {
 
 void ModelAverageWBiasConst::train(const Data& data, const Params& params, 
     Model& bestModel) {
+  
   std::cout << "ModelAverageWBiasConst::train" << std::endl;
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
-  std::cout << "Train RMSE: " << rmse(data.trainSets);
+  std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
 
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
   int bestIter;
