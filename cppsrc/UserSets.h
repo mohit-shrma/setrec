@@ -6,8 +6,10 @@
 #include <tuple>
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include <unordered_set>
 #include <map>
+#include "GKlib.h"
 
 class UserSets {
 
@@ -76,6 +78,43 @@ class UserSets {
         }
       }
 
+    }
+    
+    float getAvgRating(std::vector<int>& items, gk_csr_t *mat) {
+      float avgRat = 0.0;
+      size_t found = 0;
+      for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+        int item = mat->rowind[ii];
+        if (std::find(items.begin(), items.end(), item) != items.end()) {
+          avgRat += mat->rowval[ii];
+          found += 1;
+        }
+        if (found == items.size()) {
+          break;
+        }
+      }
+
+      if (found != items.size()) {
+        std::cerr << "items in set not found in user-item ratings" << std::endl;
+      }
+
+      avgRat = avgRat/items.size();
+
+      return avgRat;
+    }
+
+    //remove sets which deviate from average rating by +- 0.5
+    void removeOverUnderRatedSets(gk_csr_t *mat) {
+      auto it = std::begin(itemSets);
+      while (it != std::end(itemSets)) {
+        float avgRat = getAvgRating((*it).first, mat);
+        if (fabs(avgRat - (*it).second) >= 0.5) {
+          //over-under rated set, remove it from training
+          it = itemSets.erase(it);
+        } else {
+          ++it;
+        }
+      }
     }
 
     //scale score to sigmoid
