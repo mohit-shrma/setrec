@@ -102,6 +102,10 @@ class Data {
       
       if (NULL != params.trainSetFile) {
         trainSets  = readSets(params.trainSetFile);    
+        
+        //remove over-under rated sets
+        //removeOverUnderRatedSets(trainSets, ratMat);
+
         std::cout << "No. of train users: " << trainSets.size() << std::endl;
         nTrainSets = 0;
         for (auto&& uSet: trainSets) {
@@ -122,15 +126,9 @@ class Data {
         testSets = readSets(params.testSetFile);
         nTestSets = 0;
         //remove test sets which contain items not present in train
-        auto it = std::begin(testSets);
-        while (it != std::end(testSets)) {
-          (*it).removeInvalSets(trainItems);
-          if ((*it).itemSets.size() == 0) {
-            it = testSets.erase(it);
-          } else {
-            ++it;
-          }
-        }
+        removeSetsWOValItems(testSets, trainItems);
+        //remove over-under rated sets
+        //removeOverUnderRatedSets(testSets, ratMat);
 
         for (auto&& uSet: testSets) {
           nTestSets += uSet.itemSets.size();
@@ -144,15 +142,9 @@ class Data {
         nValSets = 0;
         
         //remove val sets which contain items not present in train
-        auto it = std::begin(valSets);
-        while (it != std::end(valSets)) {
-          (*it).removeInvalSets(trainItems);
-          if ((*it).itemSets.size() == 0) {
-            it = valSets.erase(it);
-          } else {
-            ++it;
-          }
-        }
+        removeSetsWOValItems(valSets, trainItems);
+        //remove over-under rated sets
+        //removeOverUnderRatedSets(valSets, ratMat);
 
         for (auto&& uSet: valSets) {
           nValSets += uSet.itemSets.size();
