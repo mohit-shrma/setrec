@@ -140,6 +140,47 @@ float Model::rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
 }
 
 
+std::map<int, float> Model::itemRMSE(const std::vector<UserSets>& uSets,
+    gk_csr_t *mat) {
+
+  float rmse = 0, r_ui_est, r_ui, diff;
+  int nnz = 0, item, u;
+  std::map<int, float> itemSE, itemCount;
+
+  for (auto const & uSet: uSets) {
+    u = uSet.user;
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      item = mat->rowind[ii];
+      if (uSet.items.find(item) != uSet.items.end()) {
+        //item present in set
+        r_ui_est = estItemRating(u, item);
+        r_ui = mat->rowval[ii];
+        diff = r_ui - r_ui_est;
+        
+        if (itemSE.find(item) == itemSE.end()) {
+          itemSE[item] = 0;
+          itemCount[item] = 0;
+        }
+        
+        itemSE[item] += diff*diff;
+        itemCount[item] += 1;
+
+        rmse += diff*diff;
+        nnz++;
+      }
+    }
+  }
+
+  for (auto const & kv: itemSE) {
+    int item = kv.first;
+    itemSE[item] = sqrt(itemSE[item]/itemCount[item]);
+  }
+
+  rmse = sqrt(rmse/nnz);
+  return itemSE;
+}
+
+
 float Model::spearmanRankN(gk_csr_t *mat, int N) {
   int item, nUsers = 0;
   std::vector<float> actualRatings, predRatings;
