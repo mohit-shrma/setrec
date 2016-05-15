@@ -4,7 +4,11 @@
 #include "datastruct.h"
 #include "ModelAverage.h"
 #include "ModelAverageWBias.h"
-#include "ModelAverageWBiasConst.h"
+#include "ModelAverageWSetBias.h"
+#include "ModelBaseline.h"
+#include "ModelMajority.h"
+#include "ModelMajorityWCons.h"
+#include "ModelAverageBPR.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 17) {
@@ -58,16 +62,14 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-
-
-  ModelAverageWBias modelAvg(params);
+  ModelAverageBPR modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageWBias bestModel(modelAvg);
+  ModelAverageBPR bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
 
   float trainRMSE = bestModel.rmse(data.trainSets);

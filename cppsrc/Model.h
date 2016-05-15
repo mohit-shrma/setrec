@@ -24,6 +24,10 @@ class Model {
     Eigen::VectorXf uBias;
     Eigen::VectorXf iBias;
     
+    //user set biases
+    Eigen::VectorXf uOvSetBias;
+    Eigen::VectorXf uUnSetBias;
+    
     //global set bias
     float gBias;
     
@@ -53,6 +57,9 @@ class Model {
         float& prevValRMSE); 
     bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj); 
+    bool isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
+      int& bestIter, float& bestRecall, float& prevRecall, float& bestValRecall,
+      float& prevValRecall, std::unordered_set<int>& invalidUsers);
     float rmse(const std::vector<UserSets>& uSets);
     float rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat);
     std::map<int, float> itemRMSE(const std::vector<UserSets>& uSets,
@@ -66,6 +73,8 @@ class Model {
     void load(std::string opPrefix);
     float recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
       int N);
+    float recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
+      std::unordered_set<int>& invalUsers, int N);
 };
 
 

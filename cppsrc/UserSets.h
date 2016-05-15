@@ -3,6 +3,7 @@
 
 #include "mathUtil.h"
 
+#include <random>
 #include <tuple>
 #include <iostream>
 #include <vector>
@@ -130,6 +131,47 @@ class UserSets {
       for (auto&& itemSet: itemSets) {
         itemSet.second = itemSet.second/maxRat;
       }
+    }
+    
+    //sample pos, neg set ind
+    std::pair<int, int> sampPosNeg(std::mt19937 mt) {
+      std::uniform_int_distribution<int> dist(0, itemSets.size()-1);
+      
+      //sample first set
+      int firstInd = dist(mt);
+      int secondInd = -1;
+      int highInd = -1, lowInd = -1;
+
+      for (int i = 0; i < 50; i++) {
+        //sample second set
+        secondInd = dist(mt);
+        if (itemSets[secondInd].second != itemSets[firstInd].second) {
+          break;
+        }
+      }
+      
+      if (itemSets[secondInd].second == itemSets[firstInd].second) {
+        //manual search for low, high ind
+        for (size_t i = 0; i < itemSets.size(); i++) {
+          if (itemSets[i].second != itemSets[firstInd].second) {
+            secondInd = i;
+          } else if (itemSets[i].second != itemSets[secondInd].second) {
+            firstInd = i;
+          }
+        }
+      }
+      
+      if (itemSets[secondInd].second != itemSets[firstInd].second) {
+        if (itemSets[firstInd].second > itemSets[secondInd].second) {
+          highInd = firstInd;
+          lowInd = secondInd;
+        } else {
+          highInd = secondInd;
+          lowInd = firstInd;
+        }
+      }
+
+      return std::make_pair(highInd, lowInd);
     }
 
 };

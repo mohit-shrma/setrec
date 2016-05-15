@@ -17,8 +17,13 @@ Model::Model(const Params &params) {
   //initialize User factors and biases
   U = Eigen::MatrixXf(nUsers, facDim);
   uBias = Eigen::VectorXf(nUsers);
+  uOvSetBias = Eigen::VectorXf(nUsers);
+  uUnSetBias = Eigen::VectorXf(nUsers);
+
   for (int u = 0; u < nUsers; u++) {
     uBias(u) = dis(mt);
+    uOvSetBias(u) = dis(mt);
+    uUnSetBias(u) = dis(mt);
     for (int k = 0; k < facDim; k++) {
       U(u, k) = dis(mt);
     }
@@ -295,6 +300,65 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
 }
 
 
+float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
+    std::unordered_set<int>& invalUsers, int N) {
+  float recN = 0;
+  int uCount = 0;
+  std::vector<std::pair<int, float>> itemPredRatings;
+  std::vector<std::pair<int, float>> itemActRatings;
+  std::unordered_set<int> predTopN;
+  for (auto&& uSet: uSets) {
+    if (invalUsers.find(uSet.user) != invalUsers.end()) {
+      //found invalid user
+      continue;
+    }
+
+    int u = uSet.user;
+    auto setItems = uSet.items;
+    itemPredRatings.clear();
+    itemActRatings.clear();
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      if (setItems.find(item) == setItems.end()) {
+        //item not in user set
+        itemPredRatings.push_back(std::make_pair(item, 
+              estItemRating(u, item)));
+        itemActRatings.push_back(std::make_pair(item, mat->rowval[ii]));
+      }
+    }
+    
+    if (itemPredRatings.size() == 0) {
+      continue;
+    }
+
+    //arrange such that Nth element is in its place
+    std::nth_element(itemActRatings.begin(), itemActRatings.begin()+(N-1), 
+        itemActRatings.end(), descComp);
+    std::nth_element(itemPredRatings.begin(), itemPredRatings.begin()+(N-1), 
+        itemPredRatings.end(), descComp);
+    
+    predTopN.clear();
+    for (int j = 0; j < N && j < (int)itemPredRatings.size(); j++) {
+      predTopN.insert(itemPredRatings[j].first);
+    }
+    
+    int overlapCt = 0;
+    for (int j = 0; j < N && j < (int)itemPredRatings.size(); j++) {
+      auto itemRating = itemActRatings[j];
+      if (predTopN.find(itemRating.first) != predTopN.end()) {
+        //found in predicted top N
+        overlapCt++;
+      }
+    }
+    recN += (float)overlapCt/predTopN.size();
+    uCount++;
+  }
+  
+  recN = recN/uCount;
+  return recN;
+}
+
+
 std::string Model::modelSign() {
   std::string sign;
   sign = std::to_string(facDim) + "_" + std::to_string(uReg) + "_" 
@@ -342,6 +406,25 @@ void Model::save(std::string opPrefix) {
     uBiasOpFile.close();
   }
 
+  //save user set biases
+  fName = opPrefix + "_" + sign + "_uOvSetBias";
+  std::ofstream uOvSetBiasOpFile(fName);
+  if (uOvSetBiasOpFile.is_open()) {
+    for (int u = 0; u < nUsers; u++) {
+      uOvSetBiasOpFile << uOvSetBias[u] << std::endl;
+    }
+    uOvSetBiasOpFile.close();
+  }
+  
+  fName = opPrefix + "_" + sign + "_uUnSetBias";
+  std::ofstream uUnSetBiasOpFile(fName);
+  if (uUnSetBiasOpFile.is_open()) {
+    for (int u = 0; u < nUsers; u++) {
+      uUnSetBiasOpFile << uUnSetBias[u] << std::endl;
+    }
+    uUnSetBiasOpFile.close();
+  }
+
   //save item biases
   fName = opPrefix + "_" + sign + "_ibias";
   std::ofstream iBiasOpFile(fName);
@@ -379,6 +462,18 @@ void Model::load(std::string opPrefix) {
   std::vector<float> fVec = readFVector(fName.c_str());
   for (int u = 0; u < nUsers; u++) {
     uBias(u) = fVec[u];
+  }
+
+  //load user biases
+  fName = opPrefix + "_" + sign + "_uOvSetBias";
+  fVec = readFVector(fName.c_str());
+  for (int u = 0; u < nUsers; u++) {
+    uOvSetBias(u) = fVec[u];
+  }
+  fName = opPrefix + "_" + sign + "_uUnSetBias";
+  fVec = readFVector(fName.c_str());
+  for (int u = 0; u < nUsers; u++) {
+    uUnSetBias(u) = fVec[u];
   }
 
   //load item biases
@@ -458,6 +553,65 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
   
   prevObj = currObj;
   prevValRMSE = currValRMSE;
+
+  return ret;
+}
+
+
+bool Model::isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
+    int& bestIter, float& bestRecall, float& prevRecall, float& bestValRecall,
+    float& prevValRecall, std::unordered_set<int>& invalidUsers) {
+
+  bool ret = false;  
+  float currRecall = recallTopN(data.ratMat, data.trainSets, invalidUsers, 10);
+  float currValRecall = recallTopN(data.ratMat, data.valSets, invalidUsers, 10);
+  
+  if (iter > 0) {
+    if (currValRecall > bestValRecall) {
+      bestModel = *this;
+      bestValRecall = currValRecall;
+      bestIter = iter;
+      bestRecall = currRecall;
+    } 
+  
+    if (iter - bestIter >= 1000) {
+      //cant improve validation RMSE
+      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestRecall:" 
+        << bestRecall << " bestValRecall: " << bestValRecall << " currIter:"
+        << iter << " currRecall: " << currRecall << " currValRecall:" 
+        << currValRecall << std::endl;
+      ret = true;
+    }
+     
+    /*
+    if (fabs(prevRecall - currRecall) < EPS) {
+      //objective converged
+      std::cout << "CONVERGED Recall:" << iter << " currRecall:" << currRecall 
+        << " bestValRecall:" << bestValRecall << std::endl;
+      ret = true;
+    }
+    */ 
+   
+    /*
+    if (fabs(prevValRecall - currValRecall) < EPS) {
+      //Validation rmse converged
+      std::cout << "CONVERGED VAL: bestIter:" << bestIter << " bestRecall:" 
+        << bestRecall << " bestValRecall: " << bestValRecall << " currIter:"
+        << iter << " currRecall: " << currRecall << " currValRecall:" 
+        << currValRecall << std::endl;
+      ret = true;
+    }
+    */
+  }
+  
+  if (0 == iter) {
+    bestRecall = currRecall;
+    bestValRecall = currValRecall;
+    bestIter = iter;
+  }
+  
+  prevRecall = currRecall;
+  prevValRecall = currValRecall;
 
   return ret;
 }

@@ -1,40 +1,37 @@
-#include "ModelAverageWBias.h"
-
-float ModelAverageWBias::estItemRating(int user, int item) {
-  float rating = uBias(user) + iBias(item) + U.row(user).dot(V.row(item));
-  return rating;
-}
+#include "ModelAverageWSetBias.h"
 
 
-float ModelAverageWBias::estSetRating(int user, std::vector<int>& items) {
+float ModelAverageWSetBias::estSetRating(int user, std::vector<int>& items) {
   int setSz = items.size();
   float r_us = 0;
   for (auto&& item: items) {
     r_us += estItemRating(user, item);
   }
-  r_us = r_us/setSz;// + gBias;
+  r_us = r_us/setSz;
+  //add user's set rating bias
+  r_us += uOvSetBias(user) - uUnSetBias(user);
   return r_us;
 }
 
 
-float ModelAverageWBias::objective(const std::vector<UserSets>& uSets) {
-  float obj = Model::objective(uSets);
+float ModelAverageWSetBias::objective(const std::vector<UserSets>& uSets) {
+  float obj = ModelAverageWBias::objective(uSets);
   float norm = 0;
   
-  //add biases regularization
-  norm = uBias.norm();
+  //add user biases regularization
+  norm = uOvSetBias.norm();
   obj += norm*norm*uReg;
 
-  norm = iBias.norm();
-  obj += norm*norm*iReg;
+  norm = uUnSetBias.norm();
+  obj += norm*norm*uReg;
 
   return obj;
 }
 
 
-void ModelAverageWBias::train(const Data& data, const Params& params, 
+void ModelAverageWSetBias::train(const Data& data, const Params& params, 
     Model& bestModel) {
-  std::cout << "ModelAverageWBias::train" << std::endl; 
+  std::cout << "ModelAverageWSetBias::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
   std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
   
@@ -51,20 +48,6 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
-
-  //initialize global bias
-  int nTrainSets = 0;
-  float meanSetRating = 0;
-  for (auto&& uInd: uInds) {
-    const auto& uSet = data.trainSets[uInd];
-    for (auto&& itemSet: uSet.itemSets) {
-      meanSetRating += itemSet.second;
-      nTrainSets++;
-    } 
-  }
-  meanSetRating = meanSetRating/nTrainSets;
-  gBias = meanSetRating;
-
 
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -103,30 +86,31 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
         //user gradient
         grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
                 + 2.0*uReg*U.row(user).transpose();
-        //uGradsAcc.row(user) = uGradsAcc.row(user)*params.rhoRMS 
-        //  + (1.0 - params.rhoRMS)*(grad.cwiseProduct(grad).transpose());
 
         //update user
         U.row(user) -= learnRate*(grad.transpose());
         
-        //update rms prop
-        //for (int k = 0; k < facDim; k++) {
-        //  U(user, k) -= (learnRate/(sqrt(uGradsAcc(user, k) + 0.0000001)))*grad[k];
-        //}
         
         //update user bias
         uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uReg*uBias(user));
+
+        //update user set bias
+        uOvSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
+            + 2.0*uReg*uOvSetBias(user));
+        if (uOvSetBias(user) < 0) {
+          uOvSetBias(user) = 0;
+        }
+
+        uUnSetBias(user) -= learnRate*(-2.0*(r_us_est - r_us) 
+            + 2.0*uReg*uUnSetBias(user));
+        if (uUnSetBias(user) < 0) {
+          uUnSetBias(user) = 0;
+        }
 
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
         for (auto&& item: items) {
           tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
-          //iGradsAcc.row(item) = iGradsAcc.row(item)*params.rhoRMS
-          //  + (1.0 - params.rhoRMS)*(tempGrad.cwiseProduct(tempGrad).transpose());
-          //update rmsprop
-          //for (int k = 0; k < facDim; k++) {
-          //  V(item, k) -= (learnRate/(sqrt(iGradsAcc(item, k) + 0.0000001)))*tempGrad[k];
-          //}
           V.row(item) -= learnRate*(tempGrad.transpose());
           
           //update item bias
@@ -160,6 +144,4 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
 
 
 }
-
-
 
