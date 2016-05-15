@@ -134,7 +134,7 @@ class UserSets {
     }
     
     //sample pos, neg set ind
-    std::pair<int, int> sampPosNeg(std::mt19937 mt) {
+    std::pair<int, int> sampPosNeg(std::mt19937& mt) {
       std::uniform_int_distribution<int> dist(0, itemSets.size()-1);
       
       //sample first set
