@@ -48,11 +48,15 @@ class Model {
       return -1;
     }
     virtual float objective(const std::vector<UserSets>& uSets);
+    virtual float objective(const std::vector<UserSets>& uSets, gk_csr_t *mat);
     virtual void train(const Data& data, const Params& params, Model& bestModel) {
       std::cerr << "Base class: train not defined" << std::endl;
     }
     
     bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
+        int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
+        float& prevValRMSE); 
+    bool isTerminateModelWPart(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
         float& prevValRMSE); 
     bool isTerminateModel(Model& bestModel, const Data& data, int iter, 

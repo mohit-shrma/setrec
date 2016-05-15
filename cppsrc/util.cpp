@@ -123,4 +123,22 @@ void removeSetsWOVal(std::vector<UserSets>& uSets,
 }
 
 
+std::vector<std::map<int, float>> getUIRatings(gk_csr_t *mat) {
+
+  int nUsers = mat->nrows;
+  std::vector<std::map<int, float>> uiRatings(nUsers);
+  
+  for (int u = 0; u < nUsers; u++) {
+    std::map<int, float> itemRatings;
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      float rating = mat->rowval[ii];
+      itemRatings[item] = rating;
+    }
+    uiRatings[u] = itemRatings;
+  }
+  
+  return uiRatings;
+}
+
 

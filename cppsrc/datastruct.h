@@ -29,18 +29,20 @@ class Params {
     char *testSetFile;
     char *valSetFile;
     char *ratMatFile;
+    char *partMatFile;
     char *prefix;
 
     Params(int nUsers, int nItems, int facDim, int maxIter, int seed,
         float uReg, float iReg, float u_mReg, float g_kReg, float learnRate, 
         float constWt, float rhoRMS,
         char *trainSetFile, char *testSetFile, char *valSetFile, 
-        char *ratMatFile, char *prefix)
-      : nUsers(nUsers), nItems(nItems), facDim(facDim), maxIter(maxIter), 
-      seed(seed), 
-      uReg(uReg), iReg(iReg), u_mReg(u_mReg), g_kReg(g_kReg), learnRate(learnRate), constWt(constWt), rhoRMS(rhoRMS),
+        char *ratMatFile, char *partMatFile, char *prefix)
+      : nUsers(nUsers), nItems(nItems), facDim(facDim), maxIter(maxIter), seed(seed), 
+      uReg(uReg), iReg(iReg), u_mReg(u_mReg), g_kReg(g_kReg), learnRate(learnRate), 
+      constWt(constWt), rhoRMS(rhoRMS),
       trainSetFile(trainSetFile), testSetFile(testSetFile), 
-      valSetFile(valSetFile), ratMatFile(ratMatFile), prefix(prefix) {}
+      valSetFile(valSetFile), ratMatFile(ratMatFile), partMatFile(partMatFile), 
+      prefix(prefix) {}
 
     void display() {
       std::cout << "******* PARAMETERS ********";
@@ -83,7 +85,11 @@ class Data {
     int nTestSets;
     int nValSets;
 
+    //full rating matrix
     gk_csr_t* ratMat;
+    
+    //partial rating matrix
+    gk_csr_t* partMat;
 
     int nUsers, nItems;
     
@@ -98,6 +104,11 @@ class Data {
       if (NULL != params.ratMatFile) {
         std::cout << "\nReading rating matrix 0 indexed...";
         ratMat = gk_csr_Read(params.ratMatFile, GK_CSR_FMT_CSR, 1, 0);
+      }
+      
+      if (NULL != params.partMatFile) {
+        std::cout << "\nReading partial rating matrix 0 indexed..." << std::endl;
+        partMat = gk_csr_Read(params.partMatFile, GK_CSR_FMT_CSR, 1, 0);
       }
       
       if (NULL != params.trainSetFile) {

@@ -20,5 +20,6 @@ void removeSetsWOValItems(std::vector<UserSets>& uSets,
     std::unordered_set<int>& valItems);
 void removeSetsWOVal(std::vector<UserSets>& uSets,
     std::unordered_set<int>& valUsers, std::unordered_set<int>& valItems);
+std::vector<std::map<int, float>> getUIRatings(gk_csr_t *mat);
 
 #endif

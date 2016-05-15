@@ -9,9 +9,10 @@
 #include "ModelMajority.h"
 #include "ModelMajorityWCons.h"
 #include "ModelAverageBPR.h"
+#include "ModelAverageWPart.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
-  if (argc < 17) {
+  if (argc < 18) {
     std::cerr << "Not enough args" << std::endl;
     exit(1);
   }
@@ -20,7 +21,7 @@ Params parse_cmd_line(int argc, char* argv[]) {
       std::atoi(argv[4]), std::atoi(argv[5]),
       std::atof(argv[6]), std::atof(argv[7]), std::atof(argv[8]), 
       std::atof(argv[9]), std::atof(argv[10]), std::atof(argv[11]), std::atof(argv[12]),
-      argv[13], argv[14], argv[15], argv[16], argv[17]);
+      argv[13], argv[14], argv[15], argv[16], argv[17], argv[18]);
 }
 
 
@@ -62,14 +63,14 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageBPR modelAvg(params);
+  ModelAverageWPart modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageBPR bestModel(modelAvg);
+  ModelAverageWPart bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
 
   float trainRMSE = bestModel.rmse(data.trainSets);

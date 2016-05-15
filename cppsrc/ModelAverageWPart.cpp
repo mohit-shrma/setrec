@@ -1,70 +1,24 @@
-#include "ModelAverageWBias.h"
-
-float ModelAverageWBias::estItemRating(int user, int item) {
-  float rating = uBias(user) + iBias(item) + U.row(user).dot(V.row(item));
-  return rating;
-}
+#include "ModelAverageWPart.h"
 
 
-float ModelAverageWBias::estSetRating(int user, std::vector<int>& items) {
-  int setSz = items.size();
-  float r_us = 0;
-  for (auto&& item: items) {
-    r_us += estItemRating(user, item);
-  }
-  r_us = r_us/setSz;// + gBias;
-  return r_us;
-}
-
-
-float ModelAverageWBias::objective(const std::vector<UserSets>& uSets) {
-  float obj = Model::objective(uSets);
-  float norm = 0;
-  
-  //add biases regularization
-  norm = uBias.norm();
-  obj += norm*norm*uReg;
-
-  norm = iBias.norm();
-  obj += norm*norm*iReg;
-
-  return obj;
-}
-
-
-void ModelAverageWBias::train(const Data& data, const Params& params, 
+void ModelAverageWPart::train(const Data& data, const Params& params,
     Model& bestModel) {
-  std::cout << "ModelAverageWBias::train" << std::endl; 
-  std::cout << "Objective: " << objective(data.trainSets) << std::endl;
+
+  std::cout << "ModelAverageWPart::train" << std::endl;
   std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
   
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
   Eigen::VectorXf tempGrad(facDim);
-  Eigen::MatrixXf uGradsAcc(nUsers, facDim);
-  uGradsAcc.fill(0);
-  Eigen::MatrixXf iGradsAcc(nItems, facDim);
-  iGradsAcc.fill(0);
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
+  float uBiasGrad, iBiasGrad;
   int bestIter;
 
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
 
-  //initialize global bias
-  int nTrainSets = 0;
-  float meanSetRating = 0;
-  for (auto&& uInd: uInds) {
-    const auto& uSet = data.trainSets[uInd];
-    for (auto&& itemSet: uSet.itemSets) {
-      meanSetRating += itemSet.second;
-      nTrainSets++;
-    } 
-  }
-  meanSetRating = meanSetRating/nTrainSets;
-  gBias = meanSetRating;
-
+  auto partUIRatings = getUIRatings(data.partMat);
 
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -78,7 +32,7 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
         int user = uSet.user;
               
         if (uSet.itemSets.size() == 0) {
-          std::cerr << "!! zero size user itemset foundi !! " << user << std::endl; 
+          std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
           continue;
         }
         //select a set at random
@@ -87,58 +41,63 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
         float r_us = uSet.itemSets[setInd].second;
 
         if (items.size() == 0) {
-          std::cerr << "!! zero size itemset found !!" << std::endl; 
+          std::cerr << "!! zero size itemset foundi !!" << std::endl; 
           continue;
         }
 
         //estimate rating on the set
         float r_us_est = estSetRating(user, items);
 
-        //compute sum of item latent factors
+        //compute sum of item latent factors and tempgrad if rating is in partmat
         sumItemFactors.fill(0);    
+        tempGrad.fill(0);
+        uBiasGrad = 0;
         for (auto item: items) {
           sumItemFactors += V.row(item);
+          if (partUIRatings[user].find(item) != partUIRatings[user].end()) {
+             //found in partial rating matrix
+             float r_ui_est = estItemRating(user, item);
+             float r_ui = partUIRatings[user][item];
+             tempGrad += 2.0*(r_ui_est - r_ui)*V.row(item);
+             uBiasGrad += 2.0*(r_ui_est - r_ui);
+          }
         }
 
         //user gradient
         grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
                 + 2.0*uReg*U.row(user).transpose();
-        //uGradsAcc.row(user) = uGradsAcc.row(user)*params.rhoRMS 
-        //  + (1.0 - params.rhoRMS)*(grad.cwiseProduct(grad).transpose());
+        grad += tempGrad;
 
         //update user
         U.row(user) -= learnRate*(grad.transpose());
         
-        //update rms prop
-        //for (int k = 0; k < facDim; k++) {
-        //  U(user, k) -= (learnRate/(sqrt(uGradsAcc(user, k) + 0.0000001)))*grad[k];
-        //}
-        
         //update user bias
-        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uReg*uBias(user));
+        uBias(user) -= learnRate*((2.0*(r_us_est - r_us) + uBiasGrad) + 2.0*uReg*uBias(user));
 
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
         for (auto&& item: items) {
-          tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
-          //iGradsAcc.row(item) = iGradsAcc.row(item)*params.rhoRMS
-          //  + (1.0 - params.rhoRMS)*(tempGrad.cwiseProduct(tempGrad).transpose());
-          //update rmsprop
-          //for (int k = 0; k < facDim; k++) {
-          //  V(item, k) -= (learnRate/(sqrt(iGradsAcc(item, k) + 0.0000001)))*tempGrad[k];
-          //}
+          tempGrad = grad + 2.0*iReg*V.row(item).transpose();
+          iBiasGrad = 2.0*(r_us_est - r_us)/items.size();
+          if (partUIRatings[user].find(item) != partUIRatings[user].end()) {
+            //found in partial rating matrix
+            float r_ui_est = estItemRating(user, item);
+            float r_ui = partUIRatings[user][item];
+            tempGrad += 2.0*(r_ui_est - r_ui)*U.row(user);
+            iBiasGrad += 2.0*(r_ui_est - r_ui);
+          } 
+
           V.row(item) -= learnRate*(tempGrad.transpose());
           
           //update item bias
-          iBias(item) -= learnRate*((2.0*(r_us_est - r_us)/items.size()) 
-              + 2.0*iReg*iBias(item));
+          iBias(item) -= learnRate*(iBiasGrad + 2.0*iReg*iBias(item));
         }
 
       }
     }    
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
+      if (isTerminateModelWPart(bestModel, data, iter, bestIter, bestObj, prevObj,
             bestValRMSE, prevValRMSE)) {
         //save best model
         bestModel.save(params.prefix);
@@ -159,7 +118,7 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
 
 
 
-}
 
+}
 
 

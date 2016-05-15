@@ -83,6 +83,42 @@ float Model::objective(const std::vector<UserSets>& uSets) {
 }
 
 
+float Model::objective(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
+  
+  float obj = 0.0, uRegErr = 0.0, iRegErr = 0.0;
+  float norm, setScore, diff;
+  int user, nSets = 0;
+  
+  for (auto&& uSet: uSets) {
+    user = uSet.user;
+    for (size_t i = 0; i < uSet.itemSets.size(); i++) {
+      auto items = uSet.itemSets[i].first;
+      setScore = estSetRating(user, items);
+      diff = setScore - uSet.itemSets[i].second;
+      obj += diff*diff;
+      nSets++;
+    }
+    for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+      int item = mat->rowind[ii];
+      float r_ui = mat->rowval[ii];
+      float r_ui_est = estItemRating(user, item);
+      diff = r_ui_est - r_ui;
+      obj += diff*diff;
+    }
+  }
+  
+  norm = U.norm();
+  uRegErr = uReg*norm*norm;
+
+  norm = V.norm();
+  iRegErr = iReg*norm*norm;
+
+  obj += uRegErr + iRegErr;
+
+  return obj;
+}
+
+
 float Model::rmse(const std::vector<UserSets>& uSets) {
   float rmse = 0;
   int nSets = 0;
@@ -557,6 +593,65 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
   return ret;
 }
 
+bool Model::isTerminateModelWPart(Model& bestModel, const Data& data, int iter,
+    int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
+    float& prevValRMSE) {
+
+  bool ret = false;  
+  float currObj = objective(data.trainSets, data.partMat);
+  float currValRMSE = -1;
+  
+  currValRMSE = rmse(data.valSets); 
+
+  if (iter > 0) {
+    if (currValRMSE < bestValRMSE) {
+      bestModel = *this;
+      bestValRMSE = currValRMSE;
+      bestIter = iter;
+      bestObj = currObj;
+    } 
+  
+    if (iter - bestIter >= CHANCE_ITER) {
+      //cant improve validation RMSE
+      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
+        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
+        << iter << " currObj: " << currObj << " currValRMSE:" 
+        << currValRMSE << std::endl;
+      ret = true;
+    }
+    
+    
+    if (fabs(prevObj - currObj) < EPS) {
+      //objective converged
+      std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
+        << " bestValRMSE:" << bestValRMSE;
+      ret = true;
+    }
+    
+     
+    /*
+    if (fabs(prevValRMSE - currValRMSE) < EPS) {
+      //Validation rmse converged
+      std::cout << "CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
+        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
+        << iter << " currObj: " << currObj << " currValRMSE:" 
+        << currValRMSE << std::endl;
+      ret = true;
+    }
+    */
+  }
+  
+  if (0 == iter) {
+    bestObj = currObj;
+    bestValRMSE = currValRMSE;
+    bestIter = iter;
+  }
+  
+  prevObj = currObj;
+  prevValRMSE = currValRMSE;
+
+  return ret;
+}
 
 bool Model::isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
     int& bestIter, float& bestRecall, float& prevRecall, float& bestValRecall,
