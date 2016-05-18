@@ -7,6 +7,8 @@ Model::Model(const Params &params) {
   nItems      = params.nItems;
   facDim      = params.facDim;
   uReg        = params.uReg;
+  uBiasReg    = params.uBiasReg;
+  iBiasReg    = params.iBiasReg;
   uSetBiasReg = params.u_mReg;
   iReg        = params.iReg;
   learnRate   = params.learnRate;

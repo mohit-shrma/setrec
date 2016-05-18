@@ -46,10 +46,10 @@ float ModelAverageWGBias::objective(const std::vector<UserSets>& uSets) {
   obj += iReg*norm*norm;
 
   norm = uBias.norm();
-  obj += uReg*norm*norm;
+  obj += uBiasReg*norm*norm;
 
   norm = iBias.norm();
-  obj += iReg*norm*norm;
+  obj += iBiasReg*norm*norm;
 
   norm = uSetBias.norm();
   obj += norm*norm*uSetBiasReg; 
@@ -132,7 +132,7 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
         
         
         //update user bias
-        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uReg*uBias(user));
+        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
 
         //update user set bias
         uSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
@@ -146,7 +146,7 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
           
           //update item bias
           iBias(item) -= learnRate*((2.0*(r_us_est - r_us)/items.size()) 
-              + 2.0*iReg*iBias(item));
+              + 2.0*iBiasReg*iBias(item));
         }
 
       }
@@ -171,7 +171,7 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
           << std::endl;
       }
 
-      bestModel.save(params.prefix);
+      //bestModel.save(params.prefix);
     }
 
   }

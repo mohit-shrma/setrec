@@ -20,6 +20,8 @@ class Params {
     float uReg;
     float iReg;
     float u_mReg;
+    float uBiasReg;
+    float iBiasReg;
     float g_kReg;
     float learnRate;
     float constWt;
@@ -35,13 +37,17 @@ class Params {
     char *prefix;
 
     Params(int nUsers, int nItems, int facDim, int maxIter, int seed,
-        float uReg, float iReg, float u_mReg, float g_kReg, float learnRate, 
+        float uReg, float iReg, float u_mReg, 
+        float uBiasReg, float iBiasReg,
+        float g_kReg, float learnRate,
         float constWt, float rhoRMS,
         char *trainSetFile, char *testSetFile, char *valSetFile, 
         char *ratMatFile, char *partTrainMatFile, char *partTestMatFile, 
         char *partValMatFile, char *prefix)
       : nUsers(nUsers), nItems(nItems), facDim(facDim), maxIter(maxIter), seed(seed), 
-      uReg(uReg), iReg(iReg), u_mReg(u_mReg), g_kReg(g_kReg), learnRate(learnRate), 
+      uReg(uReg), iReg(iReg), u_mReg(u_mReg), 
+      uBiasReg(uBiasReg), iBiasReg(iBiasReg),
+      g_kReg(g_kReg), learnRate(learnRate), 
       constWt(constWt), rhoRMS(rhoRMS),
       trainSetFile(trainSetFile), testSetFile(testSetFile), 
       valSetFile(valSetFile), ratMatFile(ratMatFile), 
@@ -57,6 +63,8 @@ class Params {
       std::cout << "\nseed: " << seed;
       std::cout << "\nuReg: " << uReg;
       std::cout << "\niReg: " << iReg;
+      std::cout << "\nuBiasReg: " << uBiasReg;
+      std::cout << "\niBiasReg: " << iBiasReg;
       std::cout << "\nu_mReg: " << u_mReg;
       std::cout << "\ng_kReg: " << g_kReg;
       std::cout << "\nlearnRate: " << learnRate;
@@ -66,6 +74,9 @@ class Params {
       std::cout << "\ntestSetFile: " << testSetFile;
       std::cout << "\nvalSetFile: " << valSetFile;
       std::cout << "\nratMatFile: " << ratMatFile;
+      std::cout << "\npartTrainMatFile: " << partTrainMatFile;
+      std::cout << "\npartTestMatFile: " << partTestMatFile;
+      std::cout << "\npartValMatFile: " << partValMatFile;
       std::cout << "\nprefix: " << prefix;
     }
 
