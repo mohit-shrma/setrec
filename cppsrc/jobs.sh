@@ -24,7 +24,7 @@ for dim in "${FACDIMS[@]}";do
       for usetreg in "${REGS[@]}";do
         echo $SETREC $NUSERS $NITEMS $dim 5000 $SEED $ureg $ireg $usetreg 0.0 $LEARNRATE 0.0 0.0 \
           $TRAIN $TEST $VAL $RATMAT $TRAIN_RATMAT $TEST_RATMAT $VAL_RATMAT \
-          "avgwsetbias > setrec_avgwbias_"$reg"_"$dim".txt"
+          "avgwsetbias > avgwsetbias_"$ureg"_"$ireg"_"$usetreg"_"$dim".txt"
       done
     done
   done
