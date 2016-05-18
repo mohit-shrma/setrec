@@ -37,7 +37,9 @@ Model::Model(const Params &params) {
       V(item, k) = dis(mt);
     }
   }
-
+  
+  //init global bias
+  gBias = 0;
 }
 
 
