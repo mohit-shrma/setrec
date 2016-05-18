@@ -17,13 +17,11 @@ Model::Model(const Params &params) {
   //initialize User factors and biases
   U = Eigen::MatrixXf(nUsers, facDim);
   uBias = Eigen::VectorXf(nUsers);
-  uOvSetBias = Eigen::VectorXf(nUsers);
-  uUnSetBias = Eigen::VectorXf(nUsers);
+  uSetBias = Eigen::VectorXf(nUsers);
 
   for (int u = 0; u < nUsers; u++) {
     uBias(u) = dis(mt);
-    uOvSetBias(u) = dis(mt);
-    uUnSetBias(u) = dis(mt);
+    uSetBias(u) = dis(mt);
     for (int k = 0; k < facDim; k++) {
       U(u, k) = dis(mt);
     }
@@ -282,6 +280,42 @@ float Model::spearmanRankN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
 }
 
 
+//compute iversions by ranking items not present in user's sets
+float Model::inversionCount(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
+    int N) {
+  int item, nUsers = 0;
+  std::vector<std::pair<int, float>> actualItemRatings, predItemRatings;
+  float uInvCount, avgInvCount = 0;
+
+  for (auto&& uSet: uSets) {
+    int u = uSet.user;
+    auto setItems = uSet.items;
+    actualItemRatings.clear();
+    predItemRatings.clear();
+    for (int ii = mat->rowptr[u], j = 0; 
+        ii < mat->rowptr[u+1] && j < N; ii++) {
+      item = mat->rowind[ii];
+      if (setItems.find(item) == setItems.end()) {
+        //item not in userSet
+        actualItemRatings.push_back(std::make_pair(item, mat->rowval[ii]));
+        predItemRatings.push_back(std::make_pair(item, estItemRating(u, item)));
+        j++;
+      }
+    }
+    
+    std::sort(actualItemRatings.begin(), actualItemRatings.end(), descComp);
+    std::sort(predItemRatings.begin(), predItemRatings.end(), descComp);
+
+    uInvCount = inversionCountPairs(actualItemRatings, predItemRatings);
+
+    avgInvCount += uInvCount;
+    nUsers++;
+  }
+  avgInvCount = avgInvCount/nUsers;
+  return avgInvCount;
+}
+
+
 float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     int N) {
   float recN = 0;
@@ -443,23 +477,15 @@ void Model::save(std::string opPrefix) {
   }
 
   //save user set biases
-  fName = opPrefix + "_" + sign + "_uOvSetBias";
-  std::ofstream uOvSetBiasOpFile(fName);
-  if (uOvSetBiasOpFile.is_open()) {
+  fName = opPrefix + "_" + sign + "_uSetBias";
+  std::ofstream uSetBiasOpFile(fName);
+  if (uSetBiasOpFile.is_open()) {
     for (int u = 0; u < nUsers; u++) {
-      uOvSetBiasOpFile << uOvSetBias[u] << std::endl;
+      uSetBiasOpFile << uSetBias[u] << std::endl;
     }
-    uOvSetBiasOpFile.close();
+    uSetBiasOpFile.close();
   }
   
-  fName = opPrefix + "_" + sign + "_uUnSetBias";
-  std::ofstream uUnSetBiasOpFile(fName);
-  if (uUnSetBiasOpFile.is_open()) {
-    for (int u = 0; u < nUsers; u++) {
-      uUnSetBiasOpFile << uUnSetBias[u] << std::endl;
-    }
-    uUnSetBiasOpFile.close();
-  }
 
   //save item biases
   fName = opPrefix + "_" + sign + "_ibias";
@@ -501,15 +527,10 @@ void Model::load(std::string opPrefix) {
   }
 
   //load user biases
-  fName = opPrefix + "_" + sign + "_uOvSetBias";
+  fName = opPrefix + "_" + sign + "_uSetBias";
   fVec = readFVector(fName.c_str());
   for (int u = 0; u < nUsers; u++) {
-    uOvSetBias(u) = fVec[u];
-  }
-  fName = opPrefix + "_" + sign + "_uUnSetBias";
-  fVec = readFVector(fName.c_str());
-  for (int u = 0; u < nUsers; u++) {
-    uUnSetBias(u) = fVec[u];
+    uSetBias(u) = fVec[u];
   }
 
   //load item biases
@@ -593,12 +614,13 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
   return ret;
 }
 
+
 bool Model::isTerminateModelWPart(Model& bestModel, const Data& data, int iter,
     int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
     float& prevValRMSE) {
 
   bool ret = false;  
-  float currObj = objective(data.trainSets, data.partMat);
+  float currObj = objective(data.trainSets, data.partTrainMat);
   float currValRMSE = -1;
   
   currValRMSE = rmse(data.valSets); 
@@ -652,6 +674,59 @@ bool Model::isTerminateModelWPart(Model& bestModel, const Data& data, int iter,
 
   return ret;
 }
+
+
+bool Model::isTerminateModelWPart(Model& bestModel, const Data& data, int iter,
+    int& bestIter, float& bestObj, float& prevObj) {
+
+  bool ret = false;  
+  float currObj = objective(data.trainSets, data.partTrainMat);
+  
+
+  if (iter > 0) {
+    if (currObj < bestObj) {
+      bestModel = *this;
+      bestIter = iter;
+      bestObj = currObj;
+    } 
+  
+    if (iter - bestIter >= CHANCE_ITER) {
+      //cant improve validation RMSE
+      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
+        << bestObj <<  " currIter:" << iter << " currObj: " << currObj << std::endl;
+      ret = true;
+    }
+    
+    
+    if (fabs(prevObj - currObj) < EPS) {
+      //objective converged
+      std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj;
+      ret = true;
+    }
+    
+     
+    /*
+    if (fabs(prevValRMSE - currValRMSE) < EPS) {
+      //Validation rmse converged
+      std::cout << "CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
+        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
+        << iter << " currObj: " << currObj << " currValRMSE:" 
+        << currValRMSE << std::endl;
+      ret = true;
+    }
+    */
+  }
+  
+  if (0 == iter) {
+    bestObj = currObj;
+    bestIter = iter;
+  }
+  
+  prevObj = currObj;
+
+  return ret;
+}
+
 
 bool Model::isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
     int& bestIter, float& bestRecall, float& prevRecall, float& bestValRecall,

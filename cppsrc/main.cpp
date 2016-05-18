@@ -9,10 +9,12 @@
 #include "ModelMajority.h"
 #include "ModelMajorityWCons.h"
 #include "ModelAverageBPR.h"
+#include "ModelAverageHinge.h"
 #include "ModelAverageWPart.h"
+#include "ModelBaseline.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
-  if (argc < 18) {
+  if (argc < 20) {
     std::cerr << "Not enough args" << std::endl;
     exit(1);
   }
@@ -21,7 +23,7 @@ Params parse_cmd_line(int argc, char* argv[]) {
       std::atoi(argv[4]), std::atoi(argv[5]),
       std::atof(argv[6]), std::atof(argv[7]), std::atof(argv[8]), 
       std::atof(argv[9]), std::atof(argv[10]), std::atof(argv[11]), std::atof(argv[12]),
-      argv[13], argv[14], argv[15], argv[16], argv[17], argv[18]);
+      argv[13], argv[14], argv[15], argv[16], argv[17], argv[18], argv[19], argv[20]);
 }
 
 
@@ -63,19 +65,21 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageWPart modelAvg(params);
+  ModelAverageWSetBias modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageWPart bestModel(modelAvg);
+  ModelAverageWSetBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
 
+  /*
   float trainRMSE = bestModel.rmse(data.trainSets);
   float testRMSE = bestModel.rmse(data.testSets);
   float valRMSE = bestModel.rmse(data.valSets);
+  */
 
   float trainRatingsRMSE = bestModel.rmse(data.trainSets, data.ratMat);
   float testRatingsRMSE = bestModel.rmse(data.testSets, data.ratMat);
@@ -115,10 +119,12 @@ int main(int argc, char *argv[]) {
   std::cout << "Over RMSE: " << bestModel.rmse(ovrSets, data.ratMat) << std::endl;
   std::cout << "All RMSE: " << bestModel.rmse(allSets, data.ratMat) << std::endl;
 
+  /*
   std::cout << "Train sets RMSE: " << trainRMSE << std::endl;
   std::cout << "Test sets RMSE: " << testRMSE << std::endl;
   std::cout << "Under sets RMSE: " << bestModel.rmse(undSets) << std::endl;
   std::cout << "Over sets RMSE: " << bestModel.rmse(ovrSets) << std::endl;
+  */
 
   float recN = bestModel.recallTopN(data.ratMat, data.trainSets, 10);
   float spN = bestModel.spearmanRankN(data.ratMat, data.trainSets, 10);
@@ -136,11 +142,19 @@ int main(int argc, char *argv[]) {
   writeItemRMSEFreq(itemFreq, valItemsRMSE, "valItemsRMSE.txt");
   */
 
+  std::cout << "Inversion count: " << bestModel.inversionCount(data.partTestMat, 
+      data.trainSets, 10) << std::endl;
+  
+  /*
   std::cout << "\nRE: " <<  params.facDim << " " << params.uReg << " " 
     << params.iReg << " " << params.learnRate << " " << trainRMSE << " " 
     << testRMSE << " " << valRMSE << " " << trainRatingsRMSE << " " 
     << testRatingsRMSE << " " << valRatingsRMSE
     << " " << recN <<  " " << spN << std::endl;
+  */
+
+
+
 
   return 0;
 }

@@ -21,5 +21,9 @@ void removeSetsWOValItems(std::vector<UserSets>& uSets,
 void removeSetsWOVal(std::vector<UserSets>& uSets,
     std::unordered_set<int>& valUsers, std::unordered_set<int>& valItems);
 std::vector<std::map<int, float>> getUIRatings(gk_csr_t *mat);
+std::vector<std::tuple<int, int, float>> getUIRatingsTup(gk_csr_t* mat);
+float inversionCountPairs(std::vector<std::pair<int, float>> actualItemRatings,
+    std::vector<std::pair<int, float>> predItemRatings);
 
 #endif
+

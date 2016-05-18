@@ -32,6 +32,20 @@ float ModelAverageWBias::objective(const std::vector<UserSets>& uSets) {
 }
 
 
+float ModelAverageWBias::objective(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
+  float obj = Model::objective(uSets, mat);
+  float norm = 0;
+  
+  //add biases regularization
+  norm = uBias.norm();
+  obj += norm*norm*uReg;
+
+  norm = iBias.norm();
+  obj += norm*norm*iReg;
+
+  return obj;
+}
+
 void ModelAverageWBias::train(const Data& data, const Params& params, 
     Model& bestModel) {
   std::cout << "ModelAverageWBias::train" << std::endl; 
@@ -144,14 +158,19 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
         bestModel.save(params.prefix);
         break;
       }
-      std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
-        << prevValRMSE << " best val RMSE:" << bestValRMSE 
-        << " train RMSE:" << rmse(data.trainSets) 
-        << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
-        << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
-        << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
-        << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
-        << std::endl;
+      
+      if (iter%10 == 0 || iter == params.maxIter - 1) {
+        std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
+          << prevValRMSE << " best val RMSE:" << bestValRMSE 
+          << " train RMSE:" << rmse(data.trainSets) 
+          << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
+          << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
+          << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
+          << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
+          << " inv@10: " << inversionCount(data.ratMat, data.trainSets, 10) 
+          << std::endl;
+      }
+
       bestModel.save(params.prefix);
     }
 

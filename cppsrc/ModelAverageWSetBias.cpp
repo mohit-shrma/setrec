@@ -9,7 +9,7 @@ float ModelAverageWSetBias::estSetRating(int user, std::vector<int>& items) {
   }
   r_us = r_us/setSz;
   //add user's set rating bias
-  r_us += uOvSetBias(user) - uUnSetBias(user);
+  r_us += uSetBias(user);
   return r_us;
 }
 
@@ -19,10 +19,7 @@ float ModelAverageWSetBias::objective(const std::vector<UserSets>& uSets) {
   float norm = 0;
   
   //add user biases regularization
-  norm = uOvSetBias.norm();
-  obj += norm*norm*uReg;
-
-  norm = uUnSetBias.norm();
+  norm = uSetBias.norm();
   obj += norm*norm*uReg;
 
   return obj;
@@ -90,22 +87,12 @@ void ModelAverageWSetBias::train(const Data& data, const Params& params,
         //update user
         U.row(user) -= learnRate*(grad.transpose());
         
-        
         //update user bias
         uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uReg*uBias(user));
 
         //update user set bias
-        uOvSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
-            + 2.0*uReg*uOvSetBias(user));
-        if (uOvSetBias(user) < 0) {
-          uOvSetBias(user) = 0;
-        }
-
-        uUnSetBias(user) -= learnRate*(-2.0*(r_us_est - r_us) 
-            + 2.0*uReg*uUnSetBias(user));
-        if (uUnSetBias(user) < 0) {
-          uUnSetBias(user) = 0;
-        }
+        uSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
+            + 2.0*params.u_mReg*uSetBias(user));
 
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
@@ -128,14 +115,20 @@ void ModelAverageWSetBias::train(const Data& data, const Params& params,
         bestModel.save(params.prefix);
         break;
       }
-      std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
-        << prevValRMSE << " best val RMSE:" << bestValRMSE 
-        << " train RMSE:" << rmse(data.trainSets) 
-        << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
-        << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
-        << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
-        << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
-        << std::endl;
+ 
+      
+      if (iter % 10 == 0) {
+        std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
+          << prevValRMSE << " best val RMSE:" << bestValRMSE 
+          << " train RMSE:" << rmse(data.trainSets) 
+          << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
+          << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
+          << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
+          << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
+          << " invCount@10: " << inversionCount(data.partTestMat, data.trainSets, 10)
+          << std::endl;
+      }
+
       bestModel.save(params.prefix);
     }
 

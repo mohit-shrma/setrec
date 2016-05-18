@@ -10,7 +10,7 @@ void ModelBaseline::train(const Data& data, const Params& params,
     Model& bestModel) {
   //map containing no. of sets the item appears
   std::map<int, int> itemSetCount;
-  
+  std::cout << "size of globalItemRatings: " << globalItemRatings.size() << std::endl; 
   //go over train sets and add to item the rating given to the set
   for (auto&& uSet: data.trainSets) {
     for (auto&& itemSet: uSet.itemSets) {
@@ -42,8 +42,9 @@ void ModelBaseline::train(const Data& data, const Params& params,
     << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
     << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
     << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
+    << " inversion count@10: " << inversionCount(data.ratMat, data.trainSets, 10)
     << std::endl;
-
+  bestModel = *this;
 }
 
 

@@ -8,7 +8,6 @@
 class ModelBaseline: public Model {
   
   public:
-    std::map<int, float> globalItemRatings;
     ModelBaseline(const Params& params):Model(params) {}
     virtual float estItemRating(int user, int item);
     virtual void train(const Data& data, const Params& params, Model& bestModel);

@@ -142,3 +142,47 @@ std::vector<std::map<int, float>> getUIRatings(gk_csr_t *mat) {
 }
 
 
+std::vector<std::tuple<int, int, float>> getUIRatingsTup(gk_csr_t* mat) {
+  std::vector<std::tuple<int, int, float>> uiRatings;
+  for (int u = 0; u < mat->nrows; u++) {
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      float rating = mat->rowval[ii];
+      uiRatings.push_back(std::make_tuple(u, item, rating));
+    }
+  }
+  return uiRatings;
+}
+
+
+float inversionCountPairs(std::vector<std::pair<int, float>> actualItemRatings,
+    std::vector<std::pair<int, float>> predItemRatings) {
+  float invCount = 0;
+  for (size_t i = 0; i < predItemRatings.size(); i++) {    
+    auto item   = predItemRatings[i].first;
+    auto rating = predItemRatings[i].second;
+    auto itemInd = std::find_if(actualItemRatings.begin(), 
+        actualItemRatings.end(), 
+        [&item] (std::pair<int, float> itemRating) { 
+          return itemRating.first == item;
+        });
+    for (size_t j = i+1; j < predItemRatings.size(); j++) {
+      int qItem = predItemRatings[j].first;
+      //search for query item in actual items
+      auto qInd = std::find_if(actualItemRatings.begin(),
+          actualItemRatings.end(),
+          [&qItem] (std::pair<int, float> itemRating) {
+            return itemRating.first == qItem;
+          });
+      if (qInd < itemInd && rating != (*qInd).second) {
+        //inversion
+        invCount += 1;
+      }
+    }
+  }
+  return invCount;
+}
+
+
+
+

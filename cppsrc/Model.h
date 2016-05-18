@@ -25,8 +25,7 @@ class Model {
     Eigen::VectorXf iBias;
     
     //user set biases
-    Eigen::VectorXf uOvSetBias;
-    Eigen::VectorXf uUnSetBias;
+    Eigen::VectorXf uSetBias;
     
     //global set bias
     float gBias;
@@ -39,6 +38,8 @@ class Model {
 
     float learnRate;
 
+    std::map<int, float> globalItemRatings;
+    
     Model(const Params &params);
     Model(const Params &params, const char* uFacName, const char* iFacName);
 
@@ -59,6 +60,8 @@ class Model {
     bool isTerminateModelWPart(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
         float& prevValRMSE); 
+    bool isTerminateModelWPart(Model& bestModel, const Data& data, int iter, 
+        int& bestIter, float& bestObj, float& prevObj); 
     bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj); 
     bool isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
@@ -72,6 +75,8 @@ class Model {
     float spearmanRankN(gk_csr_t *mat, int N);
     float spearmanRankN(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
         int N);
+    float inversionCount(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
+      int N);
     std::string modelSign();
     void save(std::string opPrefix);
     void load(std::string opPrefix);
