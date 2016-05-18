@@ -12,6 +12,7 @@
 #include "ModelAverageHinge.h"
 #include "ModelAverageWPart.h"
 #include "ModelBaseline.h"
+#include "ModelAverageBiasesOnly.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 20) {
@@ -65,39 +66,41 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageWSetBias modelAvg(params);
+  ModelAverageBiasesOnly modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageWSetBias bestModel(modelAvg);
+  ModelAverageBiasesOnly bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
-
-  /*
+  
   float trainRMSE = bestModel.rmse(data.trainSets);
   float testRMSE = bestModel.rmse(data.testSets);
   float valRMSE = bestModel.rmse(data.valSets);
-  */
 
   float trainRatingsRMSE = bestModel.rmse(data.trainSets, data.ratMat);
   float testRatingsRMSE = bestModel.rmse(data.testSets, data.ratMat);
   float valRatingsRMSE = bestModel.rmse(data.valSets, data.ratMat);
  
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
+  /*
   std::cout << "Underrated sets b4 rem stats: " << std::endl;
   statSets(undSets);
   removeSetsWOVal(undSets, data.trainUsers, data.trainItems);
   std::cout << "Underrated sets aftr rem stats: " << std::endl;
   statSets(undSets);
+  */
 
   std::vector<UserSets> ovrSets = readSets("ml_set.ovr.lfs");
+  /*
   std::cout << "Overrated sets b4 rem stats: " << std::endl;
   statSets(ovrSets);
   removeSetsWOVal(ovrSets, data.trainUsers, data.trainItems);
   std::cout << "Overrated sets aftr rem stats: " << std::endl;
   statSets(ovrSets);
+  */
 
   std::vector<UserSets> allSets;
   //allSets.insert(allSets.end(), data.trainSets.begin(), data.trainSets.end());
@@ -105,13 +108,15 @@ int main(int argc, char *argv[]) {
   //allSets.insert(allSets.end(), data.valSets.begin(), data.valSets.end());
   allSets.insert(allSets.end(), undSets.begin(), undSets.end());
   allSets.insert(allSets.end(), ovrSets.begin(), ovrSets.end());
-
+  
+  /*
   std::cout << "All sets b4 rem stats: " << std::endl;
   statSets(allSets);
   removeSetsWOVal(allSets, data.trainUsers, data.trainItems);
   std::cout << "All sets aftr rem stats: " << std::endl;
   statSets(allSets);
- 
+  */
+
   std::cout << "Train RMSE: " << trainRatingsRMSE << std::endl;
   std::cout << "Test RMSE: " << testRatingsRMSE << std::endl;
   std::cout << "Val RMSE: " << valRatingsRMSE << std::endl; 
@@ -119,12 +124,10 @@ int main(int argc, char *argv[]) {
   std::cout << "Over RMSE: " << bestModel.rmse(ovrSets, data.ratMat) << std::endl;
   std::cout << "All RMSE: " << bestModel.rmse(allSets, data.ratMat) << std::endl;
 
-  /*
   std::cout << "Train sets RMSE: " << trainRMSE << std::endl;
   std::cout << "Test sets RMSE: " << testRMSE << std::endl;
   std::cout << "Under sets RMSE: " << bestModel.rmse(undSets) << std::endl;
   std::cout << "Over sets RMSE: " << bestModel.rmse(ovrSets) << std::endl;
-  */
 
   float recN = bestModel.recallTopN(data.ratMat, data.trainSets, 10);
   float spN = bestModel.spearmanRankN(data.ratMat, data.trainSets, 10);
@@ -145,16 +148,12 @@ int main(int argc, char *argv[]) {
   std::cout << "Inversion count: " << bestModel.inversionCount(data.partTestMat, 
       data.trainSets, 10) << std::endl;
   
-  /*
+  
   std::cout << "\nRE: " <<  params.facDim << " " << params.uReg << " " 
     << params.iReg << " " << params.learnRate << " " << trainRMSE << " " 
     << testRMSE << " " << valRMSE << " " << trainRatingsRMSE << " " 
     << testRatingsRMSE << " " << valRatingsRMSE
     << " " << recN <<  " " << spN << std::endl;
-  */
-
-
-
 
   return 0;
 }

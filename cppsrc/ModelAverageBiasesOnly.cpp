@@ -7,12 +7,13 @@ float ModelAverageBiasesOnly::estItemRating(int user, int item) {
 
 float ModelAverageBiasesOnly::estSetRating(int user, std::vector<int>& items) {
   
- int setSz = items.size();
  float ratSum = 0;
 
  for (auto&& item: items) {
   ratSum += estItemRating(user, item);
  }
+ 
+ ratSum = ratSum/items.size();
 
  ratSum += uSetBias(user);
  ratSum += gBias;
@@ -44,18 +45,17 @@ float ModelAverageBiasesOnly::objective(const std::vector<UserSets>& uSets) {
   norm = iBias.norm();
   obj += iReg*norm*norm;
 
-  obj += uSetBias*uSetBiasReg*uSetBiasReg; 
+  norm = uSetBias.norm();
+  obj += norm*norm*uSetBiasReg; 
 
   return obj;
 }
 
 
-float ModelAverageBiasesOnly::train(const Data& data, const Params& params,
+void ModelAverageBiasesOnly::train(const Data& data, const Params& params,
     Model& bestModel) {
 
   std::cout << "ModelAverageBiasesOnly::train" << std::endl; 
-  std::cout << "Objective: " << objective(data.trainSets) << std::endl;
-  std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
   
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
   int bestIter, nTrSets  = 0;
@@ -72,11 +72,15 @@ float ModelAverageBiasesOnly::train(const Data& data, const Params& params,
     }
   }
   gBias = gBias/nTrSets;
-
+  
+  std::cout << "gBias: " << gBias << " nTrSets: " << nTrSets << std::endl;
+  std::cout << "Objective: " << objective(data.trainSets) << std::endl;
+  std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
+  
   //initialize random engine
   std::mt19937 mt(params.seed);
   std::uniform_int_distribution<int> dist(0, 1000);
-
+  
   for (int iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uInds.begin(), uInds.end(), mt);
     for (int i = 0; i < data.nTrainSets/nTrUsers; i++) {
@@ -144,10 +148,6 @@ float ModelAverageBiasesOnly::train(const Data& data, const Params& params,
     }
 
   }
-
-
-
-
 
 }
 
