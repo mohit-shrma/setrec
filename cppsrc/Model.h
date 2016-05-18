@@ -34,7 +34,7 @@ class Model {
     int facDim;
     
     //regularization
-    float uReg, iReg;
+    float uReg, iReg, uSetBiasReg;
 
     float learnRate;
 

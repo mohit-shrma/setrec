@@ -3,12 +3,13 @@
 
 Model::Model(const Params &params) {
   
-  nUsers    = params.nUsers;
-  nItems    = params.nItems;
-  facDim    = params.facDim;
-  uReg      = params.uReg;
-  iReg      = params.iReg;
-  learnRate = params.learnRate;
+  nUsers      = params.nUsers;
+  nItems      = params.nItems;
+  facDim      = params.facDim;
+  uReg        = params.uReg;
+  uSetBiasReg = params.u_mReg;
+  iReg        = params.iReg;
+  learnRate   = params.learnRate;
 
   //random engine
   std::mt19937 mt(params.seed);
