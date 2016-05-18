@@ -21,6 +21,7 @@ float ModelAverageWGBias::estSetRating(int user, std::vector<int>& items) {
   return ratSum;
 }
 
+
 float ModelAverageWGBias::objective(const std::vector<UserSets>& uSets) {
   
   float obj = 0.0;
@@ -54,7 +55,8 @@ float ModelAverageWGBias::objective(const std::vector<UserSets>& uSets) {
   obj += norm*norm*uSetBiasReg; 
 
   return obj;
-}
+} 
+
 
 void ModelAverageWGBias::train(const Data& data, const Params& params, 
     Model& bestModel) {
@@ -163,8 +165,6 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 
           << " train RMSE:" << rmse(data.trainSets) 
-          << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
-          << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
           << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
           << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
           << " inv@10: " << inversionCount(data.ratMat, data.trainSets, 10) 
@@ -177,3 +177,5 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
   }
 
 }
+
+

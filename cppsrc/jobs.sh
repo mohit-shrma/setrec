@@ -12,12 +12,21 @@ SEED="1"
 TRAIN=$DATA"/"
 TEST=$DATA"/"
 VAL=$DATA"/"
+
 RATMAT=$DATA"/"
+TRAIN_RATMAT=$DATA"/"
+TEST_RATMAT=$DATA"/"
+VAL_RATMAT=$DATA"/"
 
 for dim in "${FACDIMS[@]}";do
-  for reg in "${REGS[@]}";do
-    echo $SETREC $NUSERS $NITEMS $dim 5000 $SEED $reg $reg 0.0 0.0 $LEARNRATE 0.0 0.0 \
-      $TRAIN $TEST $VAL $RATMAT "avgwbias > setrec_avgwbias_"$reg"_"$dim".txt"
+  for ireg in "${REGS[@]}";do
+    for ureg in "${REGS[@]}";do
+      for usetreg in "${REGS[@]}";do
+        echo $SETREC $NUSERS $NITEMS $dim 5000 $SEED $ureg $ireg $usetreg 0.0 $LEARNRATE 0.0 0.0 \
+          $TRAIN $TEST $VAL $RATMAT $TRAIN_RATMAT $TEST_RATMAT $VAL_RATMAT \
+          "avgwsetbias > setrec_avgwbias_"$reg"_"$dim".txt"
+      done
+    done
   done
 done
 

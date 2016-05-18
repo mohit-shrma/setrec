@@ -13,6 +13,7 @@
 #include "ModelAverageWPart.h"
 #include "ModelBaseline.h"
 #include "ModelAverageBiasesOnly.h"
+#include "ModelAverageWGBias.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 20) {
@@ -66,14 +67,14 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageBiasesOnly modelAvg(params);
+  ModelAverageWGBias modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageBiasesOnly bestModel(modelAvg);
+  ModelAverageWGBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   
   float trainRMSE = bestModel.rmse(data.trainSets);
@@ -126,6 +127,7 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Train sets RMSE: " << trainRMSE << std::endl;
   std::cout << "Test sets RMSE: " << testRMSE << std::endl;
+  std::cout << "Val sets RMSE: " << valRMSE << std::endl;
   std::cout << "Under sets RMSE: " << bestModel.rmse(undSets) << std::endl;
   std::cout << "Over sets RMSE: " << bestModel.rmse(ovrSets) << std::endl;
 
@@ -148,7 +150,6 @@ int main(int argc, char *argv[]) {
   std::cout << "Inversion count: " << bestModel.inversionCount(data.partTestMat, 
       data.trainSets, 10) << std::endl;
   
-  
   std::cout << "\nRE: " <<  params.facDim << " " << params.uReg << " " 
     << params.iReg << " " << params.learnRate << " " << trainRMSE << " " 
     << testRMSE << " " << valRMSE << " " << trainRatingsRMSE << " " 
@@ -157,6 +158,5 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-
 
 
