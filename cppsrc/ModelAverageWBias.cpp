@@ -176,8 +176,6 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
 
   }
 
-
-
 }
 
 
