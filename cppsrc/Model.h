@@ -78,6 +78,8 @@ class Model {
         int N);
     float inversionCount(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
       int N);
+    float invertRandPairCount(gk_csr_t *mat, 
+        const std::vector<UserSets>& uSets, int N, int seed)
     std::string modelSign();
     void save(std::string opPrefix);
     void load(std::string opPrefix);

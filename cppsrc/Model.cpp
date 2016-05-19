@@ -321,6 +321,68 @@ float Model::inversionCount(gk_csr_t *mat, const std::vector<UserSets>& uSets,
 }
 
 
+float Model::invertRandPairCount(gk_csr_t *mat, 
+    const std::vector<UserSets>& uSets, int N, int seed) {
+  int item, nUsers = 0;
+  std::vector<std::pair<int, float>> actualItemRatings, predItemRatings;
+  float uInvCount, avgInvCount = 0;
+
+  std::mt19937 mt(seed);
+
+  for (auto&& uSet: uSets) {
+    int u = uSet.user;
+    auto setItems = uSet.items;
+    actualItemRatings.clear();
+    predItemRatings.clear();
+    for (int ii = mat->rowptr[u], j = 0; 
+        ii < mat->rowptr[u+1] && j < N; ii++) {
+      item = mat->rowind[ii];
+      if (setItems.find(item) == setItems.end()) {
+        //item not in userSet
+        actualItemRatings.push_back(std::make_pair(item, mat->rowval[ii]));
+        predItemRatings.push_back(std::make_pair(item, estItemRating(u, item)));
+        j++;
+      }
+    }
+    
+    std::sort(actualItemRatings.begin(), actualItemRatings.end(), descComp);
+    std::sort(predItemRatings.begin(), predItemRatings.end(), descComp);
+
+    //select 2 items at random from the list
+    std::uniform_int_distribution<int> dist(0, actualItemRatings.size());
+    int p = dist(mt);
+    int q = dist(mt);
+    while (actualItemRatings[p].second == actualItemRatings[q].second) {
+      q = dist(mt);
+    }
+    pItem = actualItemRatings[p].first;
+    qItem = actualItemRatings[q].first;
+    
+    auto predPInd = std::find_if(predItemRatings.begin(), 
+        predItemRatings.end(), 
+        [&pItem] (std::pair<int, float> itemRating) { 
+          return itemRating.first == pItem;
+        });
+    auto predQInd = std::find_if(predItemRatings.begin(), 
+        predItemRatings.end(), 
+        [&qItem] (std::pair<int, float> itemRating) { 
+          return itemRating.first == qItem;
+        });
+    
+    uInvCount = 0;
+    if (!((p < q && predPInd < predQInd) 
+          || (p > q && predPInd > predQInd))) {
+       uInvCount++;
+    }
+
+    avgInvCount += uInvCount;
+    nUsers++;
+  }
+  avgInvCount = avgInvCount/nUsers;
+  return avgInvCount;
+}
+
+
 float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     int N) {
   float recN = 0;

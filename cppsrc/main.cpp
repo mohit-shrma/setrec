@@ -147,6 +147,10 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Inversion count: " << bestModel.inversionCount(data.partTestMat, 
       data.trainSets, 10) << std::endl;
+  std::cout << "Random inversion count: " 
+    << bestModel.invertRandPairCount(data.partTestMat, data.trainSets, 10,
+        params.seed) <<std::endl;
+
   /* 
   std::cout << "\nRE: " <<  params.facDim << " " << params.uReg << " " 
     << params.iReg << " " << params.learnRate << " " << trainRMSE << " " 
