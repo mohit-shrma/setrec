@@ -137,7 +137,7 @@ void ModelAverageWPart::trainJoint(const Data& data, const Params& params,
         U.row(user) -= learnRate*(grad.transpose());
         
         //update user bias
-        uBias(user) -= learnRate*((2.0*(r_us_est - r_us) + uBiasGrad) + 2.0*uReg*uBias(user));
+        uBias(user) -= learnRate*((2.0*(r_us_est - r_us) + uBiasGrad) + 2.0*uBiasReg*uBias(user));
 
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
@@ -155,7 +155,7 @@ void ModelAverageWPart::trainJoint(const Data& data, const Params& params,
           V.row(item) -= learnRate*(tempGrad.transpose());
           
           //update item bias
-          iBias(item) -= learnRate*(iBiasGrad + 2.0*iReg*iBias(item));
+          iBias(item) -= learnRate*(iBiasGrad + 2.0*iBiasReg*iBias(item));
         }
 
       }

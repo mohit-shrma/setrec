@@ -88,11 +88,11 @@ void ModelAverageWSetBias::train(const Data& data, const Params& params,
         U.row(user) -= learnRate*(grad.transpose());
         
         //update user bias
-        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uReg*uBias(user));
+        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
 
         //update user set bias
         uSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
-            + 2.0*params.u_mReg*uSetBias(user));
+            + 2.0*uSetBiasReg*uSetBias(user));
 
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
@@ -102,7 +102,7 @@ void ModelAverageWSetBias::train(const Data& data, const Params& params,
           
           //update item bias
           iBias(item) -= learnRate*((2.0*(r_us_est - r_us)/items.size()) 
-              + 2.0*iReg*iBias(item));
+              + 2.0*iBiasReg*iBias(item));
         }
 
       }
