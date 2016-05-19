@@ -61,6 +61,24 @@ bool ModelAverageWPart::isTerminateModelWPartIRMSE(Model& bestModel,
 }
 
 
+float ModelAverageWPart::objective(const std::vector<UserSets>& uSets,
+    gk_csr_t *mat) {
+  
+  float norm;
+  float obj = ModelAverageWBias::objective(uSets, mat);
+
+  //add uBias
+  norm = uBias.norm();
+  obj += uBiasReg*norm*norm;
+
+  //add iBias
+  norm = iBias.norm();
+  obj += iBiasReg*norm*norm;
+  
+  return obj;
+}
+
+
 void ModelAverageWPart::trainJoint(const Data& data, const Params& params,
     Model& bestModel) {
 

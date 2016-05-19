@@ -161,6 +161,30 @@ float Model::rmse(gk_csr_t *mat) {
 }
 
 
+float Model::rmse(gk_csr_t *mat, std::unordered_set<int>& valItems) {
+  float rmse = 0;
+  float r_ui, r_ui_est, diff;
+  int nnz = 0;
+  for (int u = 0; u < mat->nrows; u++) {
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      if (valItems.find(item) == valItems.end()) {
+        //not valid item
+        continue;
+      }
+      r_ui = mat->rowval[ii];
+      r_ui_est = estItemRating(u, item);
+      diff = r_ui - r_ui_est;
+      rmse += diff*diff;
+      nnz++;
+    }
+  }
+  std::cout << "nnz: " << nnz << " rmse: " << rmse << std::endl;
+  rmse = sqrt(rmse/nnz);
+  return rmse;
+}
+
+
 //compute RMSE for items in the sets
 float Model::rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
   float rmse = 0, r_ui_est, r_ui, diff;
@@ -352,11 +376,19 @@ float Model::invertRandPairCount(gk_csr_t *mat,
     std::uniform_int_distribution<int> dist(0, actualItemRatings.size());
     int p = dist(mt);
     int q = dist(mt);
-    while (actualItemRatings[p].second == actualItemRatings[q].second) {
+    int nTries = 0;
+    while (actualItemRatings[p].second == actualItemRatings[q].second 
+        && nTries < 100) {
       q = dist(mt);
+      nTries++;
     }
-    pItem = actualItemRatings[p].first;
-    qItem = actualItemRatings[q].first;
+
+    if (actualItemRatings[p].second == actualItemRatings[q].second) {
+      continue;
+    }
+
+    auto pItem = actualItemRatings[p].first;
+    auto qItem = actualItemRatings[q].first;
     
     auto predPInd = std::find_if(predItemRatings.begin(), 
         predItemRatings.end(), 
@@ -378,6 +410,8 @@ float Model::invertRandPairCount(gk_csr_t *mat,
     avgInvCount += uInvCount;
     nUsers++;
   }
+  std::cout << "nUsers: " << nUsers << " avgInvCount: " << avgInvCount 
+    << std::endl;
   avgInvCount = avgInvCount/nUsers;
   return avgInvCount;
 }

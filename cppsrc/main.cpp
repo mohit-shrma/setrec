@@ -14,6 +14,9 @@
 #include "ModelBaseline.h"
 #include "ModelAverageBiasesOnly.h"
 #include "ModelAverageWGBias.h"
+#include "ModelItemAverage.h"
+#include "ModelAverageSetBiasWPart.h"
+
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 23) {
@@ -65,28 +68,24 @@ int main(int argc, char *argv[]) {
   params.display();
   Data data(params);
 
+  std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
+    << data.trainItems.size() << std::endl;
+  
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageWGBias modelAvg(params);
+  ModelAverageSetBiasWPart modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageWGBias bestModel(modelAvg);
+  ModelAverageSetBiasWPart bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   
-  float trainRMSE = bestModel.rmse(data.trainSets);
-  float testRMSE = bestModel.rmse(data.testSets);
-  float valRMSE = bestModel.rmse(data.valSets);
   
-  /*
-  float trainRatingsRMSE = bestModel.rmse(data.trainSets, data.ratMat);
-  float testRatingsRMSE = bestModel.rmse(data.testSets, data.ratMat);
-  float valRatingsRMSE = bestModel.rmse(data.valSets, data.ratMat);
- 
+   
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
   std::cout << "Underrated sets b4 rem stats: " << std::endl;
   statSets(undSets);
@@ -115,13 +114,20 @@ int main(int argc, char *argv[]) {
   std::cout << "All sets aftr rem stats: " << std::endl;
   statSets(allSets);
 
-  std::cout << "Train RMSE: " << trainRatingsRMSE << std::endl;
-  std::cout << "Test RMSE: " << testRatingsRMSE << std::endl;
-  std::cout << "Val RMSE: " << valRatingsRMSE << std::endl; 
   std::cout << "Under RMSE: " << bestModel.rmse(undSets, data.ratMat) << std::endl;
   std::cout << "Over RMSE: " << bestModel.rmse(ovrSets, data.ratMat) << std::endl;
   std::cout << "All RMSE: " << bestModel.rmse(allSets, data.ratMat) << std::endl;
-  */
+  
+  
+  float trainRMSE = bestModel.rmse(data.trainSets);
+  float testRMSE = bestModel.rmse(data.testSets);
+  float valRMSE = bestModel.rmse(data.valSets);
+  float trainRatingsRMSE = bestModel.rmse(data.trainSets, data.ratMat);
+  float testRatingsRMSE = bestModel.rmse(data.testSets, data.ratMat);
+  float valRatingsRMSE = bestModel.rmse(data.valSets, data.ratMat);
+  std::cout << "Train RMSE: " << trainRatingsRMSE << std::endl;
+  std::cout << "Test RMSE: " << testRatingsRMSE << std::endl;
+  std::cout << "Val RMSE: " << valRatingsRMSE << std::endl; 
 
   std::cout << "Train sets RMSE: " << trainRMSE << std::endl;
   std::cout << "Test sets RMSE: " << testRMSE << std::endl;
@@ -150,7 +156,12 @@ int main(int argc, char *argv[]) {
   std::cout << "Random inversion count: " 
     << bestModel.invertRandPairCount(data.partTestMat, data.trainSets, 10,
         params.seed) <<std::endl;
-
+  /*
+  std::vector<int> invalItems = readVector(
+      "mfbias_854X12548_5_0.010000_0.010000_0.001000_invalItems.txt");
+  std::unordered_set<int> invalSet(invalItems.begin(), invalItems.end());
+  std::cout << "inval RMSE: " << bestModel.rmse(data.partTestMat, invalSet) << std::endl;
+  */
   /* 
   std::cout << "\nRE: " <<  params.facDim << " " << params.uReg << " " 
     << params.iReg << " " << params.learnRate << " " << trainRMSE << " " 

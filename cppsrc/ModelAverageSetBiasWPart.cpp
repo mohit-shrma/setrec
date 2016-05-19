@@ -1,13 +1,7 @@
-#include "ModelAverageWGBias.h"
+#include "ModelAverageSetBiasWPart.h"
 
-
-float ModelAverageWGBias::estItemRating(int user, int item) {
-  return uBias(user) + iBias(item) + U.row(user).dot(V.row(item));
-}
-
-
-float ModelAverageWGBias::estSetRating(int user, std::vector<int>& items) {
- 
+float ModelAverageSetBiasWPart::estSetRating(int user, 
+    std::vector<int>& items) {
   float ratSum = 0;
 
   for (auto&& item: items) {
@@ -17,78 +11,48 @@ float ModelAverageWGBias::estSetRating(int user, std::vector<int>& items) {
   ratSum = ratSum/items.size();
 
   ratSum += uSetBias(user);
-  ratSum += gBias;
 
   return ratSum;
 }
 
 
-float ModelAverageWGBias::objective(const std::vector<UserSets>& uSets) {
+float ModelAverageSetBiasWPart::objective(const std::vector<UserSets>& uSets,
+    gk_csr_t *mat) {
   
-  float obj = 0.0;
-  float norm, setScore, diff;
-  int user, nSets = 0;
-  
-  for (auto&& uSet: uSets) {
-    user = uSet.user;
-    for (size_t i = 0; i < uSet.itemSets.size(); i++) {
-      auto items = uSet.itemSets[i].first;
-      setScore = estSetRating(user, items);
-      diff = setScore - uSet.itemSets[i].second;
-      obj += diff*diff;
-      nSets++;
-    }
-  }  
+  float norm;
+  float obj = ModelAverageWPart::objective(uSets, mat);
 
-  norm = U.norm();
-  obj += uReg*norm*norm;
-
-  norm = V.norm();
-  obj += iReg*norm*norm;
-
-  norm = uBias.norm();
-  obj += uBiasReg*norm*norm;
-
-  norm = iBias.norm();
-  obj += iBiasReg*norm*norm;
-
+  //add set bias reg
   norm = uSetBias.norm();
-  obj += norm*norm*uSetBiasReg; 
+  obj += uSetBiasReg*norm*norm;
 
   return obj;
-} 
+}
 
 
-void ModelAverageWGBias::train(const Data& data, const Params& params, 
+void ModelAverageSetBiasWPart::train(const Data& data, const Params& params, 
     Model& bestModel) {
-  std::cout << "ModelAverageWGBias::train" << std::endl; 
+
+  std::cout << "ModelAverageWPart::trainJoint" << std::endl;
+  
+  //initialize user-item factors with SVD
+  svdFrmSvdlibCSR(data.partTrainMat, facDim, U, V, false);
+  
+  std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
   
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
   Eigen::VectorXf tempGrad(facDim);
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
+  float uBiasGrad, iBiasGrad;
   int bestIter;
 
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
 
-  //initialize global bias
-  int nTrainSets = 0;
-  float meanSetRating = 0;
-  for (auto&& uInd: uInds) {
-    const auto& uSet = data.trainSets[uInd];
-    for (auto&& itemSet: uSet.itemSets) {
-      meanSetRating += itemSet.second;
-      nTrainSets++;
-    } 
-  }
-  meanSetRating = meanSetRating/nTrainSets;
-  gBias = meanSetRating;
+  auto partUIRatings = getUIRatings(data.partTrainMat);
 
-  std::cout << "gBias: " << gBias << " nTrSets: " << nTrainSets << std::endl;
-  std::cout << "Objective: " << objective(data.trainSets) << std::endl;
-  std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
 
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -102,7 +66,7 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
         int user = uSet.user;
               
         if (uSet.itemSets.size() == 0) {
-          std::cerr << "!! zero size user itemset foundi !! " << user << std::endl; 
+          std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
           continue;
         }
         //select a set at random
@@ -111,30 +75,39 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
         float r_us = uSet.itemSets[setInd].second;
 
         if (items.size() == 0) {
-          std::cerr << "!! zero size itemset found !!" << std::endl; 
+          std::cerr << "!! zero size itemset foundi !!" << std::endl; 
           continue;
         }
 
         //estimate rating on the set
         float r_us_est = estSetRating(user, items);
 
-        //compute sum of item latent factors
+        //compute sum of item latent factors and tempgrad if rating is in partmat
         sumItemFactors.fill(0);    
+        tempGrad.fill(0);
+        uBiasGrad = 0;
         for (auto item: items) {
           sumItemFactors += V.row(item);
+          if (partUIRatings[user].find(item) != partUIRatings[user].end()) {
+             //found in partial rating matrix
+             float r_ui_est = estItemRating(user, item);
+             float r_ui = partUIRatings[user][item];
+             tempGrad += 2.0*(r_ui_est - r_ui)*V.row(item);
+             uBiasGrad += 2.0*(r_ui_est - r_ui);
+          }
         }
 
         //user gradient
         grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
                 + 2.0*uReg*U.row(user).transpose();
+        grad += tempGrad;
 
         //update user
         U.row(user) -= learnRate*(grad.transpose());
         
-        
         //update user bias
-        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
-
+        uBias(user) -= learnRate*((2.0*(r_us_est - r_us) + uBiasGrad) + 2.0*uBiasReg*uBias(user));
+        
         //update user set bias
         uSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
             + 2.0*uSetBiasReg*uSetBias(user));
@@ -142,41 +115,51 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
         for (auto&& item: items) {
-          tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
+          tempGrad = grad + 2.0*iReg*V.row(item).transpose();
+          iBiasGrad = 2.0*(r_us_est - r_us)/items.size();
+          if (partUIRatings[user].find(item) != partUIRatings[user].end()) {
+            //found in partial rating matrix
+            float r_ui_est = estItemRating(user, item);
+            float r_ui = partUIRatings[user][item];
+            tempGrad += 2.0*(r_ui_est - r_ui)*U.row(user);
+            iBiasGrad += 2.0*(r_ui_est - r_ui);
+          } 
+
           V.row(item) -= learnRate*(tempGrad.transpose());
           
           //update item bias
-          iBias(item) -= learnRate*((2.0*(r_us_est - r_us)/items.size()) 
-              + 2.0*iBiasReg*iBias(item));
+          iBias(item) -= learnRate*(iBiasGrad + 2.0*iBiasReg*iBias(item));
         }
 
       }
     }    
-    
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
+      if (isTerminateModelWPartIRMSE(bestModel, data, iter, bestIter, bestObj, prevObj,
             bestValRMSE, prevValRMSE)) {
         //save best model
         bestModel.save(params.prefix);
         break;
       }
-      
-      if (iter%10 == 0 || iter == params.maxIter - 1) {
+      if (iter % 5 == 0 || iter == params.maxIter -1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 
           << " train RMSE:" << rmse(data.trainSets) 
+          << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
+          << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
           << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
           << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
-          << " inv@10: " << inversionCount(data.ratMat, data.trainSets, 10) 
+          << " invCount@10: " << inversionCount(data.ratMat, data.trainSets, 10)
           << std::endl;
+        bestModel.save(params.prefix);
       }
-
-      //bestModel.save(params.prefix);
     }
 
   }
 
+
 }
+
+
 
 

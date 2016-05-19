@@ -73,13 +73,14 @@ class Model {
     std::map<int, float> itemRMSE(const std::vector<UserSets>& uSets,
       gk_csr_t *mat);
     float rmse(gk_csr_t *mat);
+    float rmse(gk_csr_t *mat, std::unordered_set<int>& valItems);
     float spearmanRankN(gk_csr_t *mat, int N);
     float spearmanRankN(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
         int N);
     float inversionCount(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
       int N);
     float invertRandPairCount(gk_csr_t *mat, 
-        const std::vector<UserSets>& uSets, int N, int seed)
+        const std::vector<UserSets>& uSets, int N, int seed);
     std::string modelSign();
     void save(std::string opPrefix);
     void load(std::string opPrefix);
