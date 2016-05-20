@@ -1,7 +1,19 @@
 #include "ModelAverageWBias.h"
 
 float ModelAverageWBias::estItemRating(int user, int item) {
-  float rating = uBias(user) + iBias(item) + U.row(user).dot(V.row(item));
+  bool uFound = false, iFound = true;
+  float rating = 0;
+  if (trainUsers.find(user) != trainUsers.end()) {
+    uFound = true;
+    rating += uBias(user);
+  }
+  if (trainItems.find(item) != trainItems.end()) {
+    iFound = true;
+    rating += iBias(item);
+  }
+  if (uFound && iFound) {
+    rating += U.row(user).dot(V.row(item));
+  }
   return rating;
 }
 
@@ -12,8 +24,14 @@ float ModelAverageWBias::estSetRating(int user, std::vector<int>& items) {
   for (auto&& item: items) {
     r_us += estItemRating(user, item);
   }
-  r_us = r_us/setSz;// + gBias;
+  r_us = r_us/setSz;
   return r_us;
+}
+
+
+float ModelAverageWBias::objective(const std::vector<UserSets>& uSets, 
+    gk_csr_t *mat) {
+  return Model::objective(uSets, mat);
 }
 
 
@@ -23,28 +41,14 @@ float ModelAverageWBias::objective(const std::vector<UserSets>& uSets) {
   
   //add biases regularization
   norm = uBias.norm();
-  obj += norm*norm*uReg;
+  obj += norm*norm*uBiasReg;
 
   norm = iBias.norm();
-  obj += norm*norm*iReg;
+  obj += norm*norm*iBiasReg;
 
   return obj;
 }
 
-
-float ModelAverageWBias::objective(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
-  float obj = Model::objective(uSets, mat);
-  float norm = 0;
-  
-  //add biases regularization
-  norm = uBias.norm();
-  obj += norm*norm*uReg;
-
-  norm = iBias.norm();
-  obj += norm*norm*iReg;
-
-  return obj;
-}
 
 void ModelAverageWBias::train(const Data& data, const Params& params, 
     Model& bestModel) {
@@ -55,10 +59,6 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
   Eigen::VectorXf tempGrad(facDim);
-  Eigen::MatrixXf uGradsAcc(nUsers, facDim);
-  uGradsAcc.fill(0);
-  Eigen::MatrixXf iGradsAcc(nItems, facDim);
-  iGradsAcc.fill(0);
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
   int bestIter;
 
@@ -79,6 +79,11 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
   meanSetRating = meanSetRating/nTrainSets;
   gBias = meanSetRating;
 
+  auto usersNItems = getUserItems(data.trainSets);
+  trainUsers = usersNItems.first;
+  trainItems = usersNItems.second;
+  std::cout << "train Users: " << trainUsers.size() 
+    << " trainItems: " << trainItems.size() << std::endl;
 
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -92,7 +97,7 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
         int user = uSet.user;
               
         if (uSet.itemSets.size() == 0) {
-          std::cerr << "!! zero size user itemset foundi !! " << user << std::endl; 
+          std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
           continue;
         }
         //select a set at random
@@ -117,16 +122,9 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
         //user gradient
         grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
                 + 2.0*uReg*U.row(user).transpose();
-        //uGradsAcc.row(user) = uGradsAcc.row(user)*params.rhoRMS 
-        //  + (1.0 - params.rhoRMS)*(grad.cwiseProduct(grad).transpose());
 
         //update user
         U.row(user) -= learnRate*(grad.transpose());
-        
-        //update rms prop
-        //for (int k = 0; k < facDim; k++) {
-        //  U(user, k) -= (learnRate/(sqrt(uGradsAcc(user, k) + 0.0000001)))*grad[k];
-        //}
         
         //update user bias
         uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
@@ -135,14 +133,7 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
         for (auto&& item: items) {
           tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
-          //iGradsAcc.row(item) = iGradsAcc.row(item)*params.rhoRMS
-          //  + (1.0 - params.rhoRMS)*(tempGrad.cwiseProduct(tempGrad).transpose());
-          //update rmsprop
-          //for (int k = 0; k < facDim; k++) {
-          //  V(item, k) -= (learnRate/(sqrt(iGradsAcc(item, k) + 0.0000001)))*tempGrad[k];
-          //}
           V.row(item) -= learnRate*(tempGrad.transpose());
-          
           //update item bias
           iBias(item) -= learnRate*((2.0*(r_us_est - r_us)/items.size()) 
               + 2.0*iBiasReg*iBias(item));
@@ -155,7 +146,7 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
       if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
             bestValRMSE, prevValRMSE)) {
         //save best model
-        bestModel.save(params.prefix);
+        //bestModel.save(params.prefix);
         break;
       }
       
@@ -171,12 +162,9 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
           << std::endl;
       }
 
-      bestModel.save(params.prefix);
     }
 
   }
 
 }
-
-
 

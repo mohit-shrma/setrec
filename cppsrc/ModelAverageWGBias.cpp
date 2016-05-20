@@ -2,7 +2,20 @@
 
 
 float ModelAverageWGBias::estItemRating(int user, int item) {
-  return uBias(user) + iBias(item) + U.row(user).dot(V.row(item));
+  bool uFound = false, iFound = true;
+  float rating = 0;
+  if (trainUsers.find(user) != trainUsers.end()) {
+    uFound = true;
+    rating += uBias(user);
+  }
+  if (trainItems.find(item) != trainItems.end()) {
+    iFound = true;
+    rating += iBias(item);
+  }
+  if (uFound && iFound) {
+    rating += U.row(user).dot(V.row(item));
+  }
+  return rating;
 }
 
 
@@ -85,6 +98,12 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
   }
   meanSetRating = meanSetRating/nTrainSets;
   gBias = meanSetRating;
+
+  auto usersNItems = getUserItems(data.trainSets);
+  trainUsers = usersNItems.first;
+  trainItems = usersNItems.second;
+  std::cout << "train Users: " << trainUsers.size() 
+    << " trainItems: " << trainItems.size() << std::endl;
 
   std::cout << "gBias: " << gBias << " nTrSets: " << nTrainSets << std::endl;
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;

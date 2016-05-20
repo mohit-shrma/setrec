@@ -184,5 +184,51 @@ float inversionCountPairs(std::vector<std::pair<int, float>> actualItemRatings,
 }
 
 
+float meanRating(gk_csr_t *mat) {
+  float mu = 0;
+  int nnz = 0;
+  for (int u = 0; u < mat->nrows; u++) {
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      float r_ui = mat->rowval[ii];
+      mu += r_ui;
+      nnz++;
+    }
+  }
+  return mu/nnz;
+}
 
+
+std::pair<std::unordered_set<int>, std::unordered_set<int>> getUserItems(
+    gk_csr_t *mat) {
+  std::unordered_set<int> users, items;
+  for (int u = 0; u < mat->nrows; u++) {
+    if (mat->rowptr[u+1] - mat->rowptr[u] > 0) {
+      users.insert(u);
+    }
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      items.insert(item);
+    }
+  }
+  return std::make_pair(users, items);
+}
+
+
+std::pair<std::unordered_set<int>, std::unordered_set<int>> getUserItems(
+    const std::vector<UserSets>& uSets) {
+  std::unordered_set<int> users, items;
+  
+  for (auto&& uSet: uSets) {
+    if (uSet.itemSets.size() > 0) {
+      users.insert(uSet.user);
+    }
+    for (auto&& itemSet: uSet.itemSets) {
+      for (auto&& item: itemSet.first) {
+        items.insert(item);
+      }
+    }
+  }
+
+  return std::make_pair(users, items);
+}
 

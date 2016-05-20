@@ -33,7 +33,7 @@ float ModelAverageSetBiasWPart::objective(const std::vector<UserSets>& uSets,
 void ModelAverageSetBiasWPart::train(const Data& data, const Params& params, 
     Model& bestModel) {
 
-  std::cout << "ModelAverageWPart::trainJoint" << std::endl;
+  std::cout << "ModelAverageSetBiasWPart::train" << std::endl;
   
   //initialize user-item factors with SVD
   svdFrmSvdlibCSR(data.partTrainMat, facDim, U, V, false);
@@ -53,6 +53,11 @@ void ModelAverageSetBiasWPart::train(const Data& data, const Params& params,
 
   auto partUIRatings = getUIRatings(data.partTrainMat);
 
+  auto usersNItems = getUserItems(data.trainSets);
+  trainUsers = usersNItems.first;
+  trainItems = usersNItems.second;
+  std::cout << "train Users: " << trainUsers.size() 
+    << " trainItems: " << trainItems.size() << std::endl;
 
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -138,10 +143,10 @@ void ModelAverageSetBiasWPart::train(const Data& data, const Params& params,
       if (isTerminateModelWPartIRMSE(bestModel, data, iter, bestIter, bestObj, prevObj,
             bestValRMSE, prevValRMSE)) {
         //save best model
-        bestModel.save(params.prefix);
+        //bestModel.save(params.prefix);
         break;
       }
-      if (iter % 5 == 0 || iter == params.maxIter -1) {
+      if (iter % 10 == 0 || iter == params.maxIter -1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 
           << " train RMSE:" << rmse(data.trainSets) 
@@ -151,12 +156,10 @@ void ModelAverageSetBiasWPart::train(const Data& data, const Params& params,
           << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
           << " invCount@10: " << inversionCount(data.ratMat, data.trainSets, 10)
           << std::endl;
-        bestModel.save(params.prefix);
+        //bestModel.save(params.prefix);
       }
     }
-
   }
-
 
 }
 

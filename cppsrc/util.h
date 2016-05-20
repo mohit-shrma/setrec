@@ -24,6 +24,10 @@ std::vector<std::map<int, float>> getUIRatings(gk_csr_t *mat);
 std::vector<std::tuple<int, int, float>> getUIRatingsTup(gk_csr_t* mat);
 float inversionCountPairs(std::vector<std::pair<int, float>> actualItemRatings,
     std::vector<std::pair<int, float>> predItemRatings);
-
+float meanRating(gk_csr_t *mat);
+std::pair<std::unordered_set<int>, std::unordered_set<int>> getUserItems(
+    gk_csr_t *mat);
+std::pair<std::unordered_set<int>, std::unordered_set<int>> getUserItems(
+    const std::vector<UserSets>& uSets);
 #endif
 

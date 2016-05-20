@@ -67,6 +67,7 @@ float ModelAverageWPart::objective(const std::vector<UserSets>& uSets,
   float norm;
   float obj = ModelAverageWBias::objective(uSets, mat);
 
+  //add biases to objective
   //add uBias
   norm = uBias.norm();
   obj += uBiasReg*norm*norm;
@@ -102,6 +103,11 @@ void ModelAverageWPart::trainJoint(const Data& data, const Params& params,
 
   auto partUIRatings = getUIRatings(data.partTrainMat);
 
+  auto usersNItems = getUserItems(data.trainSets);
+  trainUsers = usersNItems.first;
+  trainItems = usersNItems.second;
+  std::cout << "train Users: " << trainUsers.size() 
+    << " trainItems: " << trainItems.size() << std::endl;
 
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -124,7 +130,7 @@ void ModelAverageWPart::trainJoint(const Data& data, const Params& params,
         float r_us = uSet.itemSets[setInd].second;
 
         if (items.size() == 0) {
-          std::cerr << "!! zero size itemset foundi !!" << std::endl; 
+          std::cerr << "!! zero size itemset found !!" << std::endl; 
           continue;
         }
 
@@ -183,10 +189,10 @@ void ModelAverageWPart::trainJoint(const Data& data, const Params& params,
       if (isTerminateModelWPartIRMSE(bestModel, data, iter, bestIter, bestObj, prevObj,
             bestValRMSE, prevValRMSE)) {
         //save best model
-        bestModel.save(params.prefix);
+        //bestModel.save(params.prefix);
         break;
       }
-      if (iter % 5 == 0 || iter == params.maxIter -1) {
+      if (iter % 10 == 0 || iter == params.maxIter -1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 
           << " train RMSE:" << rmse(data.trainSets) 
@@ -196,15 +202,10 @@ void ModelAverageWPart::trainJoint(const Data& data, const Params& params,
           << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
           << " invCount@10: " << inversionCount(data.ratMat, data.trainSets, 10)
           << std::endl;
-        bestModel.save(params.prefix);
+        //bestModel.save(params.prefix);
       }
     }
-
-
   }
-
-
-
 
 }
 
