@@ -86,6 +86,33 @@ float Model::objective(const std::vector<UserSets>& uSets) {
 }
 
 
+float Model::objective(gk_csr_t *mat) {
+  
+  float obj = 0.0, uRegErr = 0.0, iRegErr = 0.0;
+  float norm, diff, r_ui, r_ui_est;
+  
+  for (int u = 0; u < mat->nrows; u++) {
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      r_ui = mat->rowval[ii];
+      r_ui_est = estItemRating(u, item);
+      diff = r_ui_est - r_ui;
+      obj += diff*diff;
+    }
+  }
+
+  norm = U.norm();
+  uRegErr = uReg*norm*norm;
+
+  norm = V.norm();
+  iRegErr = iReg*norm*norm;
+
+  obj += uRegErr + iRegErr;
+
+  return obj;
+}
+
+
 float Model::objective(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
   
   float obj = 0.0, uRegErr = 0.0, iRegErr = 0.0;
@@ -346,11 +373,12 @@ float Model::inversionCount(gk_csr_t *mat, const std::vector<UserSets>& uSets,
 
 
 float Model::invertRandPairCount(gk_csr_t *mat, 
-    const std::vector<UserSets>& uSets, int N, int seed) {
+    const std::vector<UserSets>& uSets, int seed) {
   int item, nUsers = 0;
+  std::unordered_set<int> missedPs, missedQs;
   std::vector<std::pair<int, float>> actualItemRatings, predItemRatings;
   float uInvCount, avgInvCount = 0;
-
+  int missedP = 0, missedQ = 0;
   std::mt19937 mt(seed);
 
   for (auto&& uSet: uSets) {
@@ -358,22 +386,24 @@ float Model::invertRandPairCount(gk_csr_t *mat,
     auto setItems = uSet.items;
     actualItemRatings.clear();
     predItemRatings.clear();
-    for (int ii = mat->rowptr[u], j = 0; 
-        ii < mat->rowptr[u+1] && j < N; ii++) {
+    for (int ii = mat->rowptr[u];ii < mat->rowptr[u+1]; ii++) {
       item = mat->rowind[ii];
       if (setItems.find(item) == setItems.end()) {
         //item not in userSet
         actualItemRatings.push_back(std::make_pair(item, mat->rowval[ii]));
         predItemRatings.push_back(std::make_pair(item, estItemRating(u, item)));
-        j++;
       }
     }
-    
+   
+    if (actualItemRatings.size() <= 1) {
+      continue;
+    }
+
     std::sort(actualItemRatings.begin(), actualItemRatings.end(), descComp);
     std::sort(predItemRatings.begin(), predItemRatings.end(), descComp);
 
     //select 2 items at random from the list
-    std::uniform_int_distribution<int> dist(0, actualItemRatings.size());
+    std::uniform_int_distribution<int> dist(0, actualItemRatings.size()-1);
     int p = dist(mt);
     int q = dist(mt);
     int nTries = 0;
@@ -387,9 +417,20 @@ float Model::invertRandPairCount(gk_csr_t *mat,
       continue;
     }
 
-    auto pItem = actualItemRatings[p].first;
-    auto qItem = actualItemRatings[q].first;
+    int pItem = actualItemRatings[p].first;
+    int qItem = actualItemRatings[q].first;
+
+    //check if pItem or qItem in training
+    if (trainItems.find(pItem) == trainItems.end()) {
+      missedP++;
+      missedPs.insert(pItem);
+    }
     
+    if (trainItems.find(qItem) == trainItems.end()) {
+      missedQ++;
+      missedQs.insert(qItem);
+    }
+
     auto predPInd = std::find_if(predItemRatings.begin(), 
         predItemRatings.end(), 
         [&pItem] (std::pair<int, float> itemRating) { 
@@ -409,9 +450,14 @@ float Model::invertRandPairCount(gk_csr_t *mat,
 
     avgInvCount += uInvCount;
     nUsers++;
-  }
+  } 
+  std::cout << "users: " << trainUsers.size() << " items: " << trainItems.size() << std::endl;
   std::cout << "nUsers: " << nUsers << " avgInvCount: " << avgInvCount 
+    << " missedP: " << missedP << " missedQ: " << missedQ
     << std::endl;
+  //writeContainer(missedPs.begin(), missedPs.end(),  "missedPs.txt");
+  //writeContainer(missedQs.begin(), missedQs.end(),  "missedQs.txt");
+  //writeContainer(trainItems.begin(), trainItems.end(), "trainItems.txt");
   avgInvCount = avgInvCount/nUsers;
   return avgInvCount;
 }
@@ -667,10 +713,10 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
 
   if (iter > 0) {
     if (currValRMSE < bestValRMSE) {
-      bestModel = *this;
+      bestModel   = *this;
       bestValRMSE = currValRMSE;
-      bestIter = iter;
-      bestObj = currObj;
+      bestIter    = iter;
+      bestObj     = currObj;
     } 
   
     if (iter - bestIter >= CHANCE_ITER) {
@@ -682,7 +728,6 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
       ret = true;
     }
     
-    
     if (fabs(prevObj - currObj) < EPS) {
       //objective converged
       std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
@@ -690,23 +735,11 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
       ret = true;
     }
     
-     
-    /*
-    if (fabs(prevValRMSE - currValRMSE) < EPS) {
-      //Validation rmse converged
-      std::cout << "CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
-        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
-        << iter << " currObj: " << currObj << " currValRMSE:" 
-        << currValRMSE << std::endl;
-      ret = true;
-    }
-    */
-  }
-  
-  if (0 == iter) {
-    bestObj = currObj;
+  } else if (0  == iter) {
+    bestObj     = currObj;
     bestValRMSE = currValRMSE;
-    bestIter = iter;
+    bestIter    = iter;
+    bestModel   = *this;
   }
   
   prevObj = currObj;

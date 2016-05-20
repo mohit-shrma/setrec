@@ -40,6 +40,7 @@ class Model {
     float learnRate;
 
     std::map<int, float> globalItemRatings;
+    std::unordered_set<int> trainUsers, trainItems;
     
     Model(const Params &params);
     Model(const Params &params, const char* uFacName, const char* iFacName);
@@ -51,6 +52,7 @@ class Model {
     }
     virtual float objective(const std::vector<UserSets>& uSets);
     virtual float objective(const std::vector<UserSets>& uSets, gk_csr_t *mat);
+    virtual float objective(gk_csr_t *mat);
     virtual void train(const Data& data, const Params& params, Model& bestModel) {
       std::cerr << "Base class: train not defined" << std::endl;
     }
@@ -79,8 +81,8 @@ class Model {
         int N);
     float inversionCount(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
       int N);
-    float invertRandPairCount(gk_csr_t *mat, 
-        const std::vector<UserSets>& uSets, int N, int seed);
+    float invertRandPairCount(gk_csr_t *mat, const std::vector<UserSets>& uSets,
+        int seed);
     std::string modelSign();
     void save(std::string opPrefix);
     void load(std::string opPrefix);
