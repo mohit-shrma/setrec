@@ -17,6 +17,8 @@
 #include "ModelItemAverage.h"
 #include "ModelAverageSetBiasWPart.h"
 #include "ModelMFWBias.h"
+#include "ModelAverageHingeWBias.h"
+#include "ModelAverageLogWBias.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 23) {
@@ -74,14 +76,14 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageWBias modelAvg(params);
+  ModelAverageLogWBias modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageWBias bestModel(modelAvg);
+  ModelAverageLogWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -154,7 +156,10 @@ int main(int argc, char *argv[]) {
 
   //std::cout << "Inversion count: " << bestModel.inversionCount(data.partTestMat, 
   //    data.trainSets, 10) << std::endl;
-  std::cout << "Random inversion count: " 
+  std::cout << "Val Random inversion count: " 
+    << bestModel.invertRandPairCount(data.partValMat, data.trainSets, 
+        params.seed) <<std::endl;
+  std::cout << "Test Random inversion count: " 
     << bestModel.invertRandPairCount(data.partTestMat, data.trainSets, 
         params.seed) <<std::endl;
   /*

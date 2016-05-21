@@ -12,6 +12,7 @@ Model::Model(const Params &params) {
   uSetBiasReg = params.u_mReg;
   iReg        = params.iReg;
   learnRate   = params.learnRate;
+  gamma       = params.rhoRMS;
 
   //random engine
   std::mt19937 mt(params.seed);
@@ -52,8 +53,13 @@ Model::Model(const Params &params, const char* uFacName,
 }
 
 
+//TODO: init train users and train items in models
 float Model::estItemRating(int user, int item) {
-  return (U.row(user)).dot(V.row(item));
+  if (trainUsers.find(user) != trainUsers.end() && 
+      trainItems.find(item) != trainItems.end()) {
+    return (U.row(user)).dot(V.row(item));
+  } 
+  return 0;
 }
 
 
@@ -872,13 +878,13 @@ bool Model::isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
   
   if (iter > 0) {
     if (currValRecall > bestValRecall) {
-      bestModel = *this;
+      bestModel     = *this;
       bestValRecall = currValRecall;
-      bestIter = iter;
-      bestRecall = currRecall;
+      bestIter      = iter;
+      bestRecall    = currRecall;
     } 
   
-    if (iter - bestIter >= 1000) {
+    if (iter - bestIter >= CHANCE_ITER) {
       //cant improve validation RMSE
       std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestRecall:" 
         << bestRecall << " bestValRecall: " << bestValRecall << " currIter:"
@@ -909,9 +915,10 @@ bool Model::isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
   }
   
   if (0 == iter) {
-    bestRecall = currRecall;
+    bestRecall    = currRecall;
     bestValRecall = currValRecall;
-    bestIter = iter;
+    bestIter      = iter;
+    bestModel     = *this;
   }
   
   prevRecall = currRecall;

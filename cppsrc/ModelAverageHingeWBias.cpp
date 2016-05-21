@@ -1,11 +1,27 @@
-#include "ModelAverageHinge.h"
+#include "ModelAverageHingeWBias.h"
+
+float ModelAverageHingeWBias::estItemRating(int user, int item) {
+  bool uFound = false, iFound = true;
+  float rating = 0;
+  if (trainUsers.find(user) != trainUsers.end()) {
+    uFound = true;
+  }
+  if (trainItems.find(item) != trainItems.end()) {
+    iFound = true;
+    rating += iBias(item);
+  }
+  if (uFound && iFound) {
+    rating += U.row(user).dot(V.row(item));
+  }
+  return rating;
+}
 
 
-void ModelAverageHinge::train(const Data& data, const Params& params,
+void ModelAverageHingeWBias::train(const Data& data, const Params& params,
     Model& bestModel) {
   
-  std::cout << "ModelAverageHinge::train" << std::endl;
-  
+  std::cout << "ModelAverageHingeWBias::train" << std::endl;
+
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
   Eigen::VectorXf tempGrad(facDim);
@@ -16,17 +32,17 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
 
+  //initialize random engine
+  std::mt19937 mt(params.seed);
+
+  std::unordered_set<int> invalidUsers;
+
   auto usersNItems = getUserItems(data.trainSets);
   trainUsers = usersNItems.first;
   trainItems = usersNItems.second;
   std::cout << "train Users: " << trainUsers.size() 
     << " trainItems: " << trainItems.size() << std::endl;
   
-  //initialize random engine
-  std::mt19937 mt(params.seed);
-
-  std::unordered_set<int> invalidUsers;
-
   for (int iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uInds.begin(), uInds.end(), mt);
     int skippedCount = 0;
@@ -97,6 +113,7 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
             }
             tempGrad = -grad + 2.0*iReg*V.row(item).transpose(); 
             V.row(item) -= learnRate*(tempGrad.transpose());
+            iBias(item) -= learnRate*(-1.0/hiItems.size() + 2.0*iBiasReg*iBias(item));
           }
           for (auto&& item: loItemsSet) {
             //check if item occurs in lo itemset
@@ -106,6 +123,7 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
             }
             tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
             V.row(item) -= learnRate*(tempGrad.transpose());
+            iBias(item) -= learnRate*(1.0/loItems.size() + 2.0*iBiasReg*iBias(item));
           }
         
         }
@@ -119,8 +137,7 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
             bestValRecall, prevValRecall, invalidUsers)) {
         break;
       }
-
-      if (iter%10 == 0 || iter == params.maxIter - 1) {
+      if (iter % 10 == 0 || iter == params.maxIter-1) {
         std::cout << "Skipped: " << skippedCount <<  " invalid users: " 
           << invalidUsers.size() << std::endl;
         std::cout << "Iter:" << iter << " recall:" << prevRecall << " val Recall: " 
@@ -134,4 +151,6 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
   }
 
 }
+
+
 

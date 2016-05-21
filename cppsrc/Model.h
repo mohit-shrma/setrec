@@ -36,6 +36,7 @@ class Model {
     //regularization
     float uReg, iReg, uSetBiasReg;
     float uBiasReg, iBiasReg;
+    float gamma;
 
     float learnRate;
 

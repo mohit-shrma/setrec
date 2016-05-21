@@ -21,6 +21,12 @@ void ModelAverageBPR::train(const Data& data, const Params& params,
   std::uniform_int_distribution<int> dist(0, 1000);
 
   std::unordered_set<int> invalidUsers;
+  
+  auto usersNItems = getUserItems(data.trainSets);
+  trainUsers = usersNItems.first;
+  trainItems = usersNItems.second;
+  std::cout << "train Users: " << trainUsers.size() 
+    << " trainItems: " << trainItems.size() << std::endl;
 
   for (int iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uInds.begin(), uInds.end(), mt);
@@ -59,7 +65,7 @@ void ModelAverageBPR::train(const Data& data, const Params& params,
         float r_ut_est = estSetRating(user, loItems);
 
         float r_ust_diff = r_us_est - r_ut_est; 
-        float expDiff = -1.0/(1.0 + r_ust_diff);
+        float expDiff = -1.0/(1.0 + exp(r_ust_diff));
 
         //compute sum of item latent factors
         sumItemFactors.fill(0);    
@@ -110,19 +116,18 @@ void ModelAverageBPR::train(const Data& data, const Params& params,
             bestValRecall, prevValRecall, invalidUsers)) {
         break;
       }
-      std::cout << "Skipped: " << skippedCount <<  " invalid users: " 
-        << invalidUsers.size() << std::endl;
-      std::cout << "Iter:" << iter << " recall:" << prevRecall << " val Recall: " 
-        << prevValRecall << " best val Recall:" << bestValRecall
-        << " test recall : " << recallTopN(data.ratMat, data.testSets, invalidUsers, 10)
-        << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
-        << std::endl;
+      if (iter % 10 == 0 || iter == params.maxIter - 1) {
+        std::cout << "Skipped: " << skippedCount <<  " invalid users: " 
+          << invalidUsers.size() << std::endl;
+        std::cout << "Iter:" << iter << " recall:" << prevRecall << " val Recall: " 
+          << prevValRecall << " best val Recall:" << bestValRecall
+          << " test recall : " << recallTopN(data.ratMat, data.testSets, invalidUsers, 10)
+          << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
+          << std::endl;
+      }
     }
 
   }
-
-
-
 
 }
 

@@ -1,11 +1,28 @@
-#include "ModelAverageHinge.h"
+#include "ModelAverageLogWBias.h"
 
 
-void ModelAverageHinge::train(const Data& data, const Params& params,
+float ModelAverageLogWBias::estItemRating(int user, int item) {
+  bool uFound = false, iFound = true;
+  float rating = 0;
+  if (trainUsers.find(user) != trainUsers.end()) {
+    uFound = true;
+  }
+  if (trainItems.find(item) != trainItems.end()) {
+    iFound = true;
+    rating += iBias(item);
+  }
+  if (uFound && iFound) {
+    rating += U.row(user).dot(V.row(item));
+  }
+  return rating;
+}
+
+
+void ModelAverageLogWBias::train(const Data& data, const Params& params,
     Model& bestModel) {
   
-  std::cout << "ModelAverageHinge::train" << std::endl;
-  
+  std::cout << "ModelAverageLogWBias::train" << std::endl;
+
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
   Eigen::VectorXf tempGrad(facDim);
@@ -16,17 +33,17 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
 
+  //initialize random engine
+  std::mt19937 mt(params.seed);
+
+  std::unordered_set<int> invalidUsers;
+
   auto usersNItems = getUserItems(data.trainSets);
   trainUsers = usersNItems.first;
   trainItems = usersNItems.second;
   std::cout << "train Users: " << trainUsers.size() 
     << " trainItems: " << trainItems.size() << std::endl;
   
-  //initialize random engine
-  std::mt19937 mt(params.seed);
-
-  std::unordered_set<int> invalidUsers;
-
   for (int iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uInds.begin(), uInds.end(), mt);
     int skippedCount = 0;
@@ -68,47 +85,54 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
         float r_ust_est_diff = r_us_est - r_ut_est; 
         float r_ust_diff = r_us - r_ut;
         
-        if (gamma + r_ust_diff - r_ust_est_diff > 0) {
-          //compute sum of item latent factors
-          sumItemFactors.fill(0);    
-          for (auto item: hiItems) {
-            sumItemFactors += V.row(item);
-          }
-          for (auto item: loItems) {
-            sumItemFactors -= V.row(item);
-          }  
-          
-          //user gradient
-          grad = -sumItemFactors/hiItems.size() + 2.0*uReg*U.row(user).transpose();
-        
-          //update user
-          U.row(user) -= learnRate*(grad.transpose());
-        
-          //update items
-          grad = U.row(user)/hiItems.size();
-        
-          std::unordered_set<int> hiItemsSet(hiItems.begin(), hiItems.end());
-          std::unordered_set<int> loItemsSet(loItems.begin(), loItems.end());
-          for (auto&& item: hiItemsSet) {
-            //check if item occurs in lo itemset
-            if (loItemsSet.find(item) != loItemsSet.end()) {
-              //found
-              continue;
-            }
-            tempGrad = -grad + 2.0*iReg*V.row(item).transpose(); 
-            V.row(item) -= learnRate*(tempGrad.transpose());
-          }
-          for (auto&& item: loItemsSet) {
-            //check if item occurs in lo itemset
-            if (hiItemsSet.find(item) != hiItemsSet.end()) {
-              //found
-              continue;
-            }
-            tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
-            V.row(item) -= learnRate*(tempGrad.transpose());
-          }
-        
+        //if (gamma + r_ust_diff - r_ust_est_diff > 0) {
+        float coeff = gamma + r_ust_diff - r_ust_est_diff;  
+        float expCoeff = 1.0/(1.0 + exp(-1.0*coeff));
+
+        //compute sum of item latent factors
+        sumItemFactors.fill(0);    
+        for (auto item: hiItems) {
+          sumItemFactors += V.row(item);
         }
+        for (auto item: loItems) {
+          sumItemFactors -= V.row(item);
+        }  
+        
+        //user gradient
+        grad = -expCoeff*sumItemFactors/hiItems.size() 
+          + 2.0*uReg*U.row(user).transpose();
+      
+        //update user
+        U.row(user) -= learnRate*(grad.transpose());
+      
+        //update items
+        grad = U.row(user)/hiItems.size();
+      
+        std::unordered_set<int> hiItemsSet(hiItems.begin(), hiItems.end());
+        std::unordered_set<int> loItemsSet(loItems.begin(), loItems.end());
+        for (auto&& item: hiItemsSet) {
+          //check if item occurs in lo itemset
+          if (loItemsSet.find(item) != loItemsSet.end()) {
+            //found
+            continue;
+          }
+          tempGrad = -expCoeff*grad + 2.0*iReg*V.row(item).transpose(); 
+          V.row(item) -= learnRate*(tempGrad.transpose());
+          iBias(item) -= learnRate*(-expCoeff/hiItems.size() 
+              + 2.0*iBiasReg*iBias(item));
+        }
+        for (auto&& item: loItemsSet) {
+          //check if item occurs in lo itemset
+          if (hiItemsSet.find(item) != hiItemsSet.end()) {
+            //found
+            continue;
+          }
+          tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
+          V.row(item) -= learnRate*(tempGrad.transpose());
+          iBias(item) -= learnRate*(expCoeff/loItems.size() 
+              + 2.0*iBiasReg*iBias(item));
+        }
+      
 
       }
     }    
@@ -119,8 +143,7 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
             bestValRecall, prevValRecall, invalidUsers)) {
         break;
       }
-
-      if (iter%10 == 0 || iter == params.maxIter - 1) {
+      if (iter % 10 == 0 || iter == params.maxIter-1) {
         std::cout << "Skipped: " << skippedCount <<  " invalid users: " 
           << invalidUsers.size() << std::endl;
         std::cout << "Iter:" << iter << " recall:" << prevRecall << " val Recall: " 
@@ -134,4 +157,8 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
   }
 
 }
+
+
+
+
 
