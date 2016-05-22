@@ -25,7 +25,6 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
   //initialize random engine
   std::mt19937 mt(params.seed);
 
-  std::unordered_set<int> invalidUsers;
 
   for (int iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uInds.begin(), uInds.end(), mt);
@@ -116,7 +115,7 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       if (isTerminateRecallModel(bestModel, data, iter, bestIter, bestRecall, prevRecall,
-            bestValRecall, prevValRecall, invalidUsers)) {
+            bestValRecall, prevValRecall)) {
         break;
       }
 
@@ -125,7 +124,8 @@ void ModelAverageHinge::train(const Data& data, const Params& params,
           << invalidUsers.size() << std::endl;
         std::cout << "Iter:" << iter << " recall:" << prevRecall << " val Recall: " 
           << prevValRecall << " best val Recall:" << bestValRecall
-          << " test recall : " << recallTopN(data.ratMat, data.testSets, invalidUsers, 10)
+          << " test recall : " << recallHit(data.trainSets, data.testUItems, 
+              data.ignoreUItems, 10)
           << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
           << std::endl;
       }

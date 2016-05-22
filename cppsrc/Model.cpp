@@ -523,6 +523,61 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
 }
 
 
+float Model::recallHit(const std::vector<UserSets>& uSets,
+    std::map<int, int> uItems, 
+    std::map<int, std::unordered_set<int>> ignoreUItems, int N) {
+  
+  std::vector<std::pair<int, float>> predRatings;
+  
+  float hits = 0, nUsers = 0;
+  
+  for(auto&& uSet: uSets) {
+    int user = uSet.user;
+    
+    if (ignoreUItems.find(user) == ignoreUItems.end() || 
+        uItems.find(user) == uItems.end() || 
+        invalidUsers.find(user) != invalidUsers.end()) {
+      continue;
+    }
+
+    auto setItems = uSet.items;
+    
+    predRatings.clear();
+    for (auto&& item: trainItems) {
+      //skip if item in user's set or in user's ignore set
+      if (setItems.find(item) != setItems.end() || 
+          ignoreUItems[user].find(item) != ignoreUItems[user].end()) {
+        continue;
+      }
+      predRatings.push_back(std::make_pair(item, estItemRating(user, item)));
+    }
+
+    if (predRatings.size() == 0) {
+      continue;
+    }
+
+    if (N > predRatings.size()) {
+      N = predRatings.size();
+    }
+
+    std::nth_element(predRatings.begin(), predRatings.begin()+(N - 1), 
+        predRatings.end(), descComp);
+    
+    for (auto it = predRatings.begin(); it != predRatings.begin()+N; it++) {
+      int item = (*it).first;
+      if (item == uItems[user]) {
+        hits += 1;
+      }
+    }
+    nUsers += 1;
+  }
+  
+  //std::cout << "hits: " << hits << " nUsers: " << nUsers << std::endl;
+
+  return hits/nUsers;
+}
+
+
 float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     std::unordered_set<int>& invalUsers, int N) {
   float recN = 0;
@@ -870,11 +925,12 @@ bool Model::isTerminateModelWPart(Model& bestModel, const Data& data, int iter,
 
 bool Model::isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
     int& bestIter, float& bestRecall, float& prevRecall, float& bestValRecall,
-    float& prevValRecall, std::unordered_set<int>& invalidUsers) {
+    float& prevValRecall) {
 
   bool ret = false;  
   float currRecall = recallTopN(data.ratMat, data.trainSets, invalidUsers, 10);
-  float currValRecall = recallTopN(data.ratMat, data.valSets, invalidUsers, 10);
+  float currValRecall = recallHit(data.trainSets, data.valUItems, 
+      data.ignoreUItems, 10);
   
   if (iter > 0) {
     if (currValRecall > bestValRecall) {

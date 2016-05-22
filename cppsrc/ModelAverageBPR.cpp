@@ -20,8 +20,6 @@ void ModelAverageBPR::train(const Data& data, const Params& params,
   std::mt19937 mt(params.seed);
   std::uniform_int_distribution<int> dist(0, 1000);
 
-  std::unordered_set<int> invalidUsers;
-  
   auto usersNItems = getUserItems(data.trainSets);
   trainUsers = usersNItems.first;
   trainItems = usersNItems.second;
@@ -42,6 +40,10 @@ void ModelAverageBPR::train(const Data& data, const Params& params,
           continue;
         }
         
+        if (invalidUsers.find(user) != invalidUsers.end()) {
+          continue;
+        }
+
         //sample high and low set ind for the user
         auto hiLo = uSet.sampPosNeg(mt);
        
@@ -113,7 +115,7 @@ void ModelAverageBPR::train(const Data& data, const Params& params,
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       if (isTerminateRecallModel(bestModel, data, iter, bestIter, bestRecall, prevRecall,
-            bestValRecall, prevValRecall, invalidUsers)) {
+            bestValRecall, prevValRecall)) {
         break;
       }
       if (iter % 10 == 0 || iter == params.maxIter - 1) {
@@ -121,7 +123,8 @@ void ModelAverageBPR::train(const Data& data, const Params& params,
           << invalidUsers.size() << std::endl;
         std::cout << "Iter:" << iter << " recall:" << prevRecall << " val Recall: " 
           << prevValRecall << " best val Recall:" << bestValRecall
-          << " test recall : " << recallTopN(data.ratMat, data.testSets, invalidUsers, 10)
+          << " test recall : " << recallHit(data.trainSets, data.testUItems, 
+              data.ignoreUItems, 10)
           << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
           << std::endl;
       }

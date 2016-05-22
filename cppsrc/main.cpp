@@ -69,6 +69,8 @@ int main(int argc, char *argv[]) {
   Params params = parse_cmd_line(argc, argv);
   params.display();
   Data data(params);
+  
+  data.initRankMap();
 
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
@@ -76,14 +78,14 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageLogWBias modelAvg(params);
+  ModelAverageHingeWBias modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageLogWBias bestModel(modelAvg);
+  ModelAverageHingeWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -156,6 +158,11 @@ int main(int argc, char *argv[]) {
 
   //std::cout << "Inversion count: " << bestModel.inversionCount(data.partTestMat, 
   //    data.trainSets, 10) << std::endl;
+  std::cout << "Val recall: " << bestModel.recallHit(data.trainSets, data.valUItems, 
+      data.ignoreUItems, 10) << std::endl;
+  std::cout << "Test recall: " << bestModel.recallHit(data.trainSets, data.testUItems, 
+      data.ignoreUItems, 10) << std::endl;
+
   std::cout << "Val Random inversion count: " 
     << bestModel.invertRandPairCount(data.partValMat, data.trainSets, 
         params.seed) <<std::endl;

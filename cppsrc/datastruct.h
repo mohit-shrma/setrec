@@ -108,6 +108,11 @@ class Data {
     gk_csr_t* partTestMat;
     gk_csr_t* partValMat;
 
+    //used for ranking evaluation
+    std::map<int, int> valUItems;
+    std::map<int, int> testUItems;
+    std::map<int, std::unordered_set<int>> ignoreUItems;
+
     int nUsers, nItems;
     
     char* prefix;
@@ -255,6 +260,43 @@ class Data {
       nValSets = valSets.size();
     }
 
+
+    void initRankMap() {
+      std::vector<std::pair<int, float>> itemActRatings;
+      for (auto&& uSet: trainSets) {
+        int user = uSet.user;
+        auto setItems = uSet.items;
+        itemActRatings.clear();
+        for (int ii = ratMat->rowptr[user]; ii < ratMat->rowptr[user+1]; ii++) {
+          int item = ratMat->rowind[ii];
+          if (setItems.find(item) == setItems.end()) {
+            //not train item
+            itemActRatings.push_back(std::make_pair(item, ratMat->rowval[ii]));
+          }
+        }
+        
+        //get top-2 elements in beginning
+        std::nth_element(itemActRatings.begin(), itemActRatings.begin()+(2-1),
+            itemActRatings.end(), descComp);
+        
+        if (!(itemActRatings[0].second > 3 && itemActRatings[1].second > 3)) {
+          continue;
+        }
+
+        valUItems[user] = itemActRatings[0].first;
+        testUItems[user] = itemActRatings[1].first;
+
+        std::unordered_set<int> uIgnoreItems;
+        for (auto it = itemActRatings.begin()+2; it != itemActRatings.end(); 
+            it++) {
+          if ( (*it).second > 3) {
+            uIgnoreItems.insert((*it).first);
+          }
+        }
+        ignoreUItems[user] = uIgnoreItems;
+      }
+    }
+  
 
     ~Data() {
       if (NULL != ratMat) {

@@ -42,6 +42,7 @@ class Model {
 
     std::map<int, float> globalItemRatings;
     std::unordered_set<int> trainUsers, trainItems;
+    std::unordered_set<int> invalidUsers;
     
     Model(const Params &params);
     Model(const Params &params, const char* uFacName, const char* iFacName);
@@ -70,7 +71,7 @@ class Model {
         int& bestIter, float& bestObj, float& prevObj); 
     bool isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
       int& bestIter, float& bestRecall, float& prevRecall, float& bestValRecall,
-      float& prevValRecall, std::unordered_set<int>& invalidUsers);
+      float& prevValRecall);
     float rmse(const std::vector<UserSets>& uSets);
     float rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat);
     std::map<int, float> itemRMSE(const std::vector<UserSets>& uSets,
@@ -91,6 +92,9 @@ class Model {
       int N);
     float recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
       std::unordered_set<int>& invalUsers, int N);
+    float recallHit(const std::vector<UserSets>& uSets,
+      std::map<int, int> uItems, 
+      std::map<int, std::unordered_set<int>> ignoreUItems, int N);
 };
 
 

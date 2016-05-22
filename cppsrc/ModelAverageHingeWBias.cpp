@@ -35,8 +35,6 @@ void ModelAverageHingeWBias::train(const Data& data, const Params& params,
   //initialize random engine
   std::mt19937 mt(params.seed);
 
-  std::unordered_set<int> invalidUsers;
-
   auto usersNItems = getUserItems(data.trainSets);
   trainUsers = usersNItems.first;
   trainItems = usersNItems.second;
@@ -46,12 +44,17 @@ void ModelAverageHingeWBias::train(const Data& data, const Params& params,
   for (int iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uInds.begin(), uInds.end(), mt);
     int skippedCount = 0;
+
     for (int i = 0; i < data.nTrainSets/nTrUsers; i++) {
 
       for (auto&& uInd: uInds) {
         UserSets uSet = data.trainSets[uInd];
         int user = uSet.user;
-        
+  
+        if (invalidUsers.find(user) != invalidUsers.end()) {
+          continue;
+        }
+
         if (uSet.itemSets.size() == 0) {
           std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
           continue;
@@ -70,7 +73,7 @@ void ModelAverageHingeWBias::train(const Data& data, const Params& params,
           invalidUsers.insert(user);
           continue;
         }
-
+        
         //get high items and set rating
         auto hiItems   = uSet.itemSets[hiSetInd].first;
         float r_us     = uSet.itemSets[hiSetInd].second;
@@ -130,11 +133,11 @@ void ModelAverageHingeWBias::train(const Data& data, const Params& params,
 
       }
     }    
-    
+
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       if (isTerminateRecallModel(bestModel, data, iter, bestIter, bestRecall, prevRecall,
-            bestValRecall, prevValRecall, invalidUsers)) {
+            bestValRecall, prevValRecall)) {
         break;
       }
       if (iter % 10 == 0 || iter == params.maxIter-1) {
@@ -142,7 +145,8 @@ void ModelAverageHingeWBias::train(const Data& data, const Params& params,
           << invalidUsers.size() << std::endl;
         std::cout << "Iter:" << iter << " recall:" << prevRecall << " val Recall: " 
           << prevValRecall << " best val Recall:" << bestValRecall
-          << " test recall : " << recallTopN(data.ratMat, data.testSets, invalidUsers, 10)
+          << " test recall : " << recallHit(data.trainSets, data.testUItems, 
+              data.ignoreUItems, 10)
           << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
           << std::endl;
       }
