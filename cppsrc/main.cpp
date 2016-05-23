@@ -78,14 +78,14 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageHingeWBias modelAvg(params);
+  ModelMFWBias modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageHingeWBias bestModel(modelAvg);
+  ModelMFWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -120,13 +120,16 @@ int main(int argc, char *argv[]) {
   std::cout << "All RMSE: " << bestModel.rmse(allSets, data.ratMat) << std::endl;
   */
   
+
+  /*
   float trainRMSE = bestModel.rmse(data.trainSets);
   float testRMSE = bestModel.rmse(data.testSets);
   float valRMSE = bestModel.rmse(data.valSets);
   std::cout << "Train sets RMSE: " << trainRMSE << std::endl;
   std::cout << "Test sets RMSE: " << testRMSE << std::endl;
   std::cout << "Val sets RMSE: " << valRMSE << std::endl;
-  
+  */
+
   //float trainRatingsRMSE = bestModel.rmse(data.trainSets, data.ratMat);
   //float testRatingsRMSE  = bestModel.rmse(data.testSets, data.ratMat);
   //float valRatingsRMSE   = bestModel.rmse(data.valSets, data.ratMat);
@@ -162,6 +165,13 @@ int main(int argc, char *argv[]) {
       data.ignoreUItems, 10) << std::endl;
   std::cout << "Test recall: " << bestModel.recallHit(data.trainSets, data.testUItems, 
       data.ignoreUItems, 10) << std::endl;
+  
+  auto valNDCGPrec = bestModel.ratingsNDCGPrecK(data.trainSets, data.valURatings, 10);
+  std::cout << "Val NDCG: " << valNDCGPrec.first << " Prec: " 
+    << valNDCGPrec.second << std::endl;
+  auto testNDCGPrec = bestModel.ratingsNDCGPrecK(data.trainSets, data.testURatings, 10);
+  std::cout << "Test NDCG: " << testNDCGPrec.first << " Prec: " 
+    << testNDCGPrec.second << std::endl;
 
   std::cout << "Val Random inversion count: " 
     << bestModel.invertRandPairCount(data.partValMat, data.trainSets, 

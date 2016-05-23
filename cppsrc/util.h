@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <vector>
 #include <map>
+#include <cmath>
 
 #include "UserSets.h"
 #include "GKlib.h"
@@ -29,5 +30,6 @@ std::pair<std::unordered_set<int>, std::unordered_set<int>> getUserItems(
     gk_csr_t *mat);
 std::pair<std::unordered_set<int>, std::unordered_set<int>> getUserItems(
     const std::vector<UserSets>& uSets);
+float ndcg(std::vector<float> orig, std::vector<float> pred);
 #endif
 

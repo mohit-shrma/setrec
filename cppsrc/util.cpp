@@ -232,3 +232,34 @@ std::pair<std::unordered_set<int>, std::unordered_set<int>> getUserItems(
   return std::make_pair(users, items);
 }
 
+
+float dcgRel(std::vector<float> ord) {
+  float dcg = 0;
+  for (size_t i = 0; i < ord.size(); i++) {
+    dcg += (std::pow(2, ord[i]) - (i+1)) / (std::log2(1+(i+1)));
+  }
+  return dcg;
+}
+
+float dcg(std::vector<float> ord) {
+  float dcg = 0;
+  dcg += ord[0];
+  for (size_t i = 1; i < ord.size(); i++) {
+    dcg +=  ord[i] / std::log2(i+1);
+  }
+  return dcg;
+}
+
+float ndcg(std::vector<float> orig, std::vector<float> pred) {
+  float ndcg = 0;
+  float predNDCG = dcg(pred);
+  float origNDCG = dcg(orig);
+  if (0 == predNDCG || 0 == origNDCG) {
+    ndcg = 0;
+  } else {
+    ndcg = predNDCG/origNDCG;
+  }
+  return ndcg;
+}
+
+

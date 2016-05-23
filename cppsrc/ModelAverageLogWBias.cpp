@@ -148,11 +148,11 @@ void ModelAverageLogWBias::train(const Data& data, const Params& params,
       if (iter % 10 == 0 || iter == params.maxIter-1) {
         std::cout << "Skipped: " << skippedCount <<  " invalid users: " 
           << invalidUsers.size() << std::endl;
-        std::cout << "Iter:" << iter << " recall:" << prevRecall << " val Recall: " 
-          << prevValRecall << " best val Recall:" << bestValRecall
-          << " test recall : " << recallHit(data.trainSets, data.testUItems, 
-              data.ignoreUItems, 10)
-          << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
+        std::cout << "Iter:" << iter << " REC@10 train: " << prevRecall << " val: " 
+          << prevValRecall << " bestVal: " << bestValRecall
+          << " test: " 
+          << ratingsNDCGPrecK(data.trainSets, data.testURatings, 10).first
+          << " spearman: " << spearmanRankN(data.ratMat, data.trainSets, 10)
           << std::endl;
       }
     }

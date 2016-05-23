@@ -523,6 +523,57 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
 }
 
 
+float Model::ratingsNDCG(
+    std::map<int, std::map<int, float>> uRatings) {
+  
+  float avgNDCG = 0, nUsers = 0;
+  std::vector<std::pair<int, float>> predItemRatings;
+  std::vector<std::pair<int, float>> origItemRatings;
+  std::vector<float> orig, pred;
+  std::map<int, float> itemRatingMap;
+
+  for (auto&& uRating: uRatings) {
+    int user = uRating.first;
+    
+    if (invalidUsers.find(user) != invalidUsers.end()) {
+      continue;
+    }
+
+    predItemRatings.clear();
+    origItemRatings.clear();
+    orig.clear();
+    pred.clear();
+    itemRatingMap.clear();
+
+    for (auto&& itemRating: uRating.second) {
+      auto item = itemRating.first;
+      origItemRatings.push_back(std::make_pair(item, itemRating.second));
+      float rating = estItemRating(user, item);
+      predItemRatings.push_back(std::make_pair(item, rating));
+      itemRatingMap[item] = itemRating.second;  
+    }
+
+    std::sort(origItemRatings.begin(), origItemRatings.end(), descComp);
+    std::sort(predItemRatings.begin(), predItemRatings.end(), descComp);
+    
+    for (auto&& itemRating: origItemRatings) {
+      orig.push_back(itemRating.second);
+    }
+
+    for (auto&& itemRating: predItemRatings) {
+      pred.push_back(itemRatingMap[itemRating.first]);
+    }
+    
+    avgNDCG += ndcg(orig, pred);
+    nUsers += 1;
+  }
+  
+  avgNDCG = avgNDCG/nUsers;
+  std::cout << "nUsers: " << nUsers << " avgNDCG: " << avgNDCG << std::endl;
+  return avgNDCG;
+}
+
+
 float Model::recallHit(const std::vector<UserSets>& uSets,
     std::map<int, int> uItems, 
     std::map<int, std::unordered_set<int>> ignoreUItems, int N) {
@@ -556,7 +607,7 @@ float Model::recallHit(const std::vector<UserSets>& uSets,
       continue;
     }
 
-    if (N > predRatings.size()) {
+    if (N > (int)predRatings.size()) {
       N = predRatings.size();
     }
 
@@ -575,6 +626,75 @@ float Model::recallHit(const std::vector<UserSets>& uSets,
   //std::cout << "hits: " << hits << " nUsers: " << nUsers << std::endl;
 
   return hits/nUsers;
+}
+
+
+std::pair<float, float> Model::ratingsNDCGPrecK(const std::vector<UserSets>& uSets,
+    std::map<int, std::map<int, float>> uRatings,
+    int N) {
+  int nUsers = 0;
+  float avgNDCG = 0, avgPrec = 0;
+  std::vector<std::pair<int, float>> predRatings;
+  std::vector<std::pair<int, float>> origRatings;
+
+  for (auto && uSet: uSets) {
+    int user = uSet.user;
+    if (invalidUsers.find(user) != invalidUsers.end() ||
+        uRatings.find(user) == uRatings.end()) {
+      continue;
+    }
+    
+    auto setItems = uSet.items;
+    predRatings.clear();
+    
+    for (auto&& item: trainItems) {
+      //skip if item in user's set or in user's ignore set
+      if (setItems.find(item) != setItems.end()) {
+        continue;
+      }
+      predRatings.push_back(std::make_pair(item, estItemRating(user, item)));
+    }
+     
+    if (predRatings.size() == 0) {
+      continue;
+    }
+    
+    if (N > (int)predRatings.size()) {
+      N = predRatings.size();
+    }
+    
+    std::nth_element(predRatings.begin(), predRatings.begin()+(N - 1), 
+        predRatings.end(), descComp);
+    std::sort(predRatings.begin(), predRatings.begin()+N, descComp);
+
+    float found = 0;
+    std::vector<float> orig, pred;
+    for (auto it = predRatings.begin(); it != predRatings.begin()+N; it++) {
+      int item = (*it).first;
+      float actRating  = 0;
+      if (uRatings[user].count(item) != 0) {
+        actRating = uRatings[user][item];
+        found += 1;
+      }
+      pred.push_back(actRating);
+      orig.push_back(actRating);  
+    }
+
+    std::sort(orig.begin(), orig.end(), std::greater<int>());
+
+    avgNDCG += ndcg(orig, pred);
+    avgPrec += found/N; 
+
+    nUsers++;
+  }
+  
+  avgNDCG = avgNDCG/nUsers;
+  avgPrec = avgPrec/nUsers;
+  
+  //std::cout << "avgNDCG: " << avgNDCG << "avgPrec: " << avgPrec 
+  //  << " nUsers: " << nUsers << std::endl; 
+
+  return std::make_pair(avgNDCG, avgPrec);
 }
 
 
@@ -929,8 +1049,9 @@ bool Model::isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
 
   bool ret = false;  
   float currRecall = recallTopN(data.ratMat, data.trainSets, invalidUsers, 10);
-  float currValRecall = recallHit(data.trainSets, data.valUItems, 
-      data.ignoreUItems, 10);
+  //float currValRecall = recallHit(data.trainSets, data.valUItems, 
+  //    data.ignoreUItems, 10);
+  float currValRecall = ratingsNDCGPrecK(data.trainSets, data.valURatings, 10).first;
   
   if (iter > 0) {
     if (currValRecall > bestValRecall) {
@@ -942,9 +1063,9 @@ bool Model::isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
   
     if (iter - bestIter >= CHANCE_ITER) {
       //cant improve validation RMSE
-      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestRecall:" 
-        << bestRecall << " bestValRecall: " << bestValRecall << " currIter:"
-        << iter << " currRecall: " << currRecall << " currValRecall:" 
+      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestRecall: " 
+        << bestRecall << " bestValRecall: " << bestValRecall << " currIter: "
+        << iter << " currRecall: " << currRecall << " currValRecall: " 
         << currValRecall << std::endl;
       ret = true;
     }

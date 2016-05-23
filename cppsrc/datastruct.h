@@ -112,6 +112,8 @@ class Data {
     std::map<int, int> valUItems;
     std::map<int, int> testUItems;
     std::map<int, std::unordered_set<int>> ignoreUItems;
+    std::map<int, std::map<int, float>> valURatings;
+    std::map<int, std::map<int, float>> testURatings;
 
     int nUsers, nItems;
     
@@ -267,6 +269,7 @@ class Data {
         int user = uSet.user;
         auto setItems = uSet.items;
         itemActRatings.clear();
+
         for (int ii = ratMat->rowptr[user]; ii < ratMat->rowptr[user+1]; ii++) {
           int item = ratMat->rowind[ii];
           if (setItems.find(item) == setItems.end()) {
@@ -275,6 +278,24 @@ class Data {
           }
         }
         
+        std::map<int, float> valMap;
+        std::map<int, float> testMap;
+
+        if (itemActRatings.size() >= 4) {
+          for (auto it = itemActRatings.begin(); 
+              it != itemActRatings.begin() + itemActRatings.size()/2; it++) {
+            valMap[(*it).first] = (*it).second;
+          }
+          for (auto it = itemActRatings.begin() + itemActRatings.size()/2; 
+              it != itemActRatings.end(); it++) {
+            testMap[(*it).first] = (*it).second;
+          }
+
+          valURatings[user]  = valMap;
+          testURatings[user] = testMap;
+        }
+
+
         //get top-2 elements in beginning
         std::nth_element(itemActRatings.begin(), itemActRatings.begin()+(2-1),
             itemActRatings.end(), descComp);
