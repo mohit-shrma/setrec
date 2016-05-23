@@ -5,9 +5,11 @@ import numpy as np
 NUSERS      = 854
 NITEMS      = 12549
 FACDIMS     = [1, 5, 10, 15, 25, 50, 75, 100]
+#FACDIMS     = [1, 10, 15, 25, 50, 75, 100]
 REGS        = [0.001, 0.01, 0.1, 1, 10] 
+
 uiREGS      = [0.001, 0.01, 0.1, 1, 10]
-biasREGS    = [0.001, 0.01, 0.1, 1, 10]
+biasREGS    = [0.001]
 #biasREGS   = [0.001, 0.01]
 setBiasRegs = [0.001, 0.01, 0.1]
 
@@ -19,16 +21,16 @@ SEED        = 1
 
 DATA         = "/home/karypisg/msharma/data/setrec/movielens/split_50p/"
 
-SETREC       = "/home/karypisg/msharma/dev/setrec/cppsrc/setrecRankLog"
-PREFIX       = "setrecRankLog"
-OPDIR        = DATA + "avgranklog" 
+SETREC       = "/home/karypisg/msharma/dev/setrec/cppsrc/setrecMF"
+PREFIX       = "setrecMF"
+OPDIR        = DATA + "indivmf" 
 
 TRAIN_SET    = DATA + "ml_set.train.lfs"
 TEST_SET     = DATA + "ml_set.test.lfs"
 VAL_SET      = DATA + "ml_set.val.lfs"
 
 RATMAT       = DATA + "ml_ratings.csr"
-TRAIN_RATMAT = DATA + "train.csr"
+TRAIN_RATMAT = DATA + "train_50.csr"
 TEST_RATMAT  = DATA + "test.csr"
 VAL_RATMAT   = DATA + "val.csr"
 
@@ -44,7 +46,7 @@ def genRandRegJobs():
       ireg        = REGS[random.randint(0, len(REGS)-1)]
       ubiasreg    = REGS[random.randint(0, len(REGS)-1)]
       ibiasreg    = REGS[random.randint(0, len(REGS)-1)]
-      usetbiasreg = REGS[random.randint(0, len(REGS)-1)]
+      usetbiasreg = 0 #REGS[random.randint(0, len(REGS)-1)]
       jobStr      = '_'.join(map(str, [ureg, ireg, ubiasreg, ibiasreg,
         usetbiasreg, dim]))
       print SETREC, NUSERS, NITEMS, dim, 5000, SEED, \
@@ -86,6 +88,7 @@ def genRankRegJobs():
                 VAL_RATMAT, PREFIX, \
                 " > " + OPDIR + "/" + PREFIX + "_" + jobStr + ".txt"
 
+
 def genRandRankRegJobs():
   for dim in FACDIMS:
     nJobs       = 0
@@ -106,5 +109,5 @@ def genRandRankRegJobs():
 
 
 
-genRandRankRegJobs() 
+genRandRegJobs() 
 
