@@ -173,6 +173,11 @@ int main(int argc, char *argv[]) {
   std::cout << "Test NDCG: " << testNDCGPrec.first << " Prec: " 
     << testNDCGPrec.second << std::endl;
 
+  auto valNDCGOrd = bestModel.ratingsNDCG(data.valURatings);
+  std::cout << "Val NDCG ord: " << valNDCGOrd << std::endl;
+  auto testNDCGOrd = bestModel.ratingsNDCG(data.testURatings);
+  std::cout << "Test NDCG ord: " << testNDCGOrd << std::endl;
+
   std::cout << "Val Random inversion count: " 
     << bestModel.invertRandPairCount(data.partValMat, data.trainSets, 
         params.seed) <<std::endl;

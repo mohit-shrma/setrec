@@ -150,9 +150,7 @@ void ModelAverageLogWBias::train(const Data& data, const Params& params,
           << invalidUsers.size() << std::endl;
         std::cout << "Iter:" << iter << " REC@10 train: " << prevRecall << " val: " 
           << prevValRecall << " bestVal: " << bestValRecall
-          << " test: " 
-          << ratingsNDCGPrecK(data.trainSets, data.testURatings, 10).first
-          << " spearman: " << spearmanRankN(data.ratMat, data.trainSets, 10)
+          << " test: " << ratingsNDCG(data.testURatings)
           << std::endl;
       }
     }

@@ -263,7 +263,7 @@ class Data {
     }
 
 
-    void initRankMap() {
+    void initRankMap(int seed) {
       std::vector<std::pair<int, float>> itemActRatings;
       for (auto&& uSet: trainSets) {
         int user = uSet.user;
@@ -272,14 +272,20 @@ class Data {
 
         for (int ii = ratMat->rowptr[user]; ii < ratMat->rowptr[user+1]; ii++) {
           int item = ratMat->rowind[ii];
-          if (setItems.find(item) == setItems.end()) {
-            //not train item
+          if (setItems.find(item) == setItems.end() 
+              && trainItems.find(item) != trainItems.end()) {
+            //TODO: not train item for user
             itemActRatings.push_back(std::make_pair(item, ratMat->rowval[ii]));
           }
         }
         
         std::map<int, float> valMap;
         std::map<int, float> testMap;
+
+        //shuffle before partitioning
+        //initialize random engine
+        std::mt19937 mt(seed);
+        std::shuffle(itemActRatings.begin(), itemActRatings.end(), mt);
 
         if (itemActRatings.size() >= 4) {
           for (auto it = itemActRatings.begin(); 
@@ -294,7 +300,6 @@ class Data {
           valURatings[user]  = valMap;
           testURatings[user] = testMap;
         }
-
 
         //get top-2 elements in beginning
         std::nth_element(itemActRatings.begin(), itemActRatings.begin()+(2-1),

@@ -156,9 +156,6 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
           << " train RMSE:" << rmse(data.trainSets) 
           << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
           << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
-          << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
-          << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
-          << " inv@10: " << inversionCount(data.ratMat, data.trainSets, 10) 
           << std::endl;
       }
 

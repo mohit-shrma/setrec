@@ -1051,7 +1051,7 @@ bool Model::isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
   float currRecall = recallTopN(data.ratMat, data.trainSets, invalidUsers, 10);
   //float currValRecall = recallHit(data.trainSets, data.valUItems, 
   //    data.ignoreUItems, 10);
-  float currValRecall = ratingsNDCGPrecK(data.trainSets, data.valURatings, 10).first;
+  float currValRecall = ratingsNDCG(data.valURatings);
   
   if (iter > 0) {
     if (currValRecall > bestValRecall) {
