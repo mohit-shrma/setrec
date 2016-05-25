@@ -49,8 +49,8 @@ class Model {
 
     virtual float estItemRating(int user, int item);
     virtual float estSetRating(int user, std::vector<int>& items) {
-      std::cerr << "Base class: estSetRating not defined" << std::endl;
-      return -1;
+      //std::cerr << "Base class: estSetRating not defined" << std::endl;
+      return 0;
     }
     virtual float objective(const std::vector<UserSets>& uSets);
     virtual float objective(const std::vector<UserSets>& uSets, gk_csr_t *mat);

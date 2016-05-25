@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
   params.display();
   Data data(params);
   
-  data.initRankMap();
+  data.initRankMap(params.seed);
 
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
@@ -120,19 +120,13 @@ int main(int argc, char *argv[]) {
   std::cout << "All RMSE: " << bestModel.rmse(allSets, data.ratMat) << std::endl;
   */
   
-
-  /*
   float trainRMSE = bestModel.rmse(data.trainSets);
   float testRMSE = bestModel.rmse(data.testSets);
   float valRMSE = bestModel.rmse(data.valSets);
   std::cout << "Train sets RMSE: " << trainRMSE << std::endl;
   std::cout << "Test sets RMSE: " << testRMSE << std::endl;
   std::cout << "Val sets RMSE: " << valRMSE << std::endl;
-  */
 
-  //float trainRatingsRMSE = bestModel.rmse(data.trainSets, data.ratMat);
-  //float testRatingsRMSE  = bestModel.rmse(data.testSets, data.ratMat);
-  //float valRatingsRMSE   = bestModel.rmse(data.valSets, data.ratMat);
   float trainRatingsRMSE   = bestModel.rmse(data.partTrainMat);
   float testRatingsRMSE    = bestModel.rmse(data.partTestMat);
   float valRatingsRMSE     = bestModel.rmse(data.partValMat);
