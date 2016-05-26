@@ -8,7 +8,6 @@
 #include "ModelBaseline.h"
 #include "ModelMajority.h"
 #include "ModelMajorityWCons.h"
-#include "ModelAverageBPR.h"
 #include "ModelAverageHinge.h"
 #include "ModelAverageWPart.h"
 #include "ModelBaseline.h"
@@ -16,9 +15,11 @@
 #include "ModelAverageWGBias.h"
 #include "ModelItemAverage.h"
 #include "ModelAverageSetBiasWPart.h"
+
 #include "ModelMFWBias.h"
 #include "ModelAverageHingeWBias.h"
 #include "ModelAverageLogWBias.h"
+#include "ModelAverageBPRWBias.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 23) {
@@ -78,14 +79,14 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelMFWBias modelAvg(params);
+  ModelAverageBPRWBias modelAvg(params);
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelMFWBias bestModel(modelAvg);
+  ModelAverageBPRWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -159,10 +160,13 @@ int main(int argc, char *argv[]) {
       data.ignoreUItems, 10) << std::endl;
   std::cout << "Test recall: " << bestModel.recallHit(data.trainSets, data.testUItems, 
       data.ignoreUItems, 10) << std::endl;
-  
+ 
+  std::cout << "Size validation set: " << data.valURatings.size() << std::endl;
   auto valNDCGPrec = bestModel.ratingsNDCGPrecK(data.trainSets, data.valURatings, 10);
   std::cout << "Val NDCG: " << valNDCGPrec.first << " Prec: " 
     << valNDCGPrec.second << std::endl;
+
+  std::cout << "Size test set: " << data.testURatings.size() << std::endl;
   auto testNDCGPrec = bestModel.ratingsNDCGPrecK(data.trainSets, data.testURatings, 10);
   std::cout << "Test NDCG: " << testNDCGPrec.first << " Prec: " 
     << testNDCGPrec.second << std::endl;
