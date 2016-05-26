@@ -274,7 +274,7 @@ class Data {
           int item = ratMat->rowind[ii];
           if (setItems.find(item) == setItems.end() 
               && trainItems.find(item) != trainItems.end()) {
-            //TODO: not train item for user
+            //not found in user sets, but exist in train items
             itemActRatings.push_back(std::make_pair(item, ratMat->rowval[ii]));
           }
         }
@@ -296,7 +296,6 @@ class Data {
               it != itemActRatings.end(); it++) {
             testMap[(*it).first] = (*it).second;
           }
-
           valURatings[user]  = valMap;
           testURatings[user] = testMap;
         }
