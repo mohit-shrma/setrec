@@ -79,9 +79,8 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
   meanSetRating = meanSetRating/nTrainSets;
   gBias = meanSetRating;
 
-  auto usersNItems = getUserItems(data.trainSets);
-  trainUsers = usersNItems.first;
-  trainItems = usersNItems.second;
+  trainUsers = data.trainUsers;
+  trainItems = data.trainItems;
   std::cout << "train Users: " << trainUsers.size() 
     << " trainItems: " << trainItems.size() << std::endl;
 
