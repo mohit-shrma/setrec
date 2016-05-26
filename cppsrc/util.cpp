@@ -236,10 +236,24 @@ std::pair<std::unordered_set<int>, std::unordered_set<int>> getUserItems(
 float dcgRel(std::vector<float> ord) {
   float dcg = 0;
   for (size_t i = 0; i < ord.size(); i++) {
-    dcg += (std::pow(2, ord[i]) - (i+1)) / (std::log2(1+(i+1)));
+    dcg += (std::pow(2, ord[i]) - 1) / (std::log2(1+(i+1)));
   }
   return dcg;
 }
+
+
+float ndcgRel(std::vector<float> orig, std::vector<float> pred) {
+  float ndcg = 0;
+  float predNDCG = dcgRel(pred);
+  float origNDCG = dcgRel(orig);
+  if (0 == predNDCG || 0 == origNDCG) {
+    ndcg = 0;
+  } else {
+    ndcg = predNDCG/origNDCG;
+  }
+  return ndcg;
+}
+
 
 float dcg(std::vector<float> ord) {
   float dcg = 0;
@@ -249,6 +263,7 @@ float dcg(std::vector<float> ord) {
   }
   return dcg;
 }
+
 
 float ndcg(std::vector<float> orig, std::vector<float> pred) {
   float ndcg = 0;

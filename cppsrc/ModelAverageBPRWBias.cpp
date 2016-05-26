@@ -33,7 +33,6 @@ void ModelAverageBPRWBias::train(const Data& data, const Params& params,
 
   //initialize random engine
   std::mt19937 mt(params.seed);
-  std::uniform_int_distribution<int> dist(0, 1000);
 
   auto usersNItems = getUserItems(data.trainSets);
   trainUsers = usersNItems.first;

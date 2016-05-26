@@ -97,6 +97,8 @@ class Model {
       std::map<int, std::unordered_set<int>> ignoreUItems, int N);
     float ratingsNDCG(
       std::map<int, std::map<int, float>> uRatings);
+    float ratingsNDCGRel(
+      std::map<int, std::map<int, float>> uRatings);
     std::pair<float, float> ratingsNDCGPrecK(const std::vector<UserSets>& uSets,
         std::map<int, std::map<int, float>> uRatings,
         int N);

@@ -574,6 +574,56 @@ float Model::ratingsNDCG(
 }
 
 
+float Model::ratingsNDCGRel(
+    std::map<int, std::map<int, float>> uRatings) {
+  
+  float avgNDCG = 0, nUsers = 0;
+  std::vector<std::pair<int, float>> predItemRatings;
+  std::vector<std::pair<int, float>> origItemRatings;
+  std::vector<float> orig, pred;
+  std::map<int, float> itemRatingMap;
+
+  for (auto&& uRating: uRatings) {
+    int user = uRating.first;
+    
+    if (invalidUsers.find(user) != invalidUsers.end()) {
+      continue;
+    }
+
+    predItemRatings.clear();
+    origItemRatings.clear();
+    orig.clear();
+    pred.clear();
+    itemRatingMap.clear();
+
+    for (auto&& itemRating: uRating.second) {
+      auto item = itemRating.first;
+      origItemRatings.push_back(std::make_pair(item, itemRating.second));
+      float rating = estItemRating(user, item);
+      predItemRatings.push_back(std::make_pair(item, rating));
+      itemRatingMap[item] = itemRating.second;  
+    }
+
+    std::sort(origItemRatings.begin(), origItemRatings.end(), descComp);
+    std::sort(predItemRatings.begin(), predItemRatings.end(), descComp);
+    
+    for (auto&& itemRating: origItemRatings) {
+      orig.push_back(itemRating.second);
+    }
+
+    for (auto&& itemRating: predItemRatings) {
+      pred.push_back(itemRatingMap[itemRating.first]);
+    }
+    
+    avgNDCG += ndcgRel(orig, pred);
+    nUsers += 1;
+  }
+  
+  avgNDCG = avgNDCG/nUsers;
+  return avgNDCG;
+}
+
+
 float Model::recallHit(const std::vector<UserSets>& uSets,
     std::map<int, int> uItems, 
     std::map<int, std::unordered_set<int>> ignoreUItems, int N) {
