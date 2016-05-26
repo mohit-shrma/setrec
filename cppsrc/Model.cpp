@@ -389,6 +389,12 @@ float Model::invertRandPairCount(gk_csr_t *mat,
 
   for (auto&& uSet: uSets) {
     int u = uSet.user;
+    
+    if (invalidUsers.find(u) != invalidUsers.end()) {
+      //skip if invalid user
+      continue;
+    }
+
     auto setItems = uSet.items;
     actualItemRatings.clear();
     predItemRatings.clear();
@@ -478,6 +484,12 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
   std::unordered_set<int> predTopN;
   for (auto&& uSet: uSets) {
     int u = uSet.user;
+    
+    if (invalidUsers.find(u) != invalidUsers.end()) {
+      //skip if invalid user
+      continue;
+    }
+
     auto setItems = uSet.items;
     itemPredRatings.clear();
     itemActRatings.clear();

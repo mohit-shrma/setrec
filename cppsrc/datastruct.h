@@ -156,17 +156,16 @@ class Data {
         //remove over-under rated sets
         //removeOverUnderRatedSets(trainSets, ratMat);
 
+        
+
         std::cout << "No. of train users: " << trainSets.size() << std::endl;
         nTrainSets = 0;
         for (auto&& uSet: trainSets) {
           nTrainSets += uSet.itemSets.size();
-          for (auto&& itemSet: uSet.itemSets) {
-            for (auto&& item: itemSet.first) {
-              trainItems.insert(item);
-            }
-          }
-          trainUsers.insert(uSet.user);
         }
+        auto trainUserItems = getUserItems(trainSets);
+        trainUsers = trainUserItems.first;
+        trainItems = trainUserItems.second;
         std::cout << "nTrainSets: " << nTrainSets << std::endl;
         std::cout << "nTrainUsers: " << trainUsers.size() << std::endl;
         std::cout << "nTrainItems: " << trainItems.size() << std::endl;
