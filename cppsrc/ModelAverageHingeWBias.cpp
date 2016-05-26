@@ -146,7 +146,7 @@ void ModelAverageHingeWBias::train(const Data& data, const Params& params,
         std::cout << "Iter:" << iter 
           << " REC@10 train: " << prevRecall 
           << " val: " << prevValRecall << " bestVal: " << bestValRecall
-          << " test: " << ratingsNDCG(data.testURatings)
+          << " test: " << ratingsNDCGRel(data.testURatings)
           << std::endl;
       }
     }

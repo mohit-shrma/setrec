@@ -150,7 +150,7 @@ void ModelAverageLogWBias::train(const Data& data, const Params& params,
           << invalidUsers.size() << std::endl;
         std::cout << "Iter:" << iter << " REC@10 train: " << prevRecall << " val: " 
           << prevValRecall << " bestVal: " << bestValRecall
-          << " test: " << ratingsNDCG(data.testURatings)
+          << " test: " << ratingsNDCGRel(data.testURatings)
           << std::endl;
       }
     }
