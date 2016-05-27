@@ -183,7 +183,7 @@ void readEigenMat(const char* fileName, Eigen::MatrixXf& mat, int nrows,
   if (ipFile.is_open()) {
     std::cout << "Reading... " << fileName << std::endl;  
     while (getline(ipFile, line)) {
-      int colInd = 0;
+      colInd = 0;
       while((pos = line.find(delimiter)) != std::string::npos) {
         token = line.substr(0, pos);
         mat(rowInd, colInd) = std::stof(token);
@@ -198,7 +198,7 @@ void readEigenMat(const char* fileName, Eigen::MatrixXf& mat, int nrows,
     ipFile.close();
   }
   
-  std::cout << "Read: nrows" << rowInd << " ncols: " << colInd << std::endl;
+  std::cout << "Read: nrows: " << rowInd << " ncols: " << colInd << std::endl;
   std::cout << "mat norm: " << mat.norm() << std::endl;
 }
 

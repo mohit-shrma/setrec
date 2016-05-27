@@ -895,6 +895,17 @@ void Model::save(std::string opPrefix) {
     gBiasOpfile.close();
   }
 
+  //save train users
+  fName = opPrefix + "_" + sign + "_trainUsers";
+  writeContainer(trainUsers.begin(), trainUsers.end(), fName.c_str());
+
+  //save train items
+  fName = opPrefix + "_" + sign + "_trainItems";
+  writeContainer(trainItems.begin(), trainItems.end(), fName.c_str());
+
+  //save invalid users
+  fName = opPrefix + "_" + sign + "_invalidUsers";
+  writeContainer(invalidUsers.begin(), invalidUsers.end(), fName.c_str());
 }
 
 
@@ -939,6 +950,27 @@ void Model::load(std::string opPrefix) {
       gBias = std::stof(line);
     }
     ipFile.close();
+  }
+  
+  //load train users
+  fName = opPrefix + "_" + sign + "_trainUsers";
+  auto iVec = readVector(fName.c_str());
+  for (auto&& user: iVec) {
+    trainUsers.insert(user);
+  }
+
+  //load train items
+  fName = opPrefix + "_" + sign + "_trainItems";
+  iVec = readVector(fName.c_str());
+  for (auto&& item: iVec) {
+    trainItems.insert(item);
+  }
+
+  //load invalid users
+  fName = opPrefix + "_" + sign + "_invalidUsers";
+  iVec = readVector(fName.c_str());
+  for (auto&& user: iVec) {
+    invalidUsers.insert(user);
   }
 
 }
