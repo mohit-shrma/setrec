@@ -46,6 +46,11 @@ void ModelAverageWSetBias::train(const Data& data, const Params& params,
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
 
+  trainUsers = data.trainUsers;
+  trainItems = data.trainItems;
+  std::cout << "train Users: " << trainUsers.size() 
+    << " trainItems: " << trainItems.size() << std::endl;
+  
   //initialize random engine
   std::mt19937 mt(params.seed);
   std::uniform_int_distribution<int> dist(0, 1000);
