@@ -475,6 +475,38 @@ float Model::invertRandPairCount(gk_csr_t *mat,
 }
 
 
+float Model::invertRandPairCount(
+    std::vector<std::tuple<int, int, int>> allTriplets) {
+
+  int correctCt = 0, incorrectCt = 0;
+  
+  for (auto&& triplet: allTriplets) {
+    int user  = std::get<0>(triplet);
+    int item1 = std::get<1>(triplet);
+    int item2 = std::get<2>(triplet);
+    
+    if (invalidUsers.find(user) != invalidUsers.end()) {
+      //skip if invalid user
+      continue;
+    }
+    
+    float rating1 = estItemRating(user, item1);
+    float rating2 = estItemRating(user, item2);
+
+    if (rating1 > rating2) {
+      //correct
+      correctCt++;
+    } else {
+      //incorrect
+      incorrectCt++;
+    }
+  }
+  std::cout << "Ord count: "  << correctCt+incorrectCt << " " << correctCt 
+    << " " << incorrectCt << std::endl; 
+  return (float)correctCt/(correctCt + incorrectCt);
+}
+
+
 float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     int N) {
   float recN = 0;
@@ -588,8 +620,8 @@ float Model::ratingsNDCG(
 
 float Model::ratingsNDCGRel(
     std::map<int, std::map<int, float>> uRatings) {
-  
-  float avgNDCG = 0, nUsers = 0;
+
+  float avgNDCG = 0, ndcg = 0, nUsers = 0;
   std::vector<std::pair<int, float>> predItemRatings;
   std::vector<std::pair<int, float>> origItemRatings;
   std::vector<float> orig, pred;
@@ -618,16 +650,95 @@ float Model::ratingsNDCGRel(
 
     std::sort(origItemRatings.begin(), origItemRatings.end(), descComp);
     std::sort(predItemRatings.begin(), predItemRatings.end(), descComp);
-    
+   
+    std::unordered_set<float> uniqRat;
     for (auto&& itemRating: origItemRatings) {
       orig.push_back(itemRating.second);
+      uniqRat.insert(itemRating.second);
     }
+
 
     for (auto&& itemRating: predItemRatings) {
       pred.push_back(itemRatingMap[itemRating.first]);
     }
     
-    avgNDCG += ndcgRel(orig, pred);
+    ndcg = ndcgRel(orig, pred);
+    
+    //std::cout << "User: " << user << " " << origItemRatings.size() << " " 
+    //  << ndcg << " ";
+    //for (auto&& rat: uniqRat) {
+    //for (auto&& rat: pred) {
+    //  std::cout << rat << " ";
+    //}
+    //std::cout << std::endl;
+
+    avgNDCG += ndcg;
+    nUsers += 1;
+  }
+  
+  avgNDCG = avgNDCG/nUsers;
+  return avgNDCG;
+}
+
+
+float Model::ratingsNDCGRelRand(
+    std::map<int, std::map<int, float>> uRatings,
+    std::mt19937& mt) {
+  
+  float avgNDCG = 0, ndcg = 0, nUsers = 0;
+  std::vector<std::pair<int, float>> predItemRatings;
+  std::vector<std::pair<int, float>> origItemRatings;
+  std::vector<float> orig, pred;
+  std::map<int, float> itemRatingMap;
+
+  for (auto&& uRating: uRatings ) {
+    int user = uRating.first;
+    
+    if (invalidUsers.find(user) != invalidUsers.end()) {
+      continue;
+    }
+
+    predItemRatings.clear();
+    origItemRatings.clear();
+    orig.clear();
+    pred.clear();
+    itemRatingMap.clear();
+
+    for (auto&& itemRating: uRating.second) {
+      auto item = itemRating.first;
+      origItemRatings.push_back(std::make_pair(item, itemRating.second));
+      float rating = estItemRating(user, item);
+      predItemRatings.push_back(std::make_pair(item, rating));
+      itemRatingMap[item] = itemRating.second;  
+    }
+
+    std::sort(origItemRatings.begin(), origItemRatings.end(), descComp);
+    std::sort(predItemRatings.begin(), predItemRatings.end(), descComp);
+   
+    std::unordered_set<float> uniqRat;
+    for (auto&& itemRating: origItemRatings) {
+      orig.push_back(itemRating.second);
+      uniqRat.insert(itemRating.second);
+    }
+
+
+    for (auto&& itemRating: predItemRatings) {
+      pred.push_back(itemRatingMap[itemRating.first]);
+    }
+    
+    std::shuffle(pred.begin(), pred.end(), mt);
+    
+    ndcg = ndcgRel(orig, pred);
+    
+    //std::cout << "User: " << user << " " << origItemRatings.size() << " " 
+    //  << ndcg << " ";
+    //for (auto&& rat: uniqRat) {
+    //for (auto&& rat: pred) {
+    //  std::cout << rat << " ";
+    //}
+    //std::cout << std::endl;
+
+    avgNDCG += ndcg;
     nUsers += 1;
   }
   
@@ -816,6 +927,90 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
   
   recN = recN/uCount;
   return recN;
+}
+
+
+std::pair<float, float> Model::precisionNCall(
+    const std::vector<UserSets>& uSets, gk_csr_t *mat, 
+    int N, float ratingThresh) {  
+  float avgPrecN = 0;
+  float oneCall = 0;
+  int nUsers = 0;
+
+  std::vector<std::pair<int, float>> actRatings;
+  std::unordered_set<int> actItems;
+  std::vector<std::pair<int, float>> predRatings;
+  
+  for (auto&& uSet: uSets) {
+    int user = uSet.user;
+    if (invalidUsers.find(user) != invalidUsers.end()) {
+      //found invalid user
+      continue;
+    }
+
+    auto setItems = uSet.items;
+    
+    //get actual ratings greater than the threshold
+    actRatings.clear();
+    actItems.clear();
+    for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+      int item = mat->rowind[ii];
+      float rating = mat->rowval[ii];
+      if (rating < ratingThresh) {
+        continue;
+      }
+      if (setItems.find(item) != setItems.end()) {
+        //item not found in set
+        continue;
+      }
+      actRatings.push_back(std::make_pair(item, rating));
+      actItems.insert(item);
+    }
+    
+    if (actItems.size() == 0) {
+      continue;
+    }
+
+    //get predictions over train items except those in the set 
+    predRatings.clear();
+    for (auto&& item: trainItems) {
+      if (setItems.find(item) != setItems.end()) {
+        //item not found in set
+        continue;
+      }
+      predRatings.push_back(std::make_pair(item, estItemRating(user, item))); 
+    }
+    
+    //std::sort(actRatings.begin(), actRatings.end(), descComp);
+    std::nth_element(predRatings.begin(), predRatings.begin() + (N - 1), 
+        predRatings.end(), descComp);
+    float uFound = 0;
+    for (int i = 0; i < N; i++) {
+      int predItem = predRatings[i].first;
+      if (actItems.find(predItem) != actItems.end()) {
+        //relevant item found
+        uFound += 1;
+      }
+    }
+    
+    if ((int)actItems.size() < N) {
+      avgPrecN += uFound/actItems.size();
+    } else {
+      avgPrecN += uFound/N;
+    }
+      
+    if (uFound > 0) {
+      oneCall += 1;
+    }
+
+    nUsers++;
+  }
+  
+  oneCall = oneCall/nUsers;
+  avgPrecN = avgPrecN/nUsers;
+  std::cout << "nUsers: " << nUsers << " avgPrecN: " << avgPrecN 
+    << " oneCall: " << oneCall << std::endl;
+  return std::make_pair(avgPrecN, oneCall);
 }
 
 

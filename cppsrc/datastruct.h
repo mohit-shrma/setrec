@@ -114,6 +114,12 @@ class Data {
     std::map<int, std::unordered_set<int>> ignoreUItems;
     std::map<int, std::map<int, float>> valURatings;
     std::map<int, std::map<int, float>> testURatings;
+    
+    std::map<int, std::map<int, float>> valHiURatings;
+    std::map<int, std::map<int, float>> testHiURatings;
+
+    //will contain triplets u, i, j such that r_ui > r_uj
+    std::vector<std::tuple<int, int, int>> allTriplets;
 
     int nUsers, nItems;
     
@@ -299,10 +305,20 @@ class Data {
           testURatings[user] = testMap;
         }
 
+        std::sort(itemActRatings.begin(), itemActRatings.end(), descComp);
+        auto invertedPairs = getInvertItemPairs(itemActRatings, 10, mt); 
+        for (auto&& kv: invertedPairs) {
+          auto item = kv.first;
+          auto loItems = kv.second;
+          for (auto&& loItem: loItems) {
+            allTriplets.push_back(std::make_tuple(user, item, loItem));    
+          }
+        }
+
         //get top-2 elements in beginning
         std::nth_element(itemActRatings.begin(), itemActRatings.begin()+(2-1),
             itemActRatings.end(), descComp);
-        
+
         if (!(itemActRatings[0].second > 3 && itemActRatings[1].second > 3)) {
           continue;
         }
@@ -320,7 +336,7 @@ class Data {
         ignoreUItems[user] = uIgnoreItems;
       }
     }
-  
+ 
 
     ~Data() {
       if (NULL != ratMat) {

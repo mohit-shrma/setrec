@@ -102,6 +102,13 @@ class Model {
     std::pair<float, float> ratingsNDCGPrecK(const std::vector<UserSets>& uSets,
         std::map<int, std::map<int, float>> uRatings,
         int N);
+  float ratingsNDCGRelRand(
+      std::map<int, std::map<int, float>> uRatings,
+      std::mt19937& mt);
+  float invertRandPairCount(
+    std::vector<std::tuple<int, int, int>> allTriplets);
+  std::pair<float, float> precisionNCall(const std::vector<UserSets>& uSets, 
+      gk_csr_t *mat, int N, float ratingThresh);  
 };
 
 

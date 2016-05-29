@@ -278,3 +278,77 @@ float ndcg(std::vector<float> orig, std::vector<float> pred) {
 }
 
 
+//return {item1: [item2, item3]} such ru_item1 > item2 & item3
+std::map<int, std::unordered_set<int>> getInvertItemPairs(
+    std::vector<std::pair<int, float>> itemRatings, int maxTriplets,
+    std::mt19937& mt) {
+  
+  std::map<int, std::unordered_set<int>> invertedPairs;
+  int ind, secInd;
+  const int nRatings = (int)itemRatings.size();
+  if (maxTriplets > nRatings/2) {
+    maxTriplets = nRatings/2;
+  }
+
+  std::sort(itemRatings.begin(), itemRatings.end(), descComp);
+  
+  if (nRatings > 2) {
+    std::uniform_int_distribution<int> dist(0, nRatings/2);
+    for (int k = 0; k < maxTriplets; k++) {
+      int nTry = 0;
+      bool isValid = false;
+      while (nTry < 10 && !isValid) {
+        nTry++;
+        //sample item from first half
+        ind = dist(mt);
+        int item1 = itemRatings[ind].first;
+        float rating1 = itemRatings[ind].second;
+
+        //sample item from second half
+        ind = dist(mt);
+        secInd = nRatings/2 + ind;
+        if (secInd <= nRatings-1) {
+          int item2 = itemRatings[secInd].first;
+          float rating2 = itemRatings[secInd].second;
+          if (rating2 > rating1) {
+            if (invertedPairs.count(item2) == 0) {
+              invertedPairs[item2] = std::unordered_set<int>();  
+            }
+            invertedPairs[item2].insert(item1);
+            isValid = true;
+          } else if (rating1 > rating2) {
+            if (invertedPairs.count(item1) == 0) {
+              invertedPairs[item1] = std::unordered_set<int>();  
+            }
+            invertedPairs[item1].insert(item2);
+            isValid = true;
+          }
+        } 
+      }
+    }
+  } else if (nRatings == 2) {
+    int item1 = itemRatings[0].first;
+    float rating1 = itemRatings[0].second;
+
+    int item2 = itemRatings[1].first;
+    float rating2 = itemRatings[1].second;
+
+    if (rating2 > rating1) {
+      if (invertedPairs.count(item2) == 0) {
+        invertedPairs[item2] = std::unordered_set<int>();  
+      }
+      invertedPairs[item2].insert(item1);
+    } else if (rating1 > rating2) {
+      if (invertedPairs.count(item1) == 0) {
+        invertedPairs[item1] = std::unordered_set<int>();  
+      }
+      invertedPairs[item1].insert(item2);
+    }
+
+  }
+
+  return invertedPairs;
+}
+
+
+

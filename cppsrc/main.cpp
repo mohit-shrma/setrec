@@ -79,14 +79,17 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageBPRWBias modelAvg(params);
+  ModelAverageWBias modelAvg(params);
+  
+  //modelAvg.load(params.prefix);
+
   //ModelAverageSigmoid modelAvgSigmoid(params);
   //data.scaleSetsTo01(5.0);
   //ModelBaseline modelBase(params);
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageBPRWBias bestModel(modelAvg);
+  ModelAverageWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -176,17 +179,41 @@ int main(int argc, char *argv[]) {
   auto testNDCGOrd = bestModel.ratingsNDCG(data.testURatings);
   std::cout << "Test NDCG ord: " << testNDCGOrd << std::endl;
 
+  /*
   valNDCGOrd = bestModel.ratingsNDCGRel(data.valURatings);
   std::cout << "Val NDCGRel ord: " << valNDCGOrd << std::endl;
   testNDCGOrd = bestModel.ratingsNDCGRel(data.testURatings);
   std::cout << "Test NDCGRel ord: " << testNDCGOrd << std::endl;
+  */
   
+  /*
+  std::mt19937 mt(params.seed);
+  valNDCGOrd = bestModel.ratingsNDCGRelRand(data.valURatings, mt);
+  std::cout << "Val NDCGRel ord: " << valNDCGOrd << std::endl;
+  testNDCGOrd = bestModel.ratingsNDCGRelRand(data.testURatings, mt);
+  std::cout << "Test NDCGRel ord: " << testNDCGOrd << std::endl;
+  */
+  
+  valNDCGOrd = bestModel.ratingsNDCGRel(data.valURatings);
+  std::cout << "Val NDCGRel ord: " << valNDCGOrd << std::endl;
+  testNDCGOrd = bestModel.ratingsNDCGRel(data.testURatings);
+  std::cout << "Test NDCGRel ord: " << testNDCGOrd << std::endl;
+
   std::cout << "Val Random inversion count: " 
     << bestModel.invertRandPairCount(data.partValMat, data.trainSets, 
         params.seed) <<std::endl;
   std::cout << "Test Random inversion count: " 
     << bestModel.invertRandPairCount(data.partTestMat, data.trainSets, 
         params.seed) <<std::endl;
+
+  auto invCount = bestModel.invertRandPairCount(data.allTriplets);
+  std::cout << "Inversion count: " << invCount << std::endl;
+
+  auto precisionNCall = bestModel.precisionNCall(data.trainSets, data.ratMat,
+      5, 4);
+  std::cout << "Precision@5: " << precisionNCall.first << std::endl;
+  std::cout << "OneCall@5: " << precisionNCall.second << std::endl;
+
   /*
   std::vector<int> invalItems = readVector(
       "mfbias_854X12548_5_0.010000_0.010000_0.001000_invalItems.txt");

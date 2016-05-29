@@ -32,5 +32,8 @@ std::pair<std::unordered_set<int>, std::unordered_set<int>> getUserItems(
     const std::vector<UserSets>& uSets);
 float ndcg(std::vector<float> orig, std::vector<float> pred);
 float ndcgRel(std::vector<float> orig, std::vector<float> pred);
+std::map<int, std::unordered_set<int>> getInvertItemPairs(
+    std::vector<std::pair<int, float>> itemRatings, int maxTriplets,
+    std::mt19937& mt);
 #endif
 
