@@ -29,11 +29,12 @@ def writeAvgDic(avgDic, opFName):
 def main():
   splitFNames = sys.argv[1:-1]
   opFName = sys.argv[-1]
-
-  avgDic = averageParams(splitFNames)
-
+  
   print 'splits: ', splitFNames
   print 'output: ', opFName
+
+  avgDic = averageParams(splitFNames)
+  writeAvgDic(avgDic, opFName)
 
 
 
