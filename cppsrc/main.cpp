@@ -213,6 +213,11 @@ int main(int argc, char *argv[]) {
       5, 4);
   std::cout << "Precision@5: " << precisionNCall.first << std::endl;
   std::cout << "OneCall@5: " << precisionNCall.second << std::endl;
+  
+  precisionNCall = bestModel.precisionNCall(data.trainSets, data.ratMat,
+      10, 4);
+  std::cout << "Precision@10: " << precisionNCall.first << std::endl;
+  std::cout << "OneCall@10: " << precisionNCall.second << std::endl;
 
   float corrOrdSets = bestModel.fracCorrOrderedSets(data.testValMergeSets);
   std::cout << "Fraction of correct ordered sets: " << corrOrdSets << std::endl;
