@@ -72,6 +72,8 @@ class Model {
     bool isTerminateRecallModel(Model& bestModel, const Data& data, int iter,
       int& bestIter, float& bestRecall, float& prevRecall, float& bestValRecall,
       float& prevValRecall);
+    bool isTerminateRankSetModel(Model& bestModel, const Data& data, int iter, 
+      int& bestIter, float& prevRecall, float& bestValRecall) ;
     float rmse(const std::vector<UserSets>& uSets);
     float rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat);
     std::map<int, float> itemRMSE(const std::vector<UserSets>& uSets,
@@ -109,6 +111,7 @@ class Model {
     std::vector<std::tuple<int, int, int>> allTriplets);
   std::pair<float, float> precisionNCall(const std::vector<UserSets>& uSets, 
       gk_csr_t *mat, int N, float ratingThresh);  
+  float fracCorrOrderedSets(const std::vector<UserSets>& uSets);
 };
 
 

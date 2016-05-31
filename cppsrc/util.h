@@ -35,5 +35,7 @@ float ndcgRel(std::vector<float> orig, std::vector<float> pred);
 std::map<int, std::unordered_set<int>> getInvertItemPairs(
     std::vector<std::pair<int, float>> itemRatings, int maxTriplets,
     std::mt19937& mt);
+std::vector<UserSets> merge(std::vector<UserSets>& a, std::vector<UserSets>&b);
+
 #endif
 

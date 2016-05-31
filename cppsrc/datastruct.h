@@ -89,7 +89,10 @@ class Data {
     std::vector<UserSets> trainSets;
     std::vector<UserSets> testSets;
     std::vector<UserSets> valSets;
-   
+
+    std::vector<UserSets> testValMergeSets;
+
+
     std::unordered_set<int> trainItems;
     std::unordered_set<int> trainUsers;
 
@@ -207,7 +210,9 @@ class Data {
         std::cout << "No. of val users: " << valSets.size() << std::endl;
         std::cout << "nValSets: " << nValSets << std::endl;
       }
-
+      
+      //merge test val sets for common users
+      testValMergeSets = merge(testSets, valSets);
     }
 
 

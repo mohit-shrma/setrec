@@ -16,6 +16,7 @@ float ModelAverageBPRWBias::estItemRating(int user, int item) {
   return rating;
 }
 
+
 void ModelAverageBPRWBias::train(const Data& data, const Params& params,
     Model& bestModel) {
   
@@ -137,22 +138,23 @@ void ModelAverageBPRWBias::train(const Data& data, const Params& params,
     
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateRecallModel(bestModel, data, iter, bestIter, bestRecall, prevRecall,
-            bestValRecall, prevValRecall)) {
+      if (isTerminateRankSetModel(bestModel, data, iter, bestIter, 
+            prevValRecall, bestValRecall)) {
         break;
       }
-      if (iter % 10 == 0 || iter == params.maxIter - 1) {
+      if (iter % 10 == 0 || iter == params.maxIter-1) {
         std::cout << "Skipped: " << skippedCount <<  " invalid users: " 
           << invalidUsers.size() << std::endl;
         std::cout << "Iter:" << iter 
-          << " REC@10 train: " << prevRecall 
-          << " val: " << prevValRecall << " bestVal: " << bestValRecall
-          << " test: " << ratingsNDCGRel(data.testURatings)
+          << " val: " << prevValRecall 
+          << " bestVal: " << bestValRecall
+          << " bestIter: " <<bestIter
           << std::endl;
       }
     }
 
   }
-
+  
+  //bestModel.save(params.prefix);
 }
 

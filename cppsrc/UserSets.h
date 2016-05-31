@@ -21,6 +21,10 @@ class UserSets {
     std::map<int, int> item2SetInd;
 
     //constructor
+    UserSets() {
+      user = -1;
+    }
+
     UserSets(int user, std::vector<std::pair<std::vector<int>,float>> itemSets)
       :user(user), itemSets(itemSets) {
         //get items
@@ -38,7 +42,7 @@ class UserSets {
           }
         }
       
-      }
+      } 
    
     //remove sets not containing valid items
     void removeInvalSets(std::unordered_set<int>& validItems) {
@@ -173,6 +177,24 @@ class UserSets {
 
       return std::make_pair(highInd, lowInd);
     }
+
+    
+    UserSets operator+(const UserSets& b) {
+      std::vector<std::pair<std::vector<int>, float>> combItemSets;
+      UserSets uSet;  
+      
+      if (user == b.user) {
+        for (auto&& itemSet: b.itemSets) {
+          combItemSets.push_back(itemSet);
+        }
+        for (auto&& itemSet: itemSets) {
+          combItemSets.push_back(itemSet);
+        }
+       uSet = UserSets(user, combItemSets);
+      }
+      return uSet;
+    }
+    
 
 };
 

@@ -351,4 +351,24 @@ std::map<int, std::unordered_set<int>> getInvertItemPairs(
 }
 
 
+std::vector<UserSets> merge(std::vector<UserSets>& a, std::vector<UserSets>& b) {
+ 
+  std::vector<UserSets> mergeSets;
+
+  for (auto&& uSet: a) {
+    int user = uSet.user;
+    auto search = std::find_if(b.begin(), b.end(), [user](UserSets const& uSet){
+        return uSet.user == user;
+        });
+    
+    if (search == b.end()) {
+      continue;
+    }
+    
+    mergeSets.push_back(uSet + (*search));
+  }
+  
+  return mergeSets;
+}
+
 

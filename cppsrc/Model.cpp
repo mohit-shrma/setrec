@@ -1014,6 +1014,51 @@ std::pair<float, float> Model::precisionNCall(
 }
 
 
+float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets) {
+  
+  int nPairs = 0;
+  float nCorrOrderedPairs = 0;
+
+  for (auto&& uSet: uSets) {
+    int nUSets = uSet.itemSets.size();
+    int user = uSet.user;
+    
+    if (invalidUsers.find(user) != invalidUsers.end()) {
+      continue;
+    }
+
+    for (int i = 0; i < nUSets; i++) {
+      
+      float r_ui     = uSet.itemSets[i].second;
+      auto items     = uSet.itemSets[i].first;
+      float r_ui_est = estSetRating(user, items);
+
+      for (int j = i+1; j < nUSets; j++) {
+        
+        float r_uj     = uSet.itemSets[j].second;
+        auto items     = uSet.itemSets[j].first;
+        float r_uj_est = estSetRating(user, items);
+        
+        if (r_uj != r_ui) {
+          if ((r_uj > r_ui && r_uj_est > r_ui_est) ||
+              (r_uj < r_ui && r_uj_est < r_ui_est)) {
+            nCorrOrderedPairs += 1;
+          }
+
+          nPairs++;
+        }
+    
+      } 
+    }
+  }
+
+  //std::cout << "nPairs: " << nPairs << " nCorrOrderedPairs: " 
+  //  << nCorrOrderedPairs << std::endl;
+
+  return nCorrOrderedPairs/nPairs;
+}
+
+
 std::string Model::modelSign() {
   std::string sign;
   sign = std::to_string(facDim) + "_" + std::to_string(uReg) + "_" 
@@ -1432,6 +1477,39 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
   
   prevObj = currObj;
 
+  return ret;
+}
+
+
+bool Model::isTerminateRankSetModel(Model& bestModel, const Data& data, int iter, 
+    int& bestIter, float& prevValRecall, float& bestValRecall) {
+  bool ret = false;
+  float currValRecall = fracCorrOrderedSets(data.testValMergeSets);
+  
+  if (iter > 0) {
+    if (currValRecall > bestValRecall) {
+      bestModel     = *this;
+      bestValRecall = currValRecall;
+      bestIter      = iter;
+    } 
+    
+    if (iter - bestIter >= CHANCE_ITER) {
+      //cant improve validation RMSE
+      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter  
+        << " bestValRecall: " << bestValRecall << " currIter: "
+        << iter << " currValRecall: " << currValRecall << std::endl;
+      ret = true;
+    }
+  
+  }
+
+  if (0 == iter) {
+    bestValRecall = currValRecall;
+    bestIter      = iter;
+    bestModel     = *this;
+  }
+
+  prevValRecall = currValRecall;
   return ret;
 }
 
