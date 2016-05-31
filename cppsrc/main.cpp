@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
 
-  ModelAverageWBias modelAvg(params);
+  ModelAverageHingeWBias modelAvg(params);
   
   //modelAvg.load(params.prefix);
 
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageWBias bestModel(modelAvg);
+  ModelAverageHingeWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -213,6 +213,9 @@ int main(int argc, char *argv[]) {
       5, 4);
   std::cout << "Precision@5: " << precisionNCall.first << std::endl;
   std::cout << "OneCall@5: " << precisionNCall.second << std::endl;
+
+  float corrOrdSets = bestModel.fracCorrOrderedSets(data.testValMergeSets);
+  std::cout << "Fraction of correct ordered sets: " << corrOrdSets << std::endl;
 
   /*
   std::vector<int> invalItems = readVector(
