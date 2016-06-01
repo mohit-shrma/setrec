@@ -36,6 +36,6 @@ std::map<int, std::unordered_set<int>> getInvertItemPairs(
     std::vector<std::pair<int, float>> itemRatings, int maxTriplets,
     std::mt19937& mt);
 std::vector<UserSets> merge(std::vector<UserSets>& a, std::vector<UserSets>&b);
-
+int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt);
 #endif
 
