@@ -990,8 +990,8 @@ std::pair<float, float> Model::precisionNCall(
       if (actItems.find(predItem) != actItems.end()) {
         //relevant item found
         uFound += 1;
-      }
-    }
+       }
+     }
     
     if ((int)actItems.size() < N) {
       avgPrecN += uFound/actItems.size();
@@ -1011,6 +1011,66 @@ std::pair<float, float> Model::precisionNCall(
   std::cout << "nUsers: " << nUsers << " avgPrecN: " << avgPrecN 
     << " oneCall: " << oneCall << std::endl;
   return std::make_pair(avgPrecN, oneCall);
+}
+
+
+float Model::precisionN(gk_csr_t* mat) {
+  
+  float avgPrecN = 0;
+  int nUsers = 0;
+
+  std::vector<std::pair<int, float>> actRatings, predRatings;
+  std::unordered_set<int> actItems;
+  for (int u = 0; u < mat->nrows; u++) {
+    if (trainUsers.find(u) == trainUsers.end()) {
+      continue;
+    }
+
+    actItems.clear();
+    actRatings.clear();
+    predRatings.clear();
+
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      float rating = mat->rowval[ii];
+      if (rating >= 4) {
+        actItems.insert(item);
+      }
+    }
+
+    if (actItems.size() == 0) {
+      continue;
+    }
+    
+    for (auto&& item: trainItems) {
+      //TODO: skip if present in training
+      predRatings.push_back(std::make_pair(item, estItemRating(u, item)))
+    }
+    
+    std::nth_element(predRatings.begin(), predRatings.begin() + (N - 1), 
+        predRatings.end(), descComp);
+
+    float uFound = 0;
+    for (int i = 0; i < N; i++) {
+      int predItem = predRatings[i].first;
+      if (actItems.find(predItem) != actItems.end()) {
+        //relevant item found
+        uFound += 1;
+       }
+     }
+
+    if ((int)actItems.size() < N) {
+      avgPrecN += uFound/actItems.size();
+    } else {
+      avgPrecN += uFound/N;
+    }
+
+    nUsers++;
+  }
+
+  avgPrecN = avgPrecN/nUsers;
+    
+  return avgPrecN;
 }
 
 
