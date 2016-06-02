@@ -4,14 +4,14 @@ import numpy as np
 
 NUSERS      = 854
 NITEMS      = 12549
-FACDIMS     = [1, 5, 10, 15, 25, 50, 75, 100]
-#FACDIMS     = [10, 15, 25, 50]
+#FACDIMS     = [1, 5, 10, 15, 25, 50, 75, 100]
+FACDIMS     = [25]
 REGS        = [0.001, 0.01, 0.1, 1, 10] 
 
-uREGS       = [0.001, 0.01, 0.1]
-iREGS       = [0.001, 0.01, 0.1]
-ubiasREGS   = [0.001, 0.01, 0.1]
-ibiasREGS   = [0.1, 1, 10]
+uREGS       = [0.1]
+iREGS       = [0.01]
+ubiasREGS   = [0.001]
+ibiasREGS   = [1]
 #biasREGS   = [0.001, 0.01]
 setBiasRegs = [0.001, 0.01, 0.1, 1, 10]
 
@@ -21,10 +21,10 @@ GAMMAS      = list(GAMMAS) + [-0.05, 0.05]
 LEARNRATE   = 0.001
 SEED        = 1
 
-DATA         = "/home/karypisg/msharma/data/setrec/movielens/split5/"
+DATA         = "/home/grad02/mohit/data/movielens/setRatings/split3/"
 
-SETREC       = "/home/karypisg/msharma/dev/setrec/cppsrc/setrecSetBiasWPart"
-PREFIX       = "setbiaswpart"
+SETREC       = "/home/grad02/mohit/exmoh/dev/bitbucket/setrec/cppsrc/setrec"
+PREFIX       = "mfwbias"
 OPDIR        = DATA + PREFIX 
 
 TRAIN_SET    = DATA + "ml_set.train.lfs"
@@ -68,13 +68,16 @@ def genGridRegJobs():
           for ibiasreg in ibiasREGS:
             #for usetbiasreg in setBiasRegs:
             for usetbiasreg in [0]:
-              jobStr      = '_'.join(map(str, [ureg, ireg, ubiasreg, ibiasreg, 
-                usetbiasreg, dim]))
-              print SETREC, NUSERS, NITEMS, dim, 5000, SEED, \
-                  ureg, ireg, usetbiasreg, ubiasreg, ibiasreg, 0, LEARNRATE, 0, 0, \
-                  TRAIN_SET, TEST_SET, VAL_SET, RATMAT, TRAIN_RATMAT, TEST_RATMAT, \
-                  VAL_RATMAT, PREFIX, \
-                  " > " + OPDIR + "/" + PREFIX + "_" + jobStr + ".txt"
+              for trainMat in ['train_50.csr', 'train_100.csr',
+                  'train_150.csr']:
+                jobStr      = '_'.join(map(str, [ureg, ireg, ubiasreg, ibiasreg, 
+                  usetbiasreg, dim, trainMat]))
+                trainMat = DATA + trainMat
+                print SETREC, NUSERS, NITEMS, dim, 5000, SEED, \
+                    ureg, ireg, usetbiasreg, ubiasreg, ibiasreg, 0, LEARNRATE, 0, 0, \
+                    TRAIN_SET, TEST_SET, VAL_SET, RATMAT, trainMat, TEST_RATMAT, \
+                    VAL_RATMAT, PREFIX, \
+                    " > " + OPDIR + "/" + PREFIX + "_" + jobStr + ".txt"
 
 
 def genRankRegJobs():
@@ -154,6 +157,6 @@ def genJobs():
           " > " + OPDIR + "/" + PREFIX + "_" + jobStr + ".txt"
     
 
-genRandRegJobs() 
+genGridRegJobs() 
 
 
