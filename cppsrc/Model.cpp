@@ -1014,25 +1014,40 @@ std::pair<float, float> Model::precisionNCall(
 }
 
 
-float Model::precisionN(gk_csr_t* mat) {
+float Model::precisionN(gk_csr_t* testMat, gk_csr_t* valMat, gk_csr_t* trainMat,
+    int N) {
   
   float avgPrecN = 0;
   int nUsers = 0;
 
   std::vector<std::pair<int, float>> actRatings, predRatings;
   std::unordered_set<int> actItems;
-  for (int u = 0; u < mat->nrows; u++) {
-    if (trainUsers.find(u) == trainUsers.end()) {
-      continue;
-    }
+  std::unordered_set<int> uTrainItems;
+
+  for (const auto& u : trainUsers) {
 
     actItems.clear();
     actRatings.clear();
     predRatings.clear();
+    uTrainItems.clear();
 
-    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
-      int item = mat->rowind[ii];
-      float rating = mat->rowval[ii];
+    for (int ii = testMat->rowptr[u]; ii < testMat->rowptr[u+1]; ii++) {
+      int item = testMat->rowind[ii];
+      if (trainItems.find(item) == trainItems.end()) {
+        continue;
+      }
+      float rating = testMat->rowval[ii];
+      if (rating >= 4) {
+        actItems.insert(item);
+      }
+    }
+    
+    for (int ii = valMat->rowptr[u]; ii < valMat->rowptr[u+1]; ii++) {
+      int item = valMat->rowind[ii];
+      if (trainItems.find(item) == trainItems.end()) {
+        continue;
+      }
+      float rating = valMat->rowval[ii];
       if (rating >= 4) {
         actItems.insert(item);
       }
@@ -1042,9 +1057,17 @@ float Model::precisionN(gk_csr_t* mat) {
       continue;
     }
     
+    for (int ii = trainMat->rowptr[u]; ii < trainMat->rowptr[u+1]; ii++) {
+      int item = trainMat->rowind[ii];
+      uTrainItems.insert(item);
+    }
+    
     for (auto&& item: trainItems) {
-      //TODO: skip if present in training
-      predRatings.push_back(std::make_pair(item, estItemRating(u, item)))
+      //skip if present in training for user
+      if (uTrainItems.find(item) != uTrainItems.end()) {
+        continue;
+      } 
+      predRatings.push_back(std::make_pair(item, estItemRating(u, item)));
     }
     
     std::nth_element(predRatings.begin(), predRatings.begin() + (N - 1), 
@@ -1068,9 +1091,57 @@ float Model::precisionN(gk_csr_t* mat) {
     nUsers++;
   }
 
+  std::cout << "avgPrecN: " << avgPrecN << " nUsers: " << nUsers << std::endl;
+
   avgPrecN = avgPrecN/nUsers;
     
   return avgPrecN;
+}
+
+
+float Model::corrOrderedItems(
+    std::vector<std::vector<std::pair<int, float>>> testRatings) {
+  int nUsers = 0, nURatings = 0;
+  float corrOrderedPairs = 0, nPairs = 0;
+  int firstItem, secondItem;
+  float firstRating, secondRating;
+  float firstPredRating, secondPredRating;
+
+  for (auto&& u: trainUsers) {
+    nURatings = testRatings[u].size();
+    
+    if (0 == nURatings) {
+      continue;
+    }
+
+    for (int i = 0; i < nURatings; i++) {
+      firstItem = testRatings[u][i].first;
+      if (trainItems.find(firstItem) == trainItems.end()) {
+        continue;
+      }
+      firstRating = testRatings[u][i].second;
+      firstPredRating = estItemRating(u, firstItem);
+      for (int j = i+1; j < nURatings; j++) {
+        secondItem = testRatings[u][j].first;
+        if (trainItems.find(secondItem) == trainItems.end()) {
+          continue;
+        }
+        secondRating = testRatings[u][j].second;
+        if (firstRating == secondRating) {
+          continue;
+        }
+        secondPredRating = estItemRating(u, secondItem);
+        if (firstRating < secondRating && firstPredRating < secondPredRating) {
+          corrOrderedPairs += 1; 
+        } else if (firstRating > secondRating && firstPredRating > secondPredRating) {
+          corrOrderedPairs += 1;
+        }
+        nPairs += 1;
+      }  
+    }
+    nUsers++;
+  }
+  return corrOrderedPairs/nPairs;
 }
 
 

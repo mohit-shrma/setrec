@@ -112,6 +112,10 @@ class Model {
   std::pair<float, float> precisionNCall(const std::vector<UserSets>& uSets, 
       gk_csr_t *mat, int N, float ratingThresh);  
   float fracCorrOrderedSets(const std::vector<UserSets>& uSets);
+  float precisionN(gk_csr_t* testMat, gk_csr_t* valMat, gk_csr_t* trainMat,
+    int N);
+  float corrOrderedItems(
+    std::vector<std::vector<std::pair<int, float>>> testRatings);
 };
 
 

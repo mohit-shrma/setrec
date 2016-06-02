@@ -37,5 +37,8 @@ std::map<int, std::unordered_set<int>> getInvertItemPairs(
     std::mt19937& mt);
 std::vector<UserSets> merge(std::vector<UserSets>& a, std::vector<UserSets>&b);
 int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt);
+bool checkIf0InCSR(gk_csr_t *mat);
+std::vector<std::vector<std::pair<int, float>>> getUIRatings(gk_csr_t* testMat, 
+    gk_csr_t* valMat, int nUsers);
 #endif
 

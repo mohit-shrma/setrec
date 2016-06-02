@@ -26,7 +26,7 @@ void ModelAverageLogWBias::train(const Data& data, const Params& params,
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
   Eigen::VectorXf tempGrad(facDim);
-  float bestRecall, prevRecall, bestValRecall, prevValRecall;
+  float bestValRecall, prevValRecall;
   int bestIter;
 
   std::vector<int> uInds(data.trainSets.size());

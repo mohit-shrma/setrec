@@ -142,6 +142,32 @@ std::vector<std::map<int, float>> getUIRatings(gk_csr_t *mat) {
 }
 
 
+std::vector<std::vector<std::pair<int, float>>> getUIRatings(gk_csr_t* testMat, 
+    gk_csr_t* valMat, int nUsers) {
+  std::vector<std::vector<std::pair<int, float>>> uiRatings(nUsers);
+  
+  if (testMat->nrows != valMat->nrows || testMat->nrows != nUsers 
+      || valMat->nrows != nUsers) {
+    std::cerr << "Users mismatch" << std::endl;
+    exit(0);
+  }
+
+  for (int u = 0; u < nUsers; u++) {
+    for (int ii = testMat->rowptr[u]; ii < testMat->rowptr[u+1]; ii++) {
+      uiRatings[u].push_back(std::make_pair(testMat->rowind[ii], 
+            testMat->rowval[ii]));
+    }
+    for (int ii = valMat->rowptr[u]; ii < valMat->rowptr[u+1]; ii++) {
+      uiRatings[u].push_back(std::make_pair(valMat->rowind[ii], 
+            valMat->rowval[ii]));
+    }
+  }
+
+  return uiRatings;
+}
+
+
+
 std::vector<std::tuple<int, int, float>> getUIRatingsTup(gk_csr_t* mat) {
   std::vector<std::tuple<int, int, float>> uiRatings;
   for (int u = 0; u < mat->nrows; u++) {
@@ -417,6 +443,18 @@ int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt) {
   }
 
   return j;
+}
+
+
+bool checkIf0InCSR(gk_csr_t *mat) {
+  for (int u = 0; u < mat->nrows; u++) {
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      if (0 == mat->rowval[ii]) {
+        return true;
+      }
+    }   
+  }
+  return false;
 }
 
 

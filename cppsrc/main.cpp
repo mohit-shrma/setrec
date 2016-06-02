@@ -20,6 +20,7 @@
 #include "ModelAverageHingeWBias.h"
 #include "ModelAverageLogWBias.h"
 #include "ModelAverageBPRWBias.h"
+#include "ModelBPR.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 23) {
@@ -78,8 +79,10 @@ int main(int argc, char *argv[]) {
   
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
+  
+  std::cout << std::endl;
 
-  ModelAverageHingeWBias modelAvg(params);
+  ModelBPR modelAvg(params);
   
   //modelAvg.load(params.prefix);
 
@@ -89,7 +92,7 @@ int main(int argc, char *argv[]) {
   //ModelMajority modelMaj(params);
   //ModelMajorityWCons modelMaj(params);
   
-  ModelAverageHingeWBias bestModel(modelAvg);
+  ModelBPR bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -209,12 +212,12 @@ int main(int argc, char *argv[]) {
   auto invCount = bestModel.invertRandPairCount(data.allTriplets);
   std::cout << "Inversion count: " << invCount << std::endl;
 
-  auto precisionNCall = bestModel.precisionNCall(data.trainSets, data.ratMat,
+  auto precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat,
       5, 4);
   std::cout << "Precision@5: " << precisionNCall.first << std::endl;
   std::cout << "OneCall@5: " << precisionNCall.second << std::endl;
   
-  precisionNCall = bestModel.precisionNCall(data.trainSets, data.ratMat,
+  precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat,
       10, 4);
   std::cout << "Precision@10: " << precisionNCall.first << std::endl;
   std::cout << "OneCall@10: " << precisionNCall.second << std::endl;

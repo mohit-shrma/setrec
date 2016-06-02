@@ -91,6 +91,7 @@ class Data {
     std::vector<UserSets> valSets;
 
     std::vector<UserSets> testValMergeSets;
+    std::vector<UserSets> allSets;
 
 
     std::unordered_set<int> trainItems;
@@ -142,22 +143,30 @@ class Data {
       
       if (NULL != params.partTrainMatFile) {
         std::cout << "\nReading partial rating matrix 0 indexed..." 
-          << params.partTrainMatFile;
+          << params.partTrainMatFile << std::endl;
         partTrainMat = gk_csr_Read(params.partTrainMatFile, GK_CSR_FMT_CSR, 1, 0);
         gk_csr_CreateIndex(partTrainMat, GK_CSR_COL);
+        std::cout << "nUsers: " << partTrainMat->nrows 
+          << " nItems: " << partTrainMat->ncols << std::endl;
       }
       
       if (NULL != params.partTestMatFile) {
         std::cout << "\nReading partial rating matrix 0 indexed..." 
-          << params.partTestMatFile;
+          << params.partTestMatFile << std::endl;
         partTestMat = gk_csr_Read(params.partTestMatFile, GK_CSR_FMT_CSR, 1, 0);
-      }
+        std::cout << "nUsers: " << partTestMat->nrows 
+          << " nItems: " << partTestMat->ncols << std::endl;
+      } 
       
       if (NULL != params.partValMatFile) {
         std::cout << "\nReading partial rating matrix 0 indexed..." 
-          << params.partValMatFile;
+          << params.partValMatFile << std::endl;
         partValMat = gk_csr_Read(params.partValMatFile, GK_CSR_FMT_CSR, 1, 0);
+        std::cout << "nUsers: " << partValMat->nrows 
+          << " nItems: " << partValMat->ncols << std::endl;
       }
+      
+      std::cout << "\n";
       
       if (NULL != params.trainSetFile) {
         trainSets  = readSets(params.trainSetFile);    
@@ -178,7 +187,9 @@ class Data {
         std::cout << "nTrainSets: " << nTrainSets << std::endl;
         std::cout << "nTrainUsers: " << trainUsers.size() << std::endl;
         std::cout << "nTrainItems: " << trainItems.size() << std::endl;
-      } 
+      }
+
+      std::cout << "\n";
 
       if (NULL != params.testSetFile) {
         testSets = readSets(params.testSetFile);
@@ -195,6 +206,8 @@ class Data {
         std::cout << "nTestSets: " << nTestSets << std::endl;
       }
 
+      std::cout << "\n";
+      
       if (NULL != params.valSetFile) {
         valSets = readSets(params.valSetFile);
         nValSets = 0;
@@ -211,8 +224,13 @@ class Data {
         std::cout << "nValSets: " << nValSets << std::endl;
       }
       
+      std::cout << "\n";
+      
       //merge test val sets for common users
       testValMergeSets = merge(testSets, valSets);
+      
+      //merge train with test val sets
+      allSets = merge(trainSets, testValMergeSets);
     }
 
 
