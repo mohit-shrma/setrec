@@ -171,7 +171,7 @@ void ModelBPR::train(const Data& data, const Params& params, Model& bestModel) {
   //add non-update users as invalid
   for (auto&& u: trainUsers) {
     if (updUsers.find(u) == updUsers.end()) {
-      invalidUsers.add(u);
+      invalidUsers.insert(u);
     }
   }
   
