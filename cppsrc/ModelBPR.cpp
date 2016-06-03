@@ -175,7 +175,7 @@ void ModelBPR::train(const Data& data, const Params& params, Model& bestModel) {
     }
   }
   
-  std::cout << "No.  of invalid users" << invalidUsers.size() << std::endl;
+  std::cout << "No.  of invalid users: " << invalidUsers.size() << std::endl;
 }
 
 
