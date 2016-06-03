@@ -103,9 +103,8 @@ void ModelAverageWPart::trainJoint(const Data& data, const Params& params,
 
   auto partUIRatings = getUIRatings(data.partTrainMat);
 
-  auto usersNItems = getUserItems(data.trainSets);
-  trainUsers = usersNItems.first;
-  trainItems = usersNItems.second;
+  trainUsers = data.trainUsers;
+  trainItems = data.trainItems;
   std::cout << "train Users: " << trainUsers.size() 
     << " trainItems: " << trainItems.size() << std::endl;
 

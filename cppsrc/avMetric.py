@@ -17,7 +17,8 @@ def avgMetric(ipFNames, metric):
 
 def main():
   ipFNames = sys.argv[1:-1]
-  metric = sys.argv[-2]
+  metric = sys.argv[-1]
+  print ipFNames, metric
   avgMetric(ipFNames, metric)
 
 if __name__ == '__main__':
