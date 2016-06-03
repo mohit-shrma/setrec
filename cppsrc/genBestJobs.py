@@ -20,10 +20,11 @@ LFS_SESSBIAS_MF_0_75_PARAMS = [0.01, 0.1, 0.001, 10, 0.1, 0, 15]
 LFS_SESSBIAS_MF_1_0_PARAMS  = [0.01, 0.1, 0.001, 10, 0.1, 0, 50]
 
 
-PARENT_DATA = "/home/grad02/mohit/data/movielens/setRatings/" 
-SETREC      = "/home/grad02/mohit/exmoh/dev/bitbucket/setrec/cppsrc/setrec"
-PARAMS      = MF_PARAMS
-PREFIX      = "mfwbias"
+PARENT_DATA = "/home/grad02/mohit/exmoh/movielens/" 
+
+SETREC      = "/home/grad02/mohit/exmoh/setrec/cppsrc/setrecAvgWBiasPart"
+PARAMS      = LFS_MF_1_0_PARAMS
+PREFIX      = "avgwpart"
 
 NUSERS      = 854
 NITEMS      = 12549
@@ -53,6 +54,7 @@ for splitInd in range(1, 6):
   VAL_SET      = os.path.join(DATA, "ml_set.val.lfs")
   RATMAT       = os.path.join(DATA, "ml_ratings.csr")
   TRAIN_RATMAT = os.path.join(DATA, "train.csr")
+  suffix      = "1.0"
   TEST_RATMAT  = os.path.join(DATA, "test.csr")
   VAL_RATMAT   = os.path.join(DATA, "val.csr")
 
@@ -63,7 +65,6 @@ for splitInd in range(1, 6):
   usetbiasreg = PARAMS[4]
   gamma       = PARAMS[5]
   dim         = PARAMS[6]
-  suffix      = ""
 
   genJob(SETREC, ureg, ireg, ubiasreg, ibiasreg, usetbiasreg, gamma, dim,
       RATMAT, TRAIN_RATMAT, TEST_RATMAT, VAL_RATMAT, TRAIN_SET, TEST_SET,
