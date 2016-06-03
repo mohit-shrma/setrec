@@ -116,6 +116,7 @@ class Model {
     int N);
   float corrOrderedItems(
     std::vector<std::vector<std::pair<int, float>>> testRatings);
+  float rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat);
 };
 
 

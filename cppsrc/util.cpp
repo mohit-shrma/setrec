@@ -123,6 +123,30 @@ void removeSetsWOVal(std::vector<UserSets>& uSets,
 }
 
 
+void removeSetsWInvalUsers(std::vector<UserSets>& uSets,
+    std::unordered_set<int>& inValUsers) {
+  
+  auto it = std::begin(uSets);
+  
+  while (it != std::end(uSets)) {
+    bool isRemoveU = false;
+    
+    if (inValUsers.find((*it).user) != inValUsers.end()) {
+      //invalid user found
+      isRemoveU = true;
+    }
+
+    if (isRemoveU) {
+      it = uSets.erase(it);
+    } else {
+      ++it;
+    }
+
+  }
+
+}
+
+
 std::vector<std::map<int, float>> getUIRatings(gk_csr_t *mat) {
 
   int nUsers = mat->nrows;
@@ -456,5 +480,66 @@ bool checkIf0InCSR(gk_csr_t *mat) {
   }
   return false;
 }
+
+
+int checkIfSetsMatDiffer(std::vector<UserSets>& uSets, gk_csr_t *mat) {
+  std::unordered_set<int> uItems;
+  int missedInSet = 0;
+  int missedInMat = 0;
+
+  for (auto&& uSet: uSets) {
+    int u = uSet.user;
+    uItems.clear();
+    
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      uItems.insert(item);
+      if (uSet.items.find(item) == uSet.items.end()) {
+        //item in matrix not present in set
+        missedInSet++;
+      }
+    }
+
+    for (auto&& item: uSet.items) {
+      if (uItems.find(item) == uItems.end()) {
+        missedInMat++;
+      }
+    }
+
+  }
+  
+  std::cout << "missedInMat: " << missedInMat << " missedInSet: " << missedInSet
+    << std::endl;
+
+  return missedInMat + missedInSet;
+}
+
+
+std::unordered_set<int> checkIfSetsMatOverlap(std::vector<UserSets>& uSets, 
+    gk_csr_t *mat) {
+  
+  int foundInSet = 0;
+  std::unordered_set<int> overlapUsers;
+  for (auto&& uSet: uSets) {
+    int u = uSet.user;
+    
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      if (uSet.items.find(item) != uSet.items.end()) {
+        foundInSet++;
+        std::cout << "u: " << u << " item: " << item 
+          << " rat: " << mat->rowval[ii] << std::endl;
+        overlapUsers.insert(u);
+      }
+    }
+
+  }
+  
+  std::cout << " overlap: " << foundInSet << std::endl;
+
+  return overlapUsers;
+}
+
+
 
 

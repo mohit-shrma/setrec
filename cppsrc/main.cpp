@@ -82,17 +82,8 @@ int main(int argc, char *argv[]) {
   
   std::cout << std::endl;
 
-  ModelBPR modelAvg(params);
-  
-  //modelAvg.load(params.prefix);
-
-  //ModelAverageSigmoid modelAvgSigmoid(params);
-  //data.scaleSetsTo01(5.0);
-  //ModelBaseline modelBase(params);
-  //ModelMajority modelMaj(params);
-  //ModelMajorityWCons modelMaj(params);
-  
-  ModelBPR bestModel(modelAvg);
+  ModelAverageSetBiasWPart modelAvg(params);
+  ModelAverageSetBiasWPart bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -224,6 +215,8 @@ int main(int argc, char *argv[]) {
 
   float corrOrdSets = bestModel.fracCorrOrderedSets(data.testValMergeSets);
   std::cout << "Fraction of correct ordered sets: " << corrOrdSets << std::endl;
+  std::cout << "RMSE of ratings not in sets: " << bestModel.rmseNotSets(
+      data.allSets, data.ratMat) << std::endl;
 
   /*
   std::vector<int> invalItems = readVector(

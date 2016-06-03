@@ -40,5 +40,10 @@ int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt);
 bool checkIf0InCSR(gk_csr_t *mat);
 std::vector<std::vector<std::pair<int, float>>> getUIRatings(gk_csr_t* testMat, 
     gk_csr_t* valMat, int nUsers);
+int checkIfSetsMatDiffer(std::vector<UserSets>& uSets, gk_csr_t *mat);
+std::unordered_set<int> checkIfSetsMatOverlap(std::vector<UserSets>& uSets, 
+    gk_csr_t *mat);
+void removeSetsWInvalUsers(std::vector<UserSets>& uSets,
+    std::unordered_set<int>& inValUsers);
 #endif
 
