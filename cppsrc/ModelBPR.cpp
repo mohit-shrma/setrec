@@ -107,6 +107,8 @@ void ModelBPR::train(const Data& data, const Params& params, Model& bestModel) {
   std::cout << "nUIRatings: " << uiRatings.size() << std::endl;
 
   auto testRatings = getUIRatings(data.partTestMat, data.partValMat, nUsers);
+  
+  std::unordered_set<int> updUsers; 
 
   for (iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uiRatings.begin(), uiRatings.end(), mt);
@@ -125,6 +127,8 @@ void ModelBPR::train(const Data& data, const Params& params, Model& bestModel) {
         continue;
       }
       
+      updUsers.insert(u);
+
       r_ui_est = estItemRating(u, posItem);
       r_uj_est = estItemRating(u, negItem);
       r_uij_est = r_ui_est - r_uj_est;
@@ -163,6 +167,15 @@ void ModelBPR::train(const Data& data, const Params& params, Model& bestModel) {
 
   }
 
+
+  //add non-update users as invalid
+  for (auto&& u: trainUsers) {
+    if (updUsers.find(u) == updUsers.end()) {
+      invalidUsers.add(u);
+    }
+  }
+  
+  std::cout << "No.  of invalid users" << invalidUsers.size() << std::endl;
 }
 
 
