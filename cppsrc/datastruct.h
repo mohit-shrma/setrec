@@ -35,7 +35,7 @@ class Params {
     char *partTestMatFile;
     char *partValMatFile;
     char *prefix;
-
+    
     Params(int nUsers, int nItems, int facDim, int maxIter, int seed,
         float uReg, float iReg, float u_mReg, 
         float uBiasReg, float iBiasReg,
@@ -128,6 +128,8 @@ class Data {
     int nUsers, nItems;
     
     char* prefix;
+
+    std::vector<std::vector<std::pair<int, float>>> testValRatings;
 
     Data(const Params& params) {
       
@@ -240,6 +242,8 @@ class Data {
       
       //merge train with test val sets
       allSets = merge(trainSets, testValMergeSets);
+
+      testValRatings = getUIRatings(partTestMat, partValMat, nUsers);
     }
 
 

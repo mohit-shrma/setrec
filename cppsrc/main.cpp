@@ -217,6 +217,10 @@ int main(int argc, char *argv[]) {
   std::cout << "Fraction of correct ordered sets: " << corrOrdSets << std::endl;
   std::cout << "RMSE of ratings not in sets: " << bestModel.rmseNotSets(
       data.allSets, data.ratMat) << std::endl;
+  
+  float corrOrdItemPairs = bestModel.corrOrderedItems(data.testValRatings);
+  std::cout << "Fraction of correct ordered item pairs: " << corrOrdItemPairs << std::endl;
+  
 
   /*
   std::vector<int> invalItems = readVector(
