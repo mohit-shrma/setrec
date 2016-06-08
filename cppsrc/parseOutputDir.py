@@ -13,7 +13,7 @@ def parseFiles(dirName, prefix):
           val = float(cols[-1])
           fName = os.path.basename(ipFName)
           params = fName.split('_')
-          print '\t'.join(params), val
+          print '\t'.join(params) + '\t' + str(val)
           continue
 
 def main():
