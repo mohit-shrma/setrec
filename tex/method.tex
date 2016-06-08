@@ -1,108 +1,265 @@
 %!TEX root = paper.tex
 
+\subsection{Modeling rating on the sets}
+
 To estimate the preferences on individual items from the preference of the user on the
 sets, we need to understand how the user rate a given set of items. A user may
-rate a set of items by considering each item in the set or may chose to rate
-the set of the items based on few but majority of the items in the set.
-
-In the first case, when a user consider all the items in the set before 
+rate a set of items by considering each item in the set. When a user consider all the 
+items in the set before 
 assigning a rating to a set then we can safely assume that the user most likely
-gives the set an average score of his preferences for all the items that constitutes 
-the set. Under this assumption the estimated rating of the user $u$ on a 
-set $S$ is given by: 
+gives the set an average score of his preferences for all the items that constitute 
+the set. This assumption can be validated by the data analysis in the previous
+section where we observed that most of the ratings on the sets are close to the
+average of the ratings of the items in the set. Under this assumption the  
+rating of the user $u$ on a set $S$ is given by: 
 
 \begin{equation} \label{avgSetEq}
   \begin{split}
-    \tilde{r}^{avg}_{us} &= \frac{1}{|S|} \sum_{i \in \mathcal{S}} r_{u,i},
+    r_{us} &= \frac{1}{|S|} \sum_{i \in \mathcal{S}} r_{ui},
   \end{split}
 \end{equation}
 
-where $\mathcal{S}$ denotes the set containing the items and $r_{u,i}$ is the
-preference score of the user $u$ on the item $i$ .
+\noindent where $\mathcal{S}$ denotes the set containing the items and $r_{ui}$ is the
+rating of the user $u$ on the item $i$.
 
-Similarly, when a user considers only a few but the majority of the items in
-the set $\mathcal{S}$ then the user's estimated rating on the set $\mathcal{S}$ is given by:
 
-\begin{equation} \label{majSetEq}
+Since we do not know the original ratings of the items in the sets, i.e., $r_{ui}$
+we can estimate the rating on the set, i.e., $\tilde{r}_{us}$ as the average of the estimated ratings of
+the items in the set.
+
+\begin{equation} \label{avgSetEstEq}
   \begin{split}
-    \tilde{r}^{maj}_{us} &= \frac{1}{|\mathcal{S}_{maj}|} \sum_{i \in
-    \mathcal{S}_{maj}} r_{u,i},
+    \tilde{r}_{us} &= \frac{1}{|S|} \sum_{i \in \mathcal{S}} \tilde{r}_{ui},
   \end{split}
 \end{equation}
 
-where $\mathcal{S}_maj$ contains the majority of the top rated items in the set 
-$\mathcal{S}$.
+\noindent where $\tilde{r}_{ui}$ is the estimated rating of the user $u$ on the
+item $i$.
 
 
-Assuming that the original user-item preference matrix $R$ is low-rank, we can write
-the estimated preference of the user $u$ for the item $i$ as follow:
+\subsection{Modeling user-item ratings}
 
-\begin{equation} 
+Assuming that the original user-item rating matrix $R$ is low-rank, then
+following the classic matrix factorization approach~\cite{r43} the estimated
+rating of the user $u$ for the item $i$ is given by,
+
+\begin{equation} \label{biasRatPredEq}
   \begin{split}
-    \tilde{r}_{ui} &= p_u^Tq_i, 
+    \tilde{r}_{ui} &= b_u + b_i + p_u^Tq_i, 
   \end{split}
 \end{equation}
 
-where, $k$ is the rank of the matrix $R$, $p_u \in \mathcal{R}^k$ and $q_i \in \mathcal{R}^K$ denotes the latent factor of the user $u$ and the item $i$ respectively.  
 
-Following the low-rank assumption, we can rewrite the estimated score of the 
-user $u$ for a set $\mathcal{S}$ in equations \ref{avgSetEq} and \ref{majSetEq} as follow:
+\noindent where $b_u$ is the user bias, $b_i$ is the item bias, $p_u \in \mathcal{R}^k$ denotes the latent factor of the user
+$u$, $q_i \in \mathcal{R}^K$ denotes the latent factor of the item $i$ and $k$ 
+is the rank of the matrix $R$.  
+
+\subsection{Set rating using matrix-factorization (LFS)}
+We can rewrite the estimated score of the user $u$ for the set $\mathcal{S}$ 
+in equation~\ref{avgSetEstEq} using equation~\ref{biasRatPredEq} as follow:
 
 \begin{equation} \label{avgSetLoEq}
   \begin{split}
-    \tilde{r}^{avg}_{us} &= \frac{1}{|S|} \sum_{i \in \mathcal{S}} p_u^Tq_i,
+    \tilde{r}_{us} &= \frac{1}{|S|} \sum_{i \in \mathcal{S}} b_u + b_i + p_u^Tq_i,
   \end{split}
 \end{equation}
 
+\subsection{Modeling session bias (LFSWSessBias)}
+Further, the user's ratings on the set could be affected by psychological
+phenomena or his mood during the session, e.g., a user may
+rate a set in the context of the sets they have seen before. Also, as seen in our
+investigations on the data, some users tend to overrate or underrate the sets
+when compared with the average of the ratings of the items in the set.
+Such effects can be captured by adding a user specific session bias:
 
-\begin{equation} \label{majSetLoEq}
+\begin{equation} \label{avgSetWSessBiasEq}
   \begin{split}
-    \tilde{r}^{maj}_{us} &= \frac{1}{|\mathcal{S}_{maj}|} \sum_{i \in
-    \mathcal{S}_{maj}} p_u^Tq_i,
+    \tilde{r}_{us} &= b_{us} + \frac{1}{|S|} \sum_{i \in \mathcal{S}} b_u + b_i + p_u^Tq_i,
   \end{split}
 \end{equation}
 
+\noindent where $b_{us}$ denotes the session bias of the user $u$.
 
-\subsection{Learning from Set Model}
-The learning from set model is parameterized by $\Theta=[P, Q]$, where the
-matrices $P$ and $Q$ contains the latent factors of the users and the items
-respectively. The model parameters are estimated by minimizing the squared error
-loss function, given by
 
+\subsection{Full bias model (LFSWGBias)}
+Moreover, We can also add the mean of ratings on the sets (a constant) to represent  
+the portion of the rating on the set which is independent of the users' and the
+items' personalization:
+
+\begin{equation} \label{avgSetWGBiasEq}
+  \begin{split}
+    \tilde{r}_{us} &= \mu + b_{us} + \frac{1}{|S|} \sum_{i \in \mathcal{S}} b_u + b_i + p_u^Tq_i,
+  \end{split}
+\end{equation}
+
+\noindent where $\mu$ is the mean of ratings on the sets.
+
+\subsection{Model learning}
+The model parameters, i.e., $\theta= [p_u, q_u, b_u, b_i, b_{us}]$, are estimated 
+by minimizing a loss function. 
+For accurate predictions of ratings for the sets and the items, it is
+appropriate to minimize a square error loss function to estimate the model. In
+the Top-$n$  recommendations, the precise rating prediction is irrelevant as we
+only care about correctly ranking the items for the user. Therefore, a ranking
+loss function, e.g., Bayesian Personalized Ranking (BPR)~\cite{r6} is more appropriate to
+estimate the model. We propose to use both the square error loss function and
+the BPR loss function to estimate the model parameters.
+
+The loss function to estimate the model by minimizing square error loss function
+is given by
+ 
 %
 \begin{equation} \label{eq_rmse}
   \mathcal{L}_{rmse}(\Theta) \equiv \sum_{u \in U} \sum_{\substack{s \in
-  \mathcal{R}_{us}}} (\tilde{r}_{us} - r_{us})^2,
+  \mathcal{R}_{us}}} (\tilde{r}_{us}(\Theta) - r_{us})^2,
 \end{equation}
 %
 
-%TODO: need to add better connection to majority or average assumption
 
-where $\mathcal{R}_{us}$ contains all the sets preferred by the user $u$,
-$r_{us}$ is the original rating and $\tilde{r}_{us}$ is the estimated rating of
-the user $u$ on the set $s$. The estimated rating $\tilde{r}_{us}$ can be
-computed as per equation \ref{avgSetLoEq} or \ref{majSetLoEq} depending on
-whether the average or the majority assumption is used to estimate the rating of 
-the user $u$ on the set $s$. 
+where $U$ represents all the users, $\mathcal{R}_{us}$ contains all the sets rated 
+by the user $u$, $r_{us}$ is the original rating of the user $u$ on the set $s$ 
+and $\tilde{r}_{us}$ is the estimated rating of the user $u$ on the set $s$. 
+
+
+Similarly, the model can be learned by minimizing the BPR loss function given by
+
+\begin{equation} \label{eq_bpr}
+\mathcal{L}_{bpr}(\Theta) \equiv - \sum_{u \in U} \sum_{\substack{s,t \in
+\mathcal{R}_{us} ,\\  r_{us} > r_{ut}}}  \ln \, \sigma(\tilde{r}_{us}(\Theta) -
+\tilde{r}_{ut}(\Theta) ),
+\end{equation}
+
+\noindent where $s$ and $t$ are sets rated by user $u$ such that $r_{us} >
+r_{ut}$.
+
 
 To control model complexity, we add regularization of the model parameters
 thereby leading to an optimization process of the following form:
 
 %
 \begin{equation} \label{eq_obj}
-  \min_{P, Q} \sum_{u \in U} \sum_{\substack{s \in \mathcal{R}_{us}}} (\tilde{r}_{us} - r_{us})^2  + \lambda (\|P\|_F^2 + \|Q\|_F^2),
+  \min_{\Theta} \mathcal{L}(\Theta)  + \lambda (||\Theta||^2),
 \end{equation}
-%
 
-where $\lambda$ is the regularization parameter.
+%
+\noindent where $\lambda$ is the regularization parameter and
+$\mathcal{L}(\theta)$ is the loss function, i.e., either $\mathcal{L}_{bpr}(\theta)$ or
+$\mathcal{L}_{rmse}(\theta)$.
 
 %TODO: need to add better connection to majority or average assumption
 
-The optimization problem of equation \ref{eq_obj} is solved by stochastic
-gradient descent algorithm for the average assumption and stochastic
-sub-gradient descent algorithm for the majority assumption.
+The optimization problem of the equation \ref{eq_obj} can be solved by stochastic
+gradient descent algorithm.
+
+
+\begin{algorithm}[t]
+  \caption{$LFS_{rmse}$-Learn}
+  \label{alg-lfs-rmse}
+  \begin{algorithmic}[1]
+    \Procedure{LFS$_{rmse}$-Learn}{}
+      \State $\eta \gets$ learning rate
+      \State $\lambda \gets$ regularization weights
+      \State iter $\gets$ 0
+      \State Initialize $\Theta$ randomly
+      \While {iter $<$ maxIter or error on validation set decreases}
+        \For{each user $u$}
+          \State Sample a set $s$ s.t. $s \in \mathcal{R}_{us}$ 
+          \State Compute $\tilde{r}_{us} $ using equation~\ref{avgSetWGBiasEq}
+          \State $e_{us} \gets (\tilde{r}_{us} - r_{us})$
+          \State $v_k \in \mathcal{R}^k$  $\gets 0$
+          \For {each item $i \in s$ }
+            \State $v_k \gets v_k + q_i$
+          \EndFor
+          \State $p_u \gets p_u - \eta(\frac{e_{us}}{|s|} v_k + \lambda p_u)$
+          \State $b_u \gets b_u - \eta(e_{us} + \lambda b_u)$
+          \State $b_{us} \gets b_{us} - \eta(e_{us} + \lambda b_{us})$
+          \For {each item $i \in s$ }
+            \State $q_i \gets q_i - \eta(\frac{e_{us}}{|s|} p_u + \lambda q_i)$  
+            \State $b_i \gets b_i - \eta(\frac{e_{us}}{|s|} + \lambda b_i)$
+          \EndFor
+        \EndFor
+        \State iter $\gets $ iter $ + 1$
+      \EndWhile
+      \State \Return $\Theta$
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+
+\begin{algorithm}[t]
+  \caption{$LFS_{bpr}$-Learn}
+  \label{alg-lfs-bpr}
+  \begin{algorithmic}[1]
+    \Procedure{LFS$_{bpr}$-Learn}{}
+      \State $\eta \gets$ learning rate
+      \State $\lambda \gets$ regularization weights
+      \State iter $\gets$ 0
+      \State Initialize $\Theta$ randomly
+      \While {iter $<$ maxIter or error on validation set decreases}
+        \For{each user $u$}
+        \State Sample  a pair of set $s,t \in \mathcal{R}_{us}$ s.t. $r_{us} < r_{ut}$
+        \State Compute $\tilde{r}_{us} $ and $\tilde{r}_{ut}$ using
+        equation~\ref{avgSetLoEq}
+        \State $\tilde{r}_{ust} \gets \tilde{r}_{us} - \tilde{r}_{ut}$
+        \State $\tau \gets \frac{-1}{1 + exp(\tilde{r}_{ust})}$
+          \State $v_k \in \mathcal{R}^k$  $\gets 0$
+          \For {each item $i \in s$ }
+            \State $v_k \gets v_k + q_i$
+          \EndFor
+          \For {each item $i \in t$ }
+            \State $v_k \gets v_k - q_i$
+          \EndFor
+          \State $p_u \gets p_u - \eta(\frac{\tau}{|s|} v_k + \lambda p_u)$
+          \For {each item $i \in s$ }
+            \State $q_i \gets q_i - \eta(\frac{\tau}{|s|} p_u + \lambda q_i)$  
+            \State $b_i \gets b_i - \eta(\frac{\tau}{|s|} + \lambda b_i)$
+          \EndFor
+          \For {each item $i \in t$ }
+            \State $q_i \gets q_i - \eta(\frac{-\tau}{|s|} p_u + \lambda q_i)$  
+            \State $b_i \gets b_i - \eta(\frac{-\tau}{|s|} + \lambda b_i)$
+          \EndFor
+        \EndFor
+        \State iter $\gets $ iter $ + 1$
+      \EndWhile
+      \State \Return $\Theta$
+    \EndProcedure
+  \end{algorithmic}
+\end{algorithm}
+
+
+
+\iffalse
+The model parameters can also be estimated by minimizing a pair-wise loss
+function. In the pair-wise loss, we are not interested in the absolute ratings
+of the set but rather in the difference or relative ordering of the preference
+over the sets. Let $s$ and $t$ be two sets rated by a user $u$ such that $r_{us}
+> r_{ut}$, then the estimated ratings on the set,i.e., $\tilde{r_{us}}$ and
+$\tilde{r_{ut}}$ should preserve the relative order and difference in their
+values. A simple loss to consider in ranking is the number of pairs incorrectly 
+ordered by the ranking model. This loss is referred as the zero-one loss,
+
+\begin{equation} \label{eq_01}
+  \mathcal{E}_{01}(\Theta) \equiv \sum_{u \in U} \sum_{\substack{s,t \in
+\mathcal{R}_{us},\\ r_{us} > r_{ut}}} \bm{1}(r_{ust} . \tilde{r_{ust}} < 0),
+\end{equation}
+
+\noindent where $r_{ust} = r_{us} - r_{ut}$, $\tilde{r_{ust}} = \tilde{r_{us}} -
+\tilde{r_{ut}}$ and $\bm{1}(x)$ is the indicator function. Since, the zero-one
+loss in equation~\ref{eq_01} is not differentiable we use a smooth surrogate
+loss function that forms a convex upper bound on the zero-one loss function.
+
+
+\begin{equation} \label{eq_smooth}
+  \mathcal{E}(\Theta) \equiv \sum_{u \in U} \sum_{\substack{s,t \in
+  \mathcal{R}_{us},\\ r_{us} > r_{ut}}} \mathcal{L}_{surr}(r_{ust}, \tilde{r_{ust}}),
+\end{equation}
+
+\noindent where $\mathcal{L}_{surr}(x,y)$ is a convex loss function. We used
+$\mathcal{L}_{Hinge}(x,y)=[\gamma + x - y]_+$ and $\mathcal{L}_{Log}(x,y) =
+log(1+exp(\gamma + x - y))$ as the pairwise loss functions, where $\gamma$ is a
+free parameter.
+\fi
 
 %TODO: add pseudo-code algorithm
-%TODO: add sub-gradient details and why it is needed
 
 
