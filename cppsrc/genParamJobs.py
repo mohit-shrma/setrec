@@ -2,7 +2,7 @@ import sys
 import os
 
 
-DATA      = "/home/grad02/mohit/data/movielens/setRatings/"
+DATA      = "/home/karypisg/msharma/data/setrec/movielens"
 NUSERS    = 854
 NITEMS    = 12549
 LEARNRATE = 0.001
@@ -12,14 +12,19 @@ def genJobs(paramsFile, prefix, setrec):
   with open(paramsFile, 'r') as f:
     for line in f:
       cols        = line.strip().split()
+      
+      if len(cols) < 6 or len(cols) > 6:
+        print 'Err: ncols:', len(cols), cols
+        return 
       uReg        = float(cols[0])
       iReg        = float(cols[1])
       uBiasReg    = float(cols[2])
       iBiasReg    = float(cols[3])
       sessBiasReg = float(cols[4])
       dim         = int(cols[5])
-      jobStr      = '_'.join(map(str, [ureg, ireg, ubiasreg, ibiasreg,
-        usetbiasreg, dim]))
+      
+      jobStr      = '_'.join(map(str, [uReg, iReg, uBiasReg, iBiasReg,
+        sessBiasReg, dim]))
       
       for splitInd in range(1,6):
         trainSet = os.path.join(DATA, "split" + str(splitInd),
