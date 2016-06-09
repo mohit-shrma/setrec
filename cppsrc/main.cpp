@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
   float trainRMSE = bestModel.rmse(data.trainSets);
   float testRMSE = bestModel.rmse(data.testSets);
   float valRMSE = bestModel.rmse(data.valSets);
-  std::cout << "Train sets RMSE: " << trainRMSE << std::endl;
+  std::cout << "\nTrain sets RMSE: " << trainRMSE << std::endl;
   std::cout << "Test sets RMSE: " << testRMSE << std::endl;
   std::cout << "Val sets RMSE: " << valRMSE << std::endl;
 

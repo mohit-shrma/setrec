@@ -3,7 +3,8 @@
 float ModelAverageBPRWBias::estItemRating(int user, int item) {
   bool uFound = false, iFound = true;
   float rating = 0;
-  if (trainUsers.find(user) != trainUsers.end()) {
+  if (trainUsers.find(user) != trainUsers.end() &&
+      invalidUsers.find(user) == invalidUsers.end()) {
     uFound = true;
   }
   if (trainItems.find(item) != trainItems.end()) {
