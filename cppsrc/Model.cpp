@@ -983,7 +983,7 @@ std::pair<float, float> Model::precisionNCall(
         continue;
       }
       if (setItems.find(item) != setItems.end()) {
-        //item not found in set
+        //item found in u set
         continue;
       }
       actRatings.push_back(std::make_pair(item, rating));
@@ -998,7 +998,7 @@ std::pair<float, float> Model::precisionNCall(
     predRatings.clear();
     for (auto&& item: trainItems) {
       if (setItems.find(item) != setItems.end()) {
-        //item not found in set
+        //item found in u set
         continue;
       }
       predRatings.push_back(std::make_pair(item, estItemRating(user, item))); 
@@ -1035,6 +1035,79 @@ std::pair<float, float> Model::precisionNCall(
     << " oneCall: " << oneCall << std::endl;
   return std::make_pair(avgPrecN, oneCall);
 }
+
+
+float Model::matCorrOrderedRatingsWOSets(
+    const std::vector<UserSets>& uSets, gk_csr_t *mat) {
+  float corrOrderedPairs = 0;
+  int nUsers = 0;
+  std::vector<std::pair<int, float>> itemRatings;
+  
+  for (auto&& uSet: uSets) {
+    
+    int user = uSet.user;
+    auto setItems = uSet.items;
+    itemRatings.clear();
+    
+    for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+      int item = mat->rowind[ii];
+      if (setItems.find(item) != setItems.end()) {
+        continue;
+      }
+      float rating = mat->rowval[ii];
+      itemRatings.push_back(std::make_pair(item, rating));
+    }
+
+    corrOrderedPairs += fracCorrOrderedRatingsUser(user, itemRatings);
+    nUsers++;
+  }
+
+  corrOrderedPairs = corrOrderedPairs/nUsers;
+
+  return corrOrderedPairs;
+}
+
+
+float Model::fracCorrOrderedRatingsUser(int user, 
+    std::vector<std::pair<int, float>> itemRatings) {
+
+  float corrOrderedPairs = 0, nPairs = 0;
+  int nURatings = itemRatings.size();
+  int firstItem, secondItem;
+  float firstRating, secondRating;
+  float firstPredRating, secondPredRating;
+
+  for (int i = 0; i < nURatings; i++) {
+    
+    firstItem       = itemRatings[i].first;
+    firstRating     = itemRatings[i].second;
+    firstPredRating = estItemRating(user, firstItem);
+
+    for (int j = i+1; j < nURatings; j++) {
+      
+      secondItem       = itemRatings[j].first;
+      secondRating     = itemRatings[j].second;
+      secondPredRating = estItemRating(user, secondItem);
+      
+      if ((firstRating < secondRating && firstPredRating < secondPredRating)
+          ||(firstRating > secondPredRating 
+             && firstPredRating > secondPredRating)) {
+        corrOrderedPairs += 1;
+      } 
+      nPairs += 1;
+    }
+  }
+
+
+  if (nPairs > 0) {
+    corrOrderedPairs = corrOrderedPairs/nPairs;
+  }
+
+  return corrOrderedPairs;
+}
+
+
+
 
 
 float Model::precisionN(gk_csr_t* testMat, gk_csr_t* valMat, gk_csr_t* trainMat,
@@ -1129,6 +1202,12 @@ float Model::corrOrderedItems(
   int firstItem, secondItem;
   float firstRating, secondRating;
   float firstPredRating, secondPredRating;
+
+  if ((int)testRatings.size() != nUsers) {
+    std::cerr << "corrOrderedItems: nUsers and testUsers not equal" 
+      << nUsers << " " << testRatings.size() << std::endl;
+    exit(0);
+  }
 
   for (auto&& u: trainUsers) {
     nURatings = testRatings[u].size();

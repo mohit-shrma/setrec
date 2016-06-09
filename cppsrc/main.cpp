@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) {
   //writeSets(data.trainSets, opFName.c_str());
   
   std::cout << std::endl;
+  exit(0);
 
   ModelAverageSetBiasWPart modelAvg(params);
   ModelAverageSetBiasWPart bestModel(modelAvg);
@@ -221,6 +222,10 @@ int main(int argc, char *argv[]) {
   float corrOrdItemPairs = bestModel.corrOrderedItems(data.testValRatings);
   std::cout << "Fraction of correct ordered item pairs: " << corrOrdItemPairs << std::endl;
   
+  float corrOrdAllPairs = bestModel.matCorrOrderedRatingsWOSets(data.allSets,
+      data.ratMat);
+  std::cout << "Ordered pairs excl all sets: " << corrOrdAllPairs 
+    << std::endl;
 
   /*
   std::vector<int> invalItems = readVector(

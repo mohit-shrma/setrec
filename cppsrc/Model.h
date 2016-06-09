@@ -117,6 +117,11 @@ class Model {
   float corrOrderedItems(
     std::vector<std::vector<std::pair<int, float>>> testRatings);
   float rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat);
+  float fracCorrOrderedRatingsUser(int user, 
+    std::vector<std::pair<int, float>> itemRatings);
+  float matCorrOrderedRatingsWOSets(const std::vector<UserSets>& uSets, 
+      gk_csr_t *mat);
+
 };
 
 
