@@ -80,9 +80,6 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
   
-  std::cout << std::endl;
-  exit(0);
-
   ModelAverageSetBiasWPart modelAvg(params);
   ModelAverageSetBiasWPart bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
