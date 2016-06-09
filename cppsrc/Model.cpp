@@ -593,7 +593,7 @@ float Model::recallTopN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
 float Model::ratingsNDCG(
     std::map<int, std::map<int, float>> uRatings) {
   
-  float avgNDCG = 0, nUsers = 0;
+  float avgNDCG = 0, numUsers = 0;
   std::vector<std::pair<int, float>> predItemRatings;
   std::vector<std::pair<int, float>> origItemRatings;
   std::vector<float> orig, pred;
@@ -632,11 +632,11 @@ float Model::ratingsNDCG(
     }
     
     avgNDCG += ndcg(orig, pred);
-    nUsers += 1;
+    numUsers += 1;
   }
   
-  avgNDCG = avgNDCG/nUsers;
-  std::cout << "nUsers: " << nUsers << " avgNDCG: " << avgNDCG << std::endl;
+  avgNDCG = avgNDCG/numUsers;
+  std::cout << "nUsers: " << numUsers << " avgNDCG: " << avgNDCG << std::endl;
   return avgNDCG;
 }
 
@@ -644,7 +644,7 @@ float Model::ratingsNDCG(
 float Model::ratingsNDCGRel(
     std::map<int, std::map<int, float>> uRatings) {
 
-  float avgNDCG = 0, ndcg = 0, nUsers = 0;
+  float avgNDCG = 0, ndcg = 0, numUsers = 0;
   std::vector<std::pair<int, float>> predItemRatings;
   std::vector<std::pair<int, float>> origItemRatings;
   std::vector<float> orig, pred;
@@ -696,10 +696,10 @@ float Model::ratingsNDCGRel(
     //std::cout << std::endl;
 
     avgNDCG += ndcg;
-    nUsers += 1;
+    numUsers += 1;
   }
   
-  avgNDCG = avgNDCG/nUsers;
+  avgNDCG = avgNDCG/numUsers;
   return avgNDCG;
 }
 
@@ -708,7 +708,7 @@ float Model::ratingsNDCGRelRand(
     std::map<int, std::map<int, float>> uRatings,
     std::mt19937& mt) {
   
-  float avgNDCG = 0, ndcg = 0, nUsers = 0;
+  float avgNDCG = 0, ndcg = 0, numUsers = 0;
   std::vector<std::pair<int, float>> predItemRatings;
   std::vector<std::pair<int, float>> origItemRatings;
   std::vector<float> orig, pred;
@@ -762,10 +762,10 @@ float Model::ratingsNDCGRelRand(
     //std::cout << std::endl;
 
     avgNDCG += ndcg;
-    nUsers += 1;
+    numUsers += 1;
   }
   
-  avgNDCG = avgNDCG/nUsers;
+  avgNDCG = avgNDCG/numUsers;
   return avgNDCG;
 }
 
@@ -776,7 +776,7 @@ float Model::recallHit(const std::vector<UserSets>& uSets,
   
   std::vector<std::pair<int, float>> predRatings;
   
-  float hits = 0, nUsers = 0;
+  float hits = 0, numUsers = 0;
   
   for(auto&& uSet: uSets) {
     int user = uSet.user;
@@ -816,19 +816,19 @@ float Model::recallHit(const std::vector<UserSets>& uSets,
         hits += 1;
       }
     }
-    nUsers += 1;
+    numUsers += 1;
   }
   
   //std::cout << "hits: " << hits << " nUsers: " << nUsers << std::endl;
 
-  return hits/nUsers;
+  return hits/numUsers;
 }
 
 
 std::pair<float, float> Model::ratingsNDCGPrecK(const std::vector<UserSets>& uSets,
     std::map<int, std::map<int, float>> uRatings,
     int N) {
-  int nUsers = 0;
+  int numUsers = 0;
   float avgNDCG = 0, avgPrec = 0;
   std::vector<std::pair<int, float>> predRatings;
   std::vector<std::pair<int, float>> origRatings;
@@ -881,11 +881,11 @@ std::pair<float, float> Model::ratingsNDCGPrecK(const std::vector<UserSets>& uSe
     avgNDCG += ndcg(orig, pred);
     avgPrec += found/N; 
 
-    nUsers++;
+    numUsers++;
   }
   
-  avgNDCG = avgNDCG/nUsers;
-  avgPrec = avgPrec/nUsers;
+  avgNDCG = avgNDCG/numUsers;
+  avgPrec = avgPrec/numUsers;
   
   //std::cout << "avgNDCG: " << avgNDCG << "avgPrec: " << avgPrec 
   //  << " nUsers: " << nUsers << std::endl; 
@@ -958,7 +958,7 @@ std::pair<float, float> Model::precisionNCall(
     int N, float ratingThresh) {  
   float avgPrecN = 0;
   float oneCall = 0;
-  int nUsers = 0;
+  int numUsers = 0;
 
   std::vector<std::pair<int, float>> actRatings;
   std::unordered_set<int> actItems;
@@ -1026,12 +1026,12 @@ std::pair<float, float> Model::precisionNCall(
       oneCall += 1;
     }
 
-    nUsers++;
+    numUsers++;
   }
   
   oneCall = oneCall/nUsers;
   avgPrecN = avgPrecN/nUsers;
-  std::cout << "nUsers: " << nUsers << " avgPrecN: " << avgPrecN 
+  std::cout << "nUsers: " << numUsers << " avgPrecN: " << avgPrecN 
     << " oneCall: " << oneCall << std::endl;
   return std::make_pair(avgPrecN, oneCall);
 }
@@ -1040,7 +1040,7 @@ std::pair<float, float> Model::precisionNCall(
 float Model::matCorrOrderedRatingsWOSets(
     const std::vector<UserSets>& uSets, gk_csr_t *mat) {
   float corrOrderedPairs = 0;
-  int nUsers = 0;
+  int numUsers = 0;
   std::vector<std::pair<int, float>> itemRatings;
   
   for (auto&& uSet: uSets) {
@@ -1059,7 +1059,7 @@ float Model::matCorrOrderedRatingsWOSets(
     }
 
     corrOrderedPairs += fracCorrOrderedRatingsUser(user, itemRatings);
-    nUsers++;
+    numUsers++;
   }
 
   corrOrderedPairs = corrOrderedPairs/nUsers;
@@ -1114,7 +1114,7 @@ float Model::precisionN(gk_csr_t* testMat, gk_csr_t* valMat, gk_csr_t* trainMat,
     int N) {
   
   float avgPrecN = 0;
-  int nUsers = 0;
+  int numUsers = 0;
 
   std::vector<std::pair<int, float>> actRatings, predRatings;
   std::unordered_set<int> actItems;
@@ -1184,12 +1184,12 @@ float Model::precisionN(gk_csr_t* testMat, gk_csr_t* valMat, gk_csr_t* trainMat,
       avgPrecN += uFound/N;
     }
 
-    nUsers++;
+    numUsers++;
   }
 
-  std::cout << "avgPrecN: " << avgPrecN << " nUsers: " << nUsers << std::endl;
+  std::cout << "avgPrecN: " << avgPrecN << " nUsers: " << numUsers << std::endl;
 
-  avgPrecN = avgPrecN/nUsers;
+  avgPrecN = avgPrecN/numUsers;
     
   return avgPrecN;
 }
@@ -1197,7 +1197,7 @@ float Model::precisionN(gk_csr_t* testMat, gk_csr_t* valMat, gk_csr_t* trainMat,
 
 float Model::corrOrderedItems(
     std::vector<std::vector<std::pair<int, float>>> testRatings) {
-  int nUsers = 0, nURatings = 0;
+  int numUsers = 0, nURatings = 0;
   float corrOrderedPairs = 0, nPairs = 0;
   int firstItem, secondItem;
   float firstRating, secondRating;
@@ -1241,7 +1241,7 @@ float Model::corrOrderedItems(
         nPairs += 1;
       }  
     }
-    nUsers++;
+    numUsers++;
   }
   return corrOrderedPairs/nPairs;
 }
