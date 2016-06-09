@@ -1039,7 +1039,7 @@ std::pair<float, float> Model::precisionNCall(
 
 float Model::matCorrOrderedRatingsWOSets(
     const std::vector<UserSets>& uSets, gk_csr_t *mat) {
-  float corrOrderedPairs = 0;
+  float corrOrderedPairs = 0, nPairs = 0;
   int numUsers = 0;
   std::vector<std::pair<int, float>> itemRatings;
   
@@ -1058,17 +1058,19 @@ float Model::matCorrOrderedRatingsWOSets(
       itemRatings.push_back(std::make_pair(item, rating));
     }
 
-    corrOrderedPairs += fracCorrOrderedRatingsUser(user, itemRatings);
+    auto corrPairs = fracCorrOrderedRatingsUser(user, itemRatings);
+    corrOrderedPairs += corrPairs.first;
+    nPairs += corrPairs.second;
     numUsers++;
   }
 
-  corrOrderedPairs = corrOrderedPairs/nUsers;
+  corrOrderedPairs = corrOrderedPairs/nPairs;
 
   return corrOrderedPairs;
 }
 
 
-float Model::fracCorrOrderedRatingsUser(int user, 
+std::pair<float, float> Model::fracCorrOrderedRatingsUser(int user, 
     std::vector<std::pair<int, float>> itemRatings) {
 
   float corrOrderedPairs = 0, nPairs = 0;
@@ -1098,12 +1100,7 @@ float Model::fracCorrOrderedRatingsUser(int user,
     }
   }
 
-
-  if (nPairs > 0) {
-    corrOrderedPairs = corrOrderedPairs/nPairs;
-  }
-
-  return corrOrderedPairs;
+  return std::make_pair(corrOrderedPairs, nPairs);
 }
 
 
