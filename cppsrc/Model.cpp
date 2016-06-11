@@ -1244,6 +1244,65 @@ float Model::corrOrderedItems(
 }
 
 
+float Model::corrOrderedItems(
+    std::vector<std::vector<std::pair<int, float>>> testRatings,
+    float lb) {
+  int numUsers = 0, nURatings = 0;
+  float corrOrderedPairs = 0, nPairs = 0;
+  int firstItem, secondItem;
+  float firstRating, secondRating;
+  float firstPredRating, secondPredRating;
+
+  if ((int)testRatings.size() != nUsers) {
+    std::cerr << "corrOrderedItems: nUsers and testUsers not equal" 
+      << nUsers << " " << testRatings.size() << std::endl;
+    exit(0);
+  }
+
+  for (auto&& u: trainUsers) {
+    nURatings = testRatings[u].size();
+    
+    if (0 == nURatings) {
+      continue;
+    }
+
+    for (int i = 0; i < nURatings; i++) {
+      firstItem = testRatings[u][i].first;
+      if (trainItems.find(firstItem) == trainItems.end()) {
+        continue;
+      }
+      firstRating = testRatings[u][i].second;
+      firstPredRating = estItemRating(u, firstItem);
+      for (int j = i+1; j < nURatings; j++) {
+        secondItem = testRatings[u][j].first;
+        if (trainItems.find(secondItem) == trainItems.end()) {
+          continue;
+        }
+        secondRating = testRatings[u][j].second;
+
+        if (!((firstRating <= lb && secondRating > lb) || 
+            (firstRating > lb && secondRating <= lb))) {
+          continue; 
+        }
+
+        if (firstRating == secondRating) {
+          continue;
+        }
+        secondPredRating = estItemRating(u, secondItem);
+        if (firstRating < secondRating && firstPredRating < secondPredRating) {
+          corrOrderedPairs += 1; 
+        } else if (firstRating > secondRating && firstPredRating > secondPredRating) {
+          corrOrderedPairs += 1;
+        }
+        nPairs += 1;
+      }  
+    }
+    numUsers++;
+  }
+  return corrOrderedPairs/nPairs;
+}
+
+
 float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets) {
   
   int nPairs = 0;

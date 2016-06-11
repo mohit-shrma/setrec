@@ -23,6 +23,8 @@ void removeSetsWOVal(std::vector<UserSets>& uSets,
     std::unordered_set<int>& valUsers, std::unordered_set<int>& valItems);
 std::vector<std::map<int, float>> getUIRatings(gk_csr_t *mat);
 std::vector<std::tuple<int, int, float>> getUIRatingsTup(gk_csr_t* mat);
+std::vector<std::tuple<int, int, float>> getUIRatingsTup(gk_csr_t* mat, 
+    float lb);
 float inversionCountPairs(std::vector<std::pair<int, float>> actualItemRatings,
     std::vector<std::pair<int, float>> predItemRatings);
 float meanRating(gk_csr_t *mat);
@@ -37,6 +39,9 @@ std::map<int, std::unordered_set<int>> getInvertItemPairs(
     std::mt19937& mt);
 std::vector<UserSets> merge(std::vector<UserSets>& a, std::vector<UserSets>&b);
 int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt);
+int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt,
+    float thresh);
+
 bool checkIf0InCSR(gk_csr_t *mat);
 std::vector<std::vector<std::pair<int, float>>> getUIRatings(gk_csr_t* testMat, 
     gk_csr_t* valMat, int nUsers);
