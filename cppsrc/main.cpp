@@ -21,6 +21,9 @@
 #include "ModelAverageLogWBias.h"
 #include "ModelAverageBPRWBias.h"
 #include "ModelBPR.h"
+#include "ModelBPRTop.h"
+#include "ModelAverageBPRWBiasTop.h"
+
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 23) {
@@ -80,8 +83,8 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
   
-  ModelAverageSetBiasWPart modelAvg(params);
-  ModelAverageSetBiasWPart bestModel(modelAvg);
+  ModelAverageBPRWBiasTop modelAvg(params);
+  ModelAverageBPRWBiasTop bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -222,6 +225,18 @@ int main(int argc, char *argv[]) {
   float corrOrdAllPairs = bestModel.matCorrOrderedRatingsWOSets(data.allSets,
       data.ratMat);
   std::cout << "Ordered pairs excl all sets: " << corrOrdAllPairs 
+    << std::endl;
+  
+  float corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.testValMergeSets, 3);
+  std::cout << "Fraction top correct ordered sets: " << corrOrdSetsTop << std::endl;
+  
+  float corrOrdItemPairsTop = bestModel.corrOrderedItems(
+                                          data.testValRatings, 3);
+  std::cout << "Fraction top item pairs: " << corrOrdItemPairsTop << std::endl;
+
+  float corrOrdAllPairsTop = bestModel.matCorrOrderedRatingsWOSetsTop(data.allSets,
+      data.ratMat, 3);
+  std::cout << "Ordered top pairs excl all sets: " << corrOrdAllPairsTop 
     << std::endl;
 
   /*

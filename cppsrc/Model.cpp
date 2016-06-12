@@ -1104,7 +1104,76 @@ std::pair<float, float> Model::fracCorrOrderedRatingsUser(int user,
 }
 
 
+//count iversions of pairs <=lb, >lb
+std::pair<float, float> Model::fracCorrOrderedRatingsUserTop(int user, 
+    std::vector<std::pair<int, float>> itemRatings, float lb) {
 
+  float corrOrderedPairs = 0, nPairs = 0;
+  int nURatings = itemRatings.size();
+  int firstItem, secondItem;
+  float firstRating, secondRating;
+  float firstPredRating, secondPredRating;
+
+  for (int i = 0; i < nURatings; i++) {
+    
+    firstItem       = itemRatings[i].first;
+    firstRating     = itemRatings[i].second;
+    firstPredRating = estItemRating(user, firstItem);
+
+    for (int j = i+1; j < nURatings; j++) {
+      
+      secondItem       = itemRatings[j].first;
+      secondRating     = itemRatings[j].second;
+      secondPredRating = estItemRating(user, secondItem);
+      
+      if ((firstRating <= lb && secondRating > lb) 
+          || (firstRating > lb && secondRating <= lb)) {
+        if ((firstRating < secondRating && firstPredRating < secondPredRating)
+            ||(firstRating > secondPredRating 
+               && firstPredRating > secondPredRating)) {
+          corrOrderedPairs += 1;
+        } 
+        nPairs += 1;
+      }
+
+    }
+  }
+
+  return std::make_pair(corrOrderedPairs, nPairs);
+}
+
+
+float Model::matCorrOrderedRatingsWOSetsTop(
+    const std::vector<UserSets>& uSets, gk_csr_t *mat, float lb) {
+  float corrOrderedPairs = 0, nPairs = 0;
+  int numUsers = 0;
+  std::vector<std::pair<int, float>> itemRatings;
+  
+  for (auto&& uSet: uSets) {
+    
+    int user = uSet.user;
+    auto setItems = uSet.items;
+    itemRatings.clear();
+    
+    for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+      int item = mat->rowind[ii];
+      if (setItems.find(item) != setItems.end()) {
+        continue;
+      }
+      float rating = mat->rowval[ii];
+      itemRatings.push_back(std::make_pair(item, rating));
+    }
+
+    auto corrPairs = fracCorrOrderedRatingsUserTop(user, itemRatings, lb);
+    corrOrderedPairs += corrPairs.first;
+    nPairs += corrPairs.second;
+    numUsers++;
+  }
+
+  corrOrderedPairs = corrOrderedPairs/nPairs;
+
+  return corrOrderedPairs;
+}
 
 
 float Model::precisionN(gk_csr_t* testMat, gk_csr_t* valMat, gk_csr_t* trainMat,
@@ -1244,6 +1313,7 @@ float Model::corrOrderedItems(
 }
 
 
+//count no. of pairs ordered correctly, such that one is <= lb and ither is > lb
 float Model::corrOrderedItems(
     std::vector<std::vector<std::pair<int, float>>> testRatings,
     float lb) {
@@ -1337,6 +1407,52 @@ float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets) {
           nPairs++;
         }
     
+      } 
+    }
+  }
+
+  //std::cout << "nPairs: " << nPairs << " nCorrOrderedPairs: " 
+  //  << nCorrOrderedPairs << std::endl;
+
+  return nCorrOrderedPairs/nPairs;
+}
+
+
+float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets, float lb) {
+  
+  int nPairs = 0;
+  float nCorrOrderedPairs = 0;
+
+  for (auto&& uSet: uSets) {
+    int nUSets = uSet.itemSets.size();
+    int user = uSet.user;
+    
+    if (invalidUsers.find(user) != invalidUsers.end()) {
+      continue;
+    }
+
+    for (int i = 0; i < nUSets; i++) {
+      
+      float r_ui     = uSet.itemSets[i].second;
+      auto items     = uSet.itemSets[i].first;
+      float r_ui_est = estSetRating(user, items);
+
+      for (int j = i+1; j < nUSets; j++) {
+        
+        float r_uj     = uSet.itemSets[j].second;
+        auto items     = uSet.itemSets[j].first;
+        float r_uj_est = estSetRating(user, items);
+        
+        if (r_uj != r_ui) {
+          if ((r_ui <= lb && r_uj > lb) || (r_ui > lb && r_uj <= lb)) {
+            if ((r_uj > r_ui && r_uj_est > r_ui_est) ||
+                (r_uj < r_ui && r_uj_est < r_ui_est)) {
+              nCorrOrderedPairs += 1;
+            }
+            nPairs++;
+          }
+        }
+        
       } 
     }
   }

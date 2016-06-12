@@ -155,14 +155,18 @@ class UserSets {
       }
       
       if (itemSets[secondInd].second == itemSets[firstInd].second) {
-        //manual search for low, high ind
-        for (size_t i = 0; i < itemSets.size(); i++) {
+        //manual search for high ind
+        std::vector<int> setInds(itemSets.size());
+        std::iota(setInds.begin(), setInds.end(), 0);
+        std::shuffle(setInds.begin(), setInds.end(), mt);
+
+        for (auto i : setInds) {
           if (itemSets[i].second != itemSets[firstInd].second) {
             secondInd = i;
-          } else if (itemSets[i].second != itemSets[secondInd].second) {
-            firstInd = i;
-          }
+            break;
+          } 
         }
+
       }
       
       if (itemSets[secondInd].second != itemSets[firstInd].second) {
@@ -178,6 +182,63 @@ class UserSets {
       return std::make_pair(highInd, lowInd);
     }
 
+
+    //sample sets s,t such that r_us <= lb, r_ut > lb
+    std::pair<int, int> sampPosNeg(std::mt19937& mt, int lb) {
+      std::uniform_int_distribution<int> dist(0, itemSets.size()-1);
+      
+      //sample first set
+      int firstInd = dist(mt);
+      int secondInd = -1;
+      int highInd = -1, lowInd = -1;
+
+      for (int i = 0; i < 50; i++) {
+        //sample second set
+        secondInd = dist(mt);
+        if (itemSets[firstInd].second  <= lb) {
+          if (itemSets[secondInd].second > lb) {
+            break;
+          }
+        } else if (itemSets[firstInd].second  > lb) {
+          if (itemSets[secondInd].second <= lb) {
+            break;
+          }
+        }
+      }
+      
+      if (itemSets[secondInd].second == itemSets[firstInd].second) {
+        //manual search for second
+        std::vector<int> setInds(itemSets.size());
+        std::iota(setInds.begin(), setInds.end(), 0);
+        std::shuffle(setInds.begin(), setInds.end(), mt);
+        for (auto i : setInds) {
+          if (itemSets[firstInd].second <= lb) {
+            if (itemSets[i].second > lb)  {
+              secondInd = i;
+              break;
+            }
+          } else if (itemSets[firstInd].second > lb) {
+            if (itemSets[i].second <= lb) {
+              secondInd = i;
+              break;
+            }
+          }
+        }
+      }
+     
+      if ((itemSets[firstInd].second <= lb && itemSets[secondInd].second > lb)
+          || (itemSets[firstInd].second > lb && itemSets[secondInd].second <= lb)) {
+        if (itemSets[firstInd].second > itemSets[secondInd].second) {
+          highInd = firstInd;
+          lowInd = secondInd;
+        } else {
+          highInd = secondInd;
+          lowInd = firstInd;
+        }
+      }
+
+      return std::make_pair(highInd, lowInd);
+    }
     
     UserSets operator+(const UserSets& b) {
       std::vector<std::pair<std::vector<int>, float>> combItemSets;

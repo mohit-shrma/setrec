@@ -1,27 +1,46 @@
-#include "ModelAverageBPRWBias.h"
+#include "ModelAverageBPRWBiasTop.h"
 
-float ModelAverageBPRWBias::estItemRating(int user, int item) {
-  bool uFound = false, iFound = true;
-  float rating = 0;
-  if (trainUsers.find(user) != trainUsers.end() &&
-      invalidUsers.find(user) == invalidUsers.end()) {
-    uFound = true;
+
+bool ModelAverageBPRWBiasTop::isTerminateRankSetModel(Model& bestModel, 
+    const Data& data, int iter, int& bestIter, float& prevValRecall,
+    float& bestValRecall, float lb) {
+  bool ret = false;
+  float currValRecall = fracCorrOrderedSets(data.testValMergeSets, lb);
+  
+  if (iter > 0) {
+    if (currValRecall > bestValRecall) {
+      bestModel     = *this;
+      bestValRecall = currValRecall;
+      bestIter      = iter;
+    } 
+    
+    if (iter - bestIter >= CHANCE_ITER) {
+      //cant improve validation RMSE
+      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter  
+        << " bestValRecall: " << bestValRecall << " currIter: "
+        << iter << " currValRecall: " << currValRecall << std::endl;
+      ret = true;
+    }
+  
   }
-  if (trainItems.find(item) != trainItems.end()) {
-    iFound = true;
-    rating += iBias(item);
+
+  if (0 == iter) {
+    bestValRecall = currValRecall;
+    bestIter      = iter;
+    bestModel     = *this;
   }
-  if (uFound && iFound) {
-    rating += U.row(user).dot(V.row(item));
-  }
-  return rating;
+
+  prevValRecall = currValRecall;
+  return ret;
+
+
 }
 
 
-void ModelAverageBPRWBias::train(const Data& data, const Params& params,
+void ModelAverageBPRWBiasTop::train(const Data& data, const Params& params, 
     Model& bestModel) {
-  
-  std::cout << "ModelAverageBPRWBias::train" << std::endl;
+    
+  std::cout << "ModelAverageBPRWBiasTop::train" << std::endl;
   
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
@@ -40,9 +59,9 @@ void ModelAverageBPRWBias::train(const Data& data, const Params& params,
   trainItems = data.trainItems;
   std::cout << "train Users: " << trainUsers.size() 
     << " trainItems: " << trainItems.size() << std::endl;
-  
-  std::unordered_set<int> updUsers; 
 
+  std::unordered_set<int> updUsers; 
+  
   for (int iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uInds.begin(), uInds.end(), mt);
     int skippedCount = 0;
@@ -58,7 +77,8 @@ void ModelAverageBPRWBias::train(const Data& data, const Params& params,
         }
         
         //sample high and low set ind for the user
-        auto hiLo = uSet.sampPosNeg(mt);
+        //r_us <= 3, r_ut > 3
+        auto hiLo = uSet.sampPosNeg(mt, 3);
        
         int hiSetInd = hiLo.first;
         int loSetInd = hiLo.second;
@@ -139,7 +159,7 @@ void ModelAverageBPRWBias::train(const Data& data, const Params& params,
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       if (isTerminateRankSetModel(bestModel, data, iter, bestIter, 
-            prevValRecall, bestValRecall)) {
+            prevValRecall, bestValRecall, 3.0)) {
         break;
       }
       if (iter % 10 == 0 || iter == params.maxIter-1) {
@@ -163,6 +183,7 @@ void ModelAverageBPRWBias::train(const Data& data, const Params& params,
   }
   
   std::cout << "No.  of invalid users: " << invalidUsers.size() << std::endl;
-  //bestModel.save(params.prefix);
+ 
 }
+
 

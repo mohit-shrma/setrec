@@ -35,7 +35,7 @@ bool ModelBPRTop::isTerminatePrecisionModel(Model& bestModel, const Data& data,
 }
 
 void ModelBPRTop::train(const Data& data, const Params& params, Model& bestModel) {
-  std::cout << "ModelBPR::train" << std::endl;
+  std::cout << "ModelBPRTop::train" << std::endl;
   
   int u, posItem, negItem, iter, bestIter;
   float r_ui, r_ui_est, r_uj_est, r_uij_est;
@@ -49,7 +49,8 @@ void ModelBPRTop::train(const Data& data, const Params& params, Model& bestModel
 
   //initialize random engine
   std::mt19937 mt(params.seed);
-
+  
+  //get ratings > 3.0
   auto uiRatings = getUIRatingsTup(data.partTrainMat, 3.0);
   std::cout << "nUIRatings: " << uiRatings.size() << std::endl;
 
@@ -57,9 +58,6 @@ void ModelBPRTop::train(const Data& data, const Params& params, Model& bestModel
   
   std::unordered_set<int> updUsers; 
   
-  //TODO: add convergence criteria which looks for ordering between >3 and <3
-  //rated items
-
   for (iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uiRatings.begin(), uiRatings.end(), mt);
     int skippedCount = 0;
@@ -69,7 +67,7 @@ void ModelBPRTop::train(const Data& data, const Params& params, Model& bestModel
       posItem = std::get<1>(uiRating);
       r_ui    = std::get<2>(uiRating);
       
-      //sample neg item or item with lower rating than r_ui
+      //sample neg item or item with lower rating than <= 3.0
       negItem = sampleNegItem(data.partTrainMat, u, r_ui, mt, 3.0);
 
       if (-1 == negItem) {
