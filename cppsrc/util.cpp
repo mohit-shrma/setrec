@@ -204,6 +204,23 @@ std::vector<std::tuple<int, int, float>> getUIRatingsTup(gk_csr_t* mat) {
   return uiRatings;
 }
 
+//will return rating > lb
+std::vector<std::tuple<int, int, float>> getUIRatingsTup(gk_csr_t* mat, 
+    float lb) {
+  std::vector<std::tuple<int, int, float>> uiRatings;
+  for (int u = 0; u < mat->nrows; u++) {
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      int item = mat->rowind[ii];
+      float rating = mat->rowval[ii];
+      if (rating <= lb) {
+        continue;
+      }
+      uiRatings.push_back(std::make_tuple(u, item, rating));
+    }
+  }
+  return uiRatings;
+}
+
 
 float inversionCountPairs(std::vector<std::pair<int, float>> actualItemRatings,
     std::vector<std::pair<int, float>> predItemRatings) {
@@ -439,6 +456,55 @@ int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt) {
     r_uj = mat->rowval[startInd + rInd];
 
     if (r_uj < r_ui) {
+      //found an item rated explicitly low
+      break;
+    } else {
+      //find an implicit 0
+      if (0 == rInd) {
+        start = 0;
+        end = j; //first rated item
+      } else if (nRatedItems - 1 == rInd) {
+        start = j + 1; //item appearing after last rated items
+        end = mat->ncols;
+      } else {
+        start = j + 1; //item after j
+        end = mat->rowind[startInd + rInd  + 1]; //item rated after jth item
+      }
+    }
+
+    if (end - start > 0) {
+      j = dist2(mt)%(end - start) + start;
+    }
+
+    nTry++;
+  }
+ 
+  if (100 == nTry) {
+    j = -1;
+  }
+
+  return j;
+}
+
+//sample neg item with rating <= thresh
+int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt,
+    float thresh) {
+  
+  int nRatedItems = mat->rowptr[u+1] - mat->rowptr[u];
+  std::uniform_int_distribution<int> dist(0, nRatedItems-1);
+  std::uniform_int_distribution<int> dist2(0, mat->ncols-1);
+  
+  int j = -1, nTry = 0, rInd, startInd;
+  float r_uj;
+  int start, end;
+
+  while (nTry < 100) {
+    rInd = dist(mt);
+    startInd = mat->rowptr[u];
+    j = mat->rowind[startInd + rInd];
+    r_uj = mat->rowval[startInd + rInd];
+
+    if (r_uj < r_ui && r_uj <= thresh) {
       //found an item rated explicitly low
       break;
     } else {
