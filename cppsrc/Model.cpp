@@ -979,7 +979,7 @@ std::pair<float, float> Model::precisionNCall(
     for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
       int item = mat->rowind[ii];
       float rating = mat->rowval[ii];
-      if (rating < ratingThresh) {
+      if (rating <= ratingThresh) {
         continue;
       }
       if (setItems.find(item) != setItems.end()) {
@@ -1417,7 +1417,7 @@ float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets) {
   return nCorrOrderedPairs/nPairs;
 }
 
-
+//compute fraction of correctly ordered pair of sets such that r_us <= lb, r_ut > lb
 float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets, float lb) {
   
   int nPairs = 0;

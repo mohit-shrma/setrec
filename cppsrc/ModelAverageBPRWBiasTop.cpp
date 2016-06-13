@@ -77,8 +77,8 @@ void ModelAverageBPRWBiasTop::train(const Data& data, const Params& params,
         }
         
         //sample high and low set ind for the user
-        //r_us <= 3, r_ut > 3
-        auto hiLo = uSet.sampPosNeg(mt, 3);
+        //r_us <= TOP_RAT_THRESH, r_ut > TOP_RAT_THRESH
+        auto hiLo = uSet.sampPosNeg(mt, TOP_RAT_THRESH);
        
         int hiSetInd = hiLo.first;
         int loSetInd = hiLo.second;
@@ -159,7 +159,7 @@ void ModelAverageBPRWBiasTop::train(const Data& data, const Params& params,
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       if (isTerminateRankSetModel(bestModel, data, iter, bestIter, 
-            prevValRecall, bestValRecall, 3.0)) {
+            prevValRecall, bestValRecall, TOP_RAT_THRESH)) {
         break;
       }
       if (iter % 10 == 0 || iter == params.maxIter-1) {

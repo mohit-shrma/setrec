@@ -205,12 +205,12 @@ int main(int argc, char *argv[]) {
   std::cout << "Inversion count: " << invCount << std::endl;
 
   auto precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat,
-      5, 4);
+      5, TOP_RAT_THRESH);
   std::cout << "Precision@5: " << precisionNCall.first << std::endl;
   std::cout << "OneCall@5: " << precisionNCall.second << std::endl;
   
   precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat,
-      10, 4);
+      10, TOP_RAT_THRESH);
   std::cout << "Precision@10: " << precisionNCall.first << std::endl;
   std::cout << "OneCall@10: " << precisionNCall.second << std::endl;
 
@@ -227,15 +227,15 @@ int main(int argc, char *argv[]) {
   std::cout << "Ordered pairs excl all sets: " << corrOrdAllPairs 
     << std::endl;
   
-  float corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.testValMergeSets, 3);
+  float corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.testValMergeSets, TOP_RAT_THRESH);
   std::cout << "Fraction top correct ordered sets: " << corrOrdSetsTop << std::endl;
   
   float corrOrdItemPairsTop = bestModel.corrOrderedItems(
-                                          data.testValRatings, 3);
+                                          data.testValRatings, TOP_RAT_THRESH);
   std::cout << "Fraction top item pairs: " << corrOrdItemPairsTop << std::endl;
 
   float corrOrdAllPairsTop = bestModel.matCorrOrderedRatingsWOSetsTop(data.allSets,
-      data.ratMat, 3);
+      data.ratMat, TOP_RAT_THRESH);
   std::cout << "Ordered top pairs excl all sets: " << corrOrdAllPairsTop 
     << std::endl;
 

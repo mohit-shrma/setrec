@@ -5,7 +5,7 @@ bool ModelBPRTop::isTerminatePrecisionModel(Model& bestModel, const Data& data,
     int iter, int& bestIter, float& bestValRecall, float& prevValRecall) {
 
   bool ret = false;
-  float currValRecall = corrOrderedItems(testRatings, 3);
+  float currValRecall = corrOrderedItems(testRatings, TOP_RAT_THRESH);
   
   if (iter > 0) {
     if (currValRecall > bestValRecall) {
@@ -50,8 +50,8 @@ void ModelBPRTop::train(const Data& data, const Params& params, Model& bestModel
   //initialize random engine
   std::mt19937 mt(params.seed);
   
-  //get ratings > 3.0
-  auto uiRatings = getUIRatingsTup(data.partTrainMat, 3.0);
+  //get ratings > TOP_RAT_THRESH
+  auto uiRatings = getUIRatingsTup(data.partTrainMat, TOP_RAT_THRESH);
   std::cout << "nUIRatings: " << uiRatings.size() << std::endl;
 
   auto testRatings = getUIRatings(data.partTestMat, data.partValMat, nUsers);
@@ -67,8 +67,8 @@ void ModelBPRTop::train(const Data& data, const Params& params, Model& bestModel
       posItem = std::get<1>(uiRating);
       r_ui    = std::get<2>(uiRating);
       
-      //sample neg item or item with lower rating than <= 3.0
-      negItem = sampleNegItem(data.partTrainMat, u, r_ui, mt, 3.0);
+      //sample neg item or item with lower rating than <= TOP_RAT_THRESH
+      negItem = sampleNegItem(data.partTrainMat, u, r_ui, mt, TOP_RAT_THRESH);
 
       if (-1 == negItem) {
         skippedCount++;
