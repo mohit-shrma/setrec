@@ -133,77 +133,6 @@ int main(int argc, char *argv[]) {
   std::cout << "Test RMSE: " << testRatingsRMSE << std::endl;
   std::cout << "Val RMSE: " << valRatingsRMSE << std::endl; 
 
-  //std::cout << "Under sets RMSE: " << bestModel.rmse(undSets) << std::endl;
-  //std::cout << "Over sets RMSE: " << bestModel.rmse(ovrSets) << std::endl;
-
-  //float recN = bestModel.recallTopN(data.ratMat, data.trainSets, 10);
-  //float spN = bestModel.spearmanRankN(data.ratMat, data.trainSets, 10);
-
-  /*
-  auto itemFreq = getItemFreq(data.trainSets);
-  
-  auto trainItemsRMSE = bestModel.itemRMSE(data.trainSets, data.ratMat);
-  writeItemRMSEFreq(itemFreq, trainItemsRMSE, "trainItemsRMSE.txt");
-
-  auto testItemsRMSE = bestModel.itemRMSE(data.testSets, data.ratMat);
-  writeItemRMSEFreq(itemFreq, testItemsRMSE, "testItemsRMSE.txt");
-  
-  auto valItemsRMSE = bestModel.itemRMSE(data.valSets, data.ratMat);
-  writeItemRMSEFreq(itemFreq, valItemsRMSE, "valItemsRMSE.txt");
-  */
-
-  //std::cout << "Inversion count: " << bestModel.inversionCount(data.partTestMat, 
-  //    data.trainSets, 10) << std::endl;
-  std::cout << "Val recall: " << bestModel.recallHit(data.trainSets, data.valUItems, 
-      data.ignoreUItems, 10) << std::endl;
-  std::cout << "Test recall: " << bestModel.recallHit(data.trainSets, data.testUItems, 
-      data.ignoreUItems, 10) << std::endl;
- 
-  std::cout << "Size validation set: " << data.valURatings.size() << std::endl;
-  auto valNDCGPrec = bestModel.ratingsNDCGPrecK(data.trainSets, data.valURatings, 10);
-  std::cout << "Val NDCG: " << valNDCGPrec.first << " Prec: " 
-    << valNDCGPrec.second << std::endl;
-
-  std::cout << "Size test set: " << data.testURatings.size() << std::endl;
-  auto testNDCGPrec = bestModel.ratingsNDCGPrecK(data.trainSets, data.testURatings, 10);
-  std::cout << "Test NDCG: " << testNDCGPrec.first << " Prec: " 
-    << testNDCGPrec.second << std::endl;
-
-  auto valNDCGOrd = bestModel.ratingsNDCG(data.valURatings);
-  std::cout << "Val NDCG ord: " << valNDCGOrd << std::endl;
-  auto testNDCGOrd = bestModel.ratingsNDCG(data.testURatings);
-  std::cout << "Test NDCG ord: " << testNDCGOrd << std::endl;
-
-  /*
-  valNDCGOrd = bestModel.ratingsNDCGRel(data.valURatings);
-  std::cout << "Val NDCGRel ord: " << valNDCGOrd << std::endl;
-  testNDCGOrd = bestModel.ratingsNDCGRel(data.testURatings);
-  std::cout << "Test NDCGRel ord: " << testNDCGOrd << std::endl;
-  */
-  
-  /*
-  std::mt19937 mt(params.seed);
-  valNDCGOrd = bestModel.ratingsNDCGRelRand(data.valURatings, mt);
-  std::cout << "Val NDCGRel ord: " << valNDCGOrd << std::endl;
-  testNDCGOrd = bestModel.ratingsNDCGRelRand(data.testURatings, mt);
-  std::cout << "Test NDCGRel ord: " << testNDCGOrd << std::endl;
-  */
-  
-  valNDCGOrd = bestModel.ratingsNDCGRel(data.valURatings);
-  std::cout << "Val NDCGRel ord: " << valNDCGOrd << std::endl;
-  testNDCGOrd = bestModel.ratingsNDCGRel(data.testURatings);
-  std::cout << "Test NDCGRel ord: " << testNDCGOrd << std::endl;
-
-  std::cout << "Val Random inversion count: " 
-    << bestModel.invertRandPairCount(data.partValMat, data.trainSets, 
-        params.seed) <<std::endl;
-  std::cout << "Test Random inversion count: " 
-    << bestModel.invertRandPairCount(data.partTestMat, data.trainSets, 
-        params.seed) <<std::endl;
-
-  auto invCount = bestModel.invertRandPairCount(data.allTriplets);
-  std::cout << "Inversion count: " << invCount << std::endl;
-
   auto precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat,
       5, TOP_RAT_THRESH);
   std::cout << "Precision@5: " << precisionNCall.first << std::endl;
@@ -214,44 +143,26 @@ int main(int argc, char *argv[]) {
   std::cout << "Precision@10: " << precisionNCall.first << std::endl;
   std::cout << "OneCall@10: " << precisionNCall.second << std::endl;
 
-  float corrOrdSets = bestModel.fracCorrOrderedSets(data.testValMergeSets);
-  std::cout << "Fraction of correct ordered sets: " << corrOrdSets << std::endl;
-  std::cout << "RMSE of ratings not in sets: " << bestModel.rmseNotSets(
-      data.allSets, data.ratMat) << std::endl;
-  
-  float corrOrdItemPairs = bestModel.corrOrderedItems(data.testValRatings);
-  std::cout << "Fraction of correct ordered item pairs: " << corrOrdItemPairs << std::endl;
-  
-  float corrOrdAllPairs = bestModel.matCorrOrderedRatingsWOSets(data.allSets,
-      data.ratMat);
-  std::cout << "Ordered pairs excl all sets: " << corrOrdAllPairs 
+  float corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.valSets, 
+      TOP_RAT_THRESH);
+  std::cout << "Fraction top val correct ordered sets: " << corrOrdSetsTop 
     << std::endl;
-  
-  float corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.testValMergeSets, TOP_RAT_THRESH);
-  std::cout << "Fraction top correct ordered sets: " << corrOrdSetsTop << std::endl;
-  
+  corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.testSets, TOP_RAT_THRESH);
+  std::cout << "Fraction top test correct ordered sets: " << corrOrdSetsTop 
+    << std::endl;
+
   float corrOrdItemPairsTop = bestModel.corrOrderedItems(
-                                          data.testValRatings, TOP_RAT_THRESH);
-  std::cout << "Fraction top item pairs: " << corrOrdItemPairsTop << std::endl;
+                                          data.partValMat, TOP_RAT_THRESH);
+  std::cout << "Fraction top val item pairs: " << corrOrdItemPairsTop << std::endl;
+  
+  corrOrdItemPairsTop = bestModel.corrOrderedItems(
+                                          data.partTestMat, TOP_RAT_THRESH);
+  std::cout << "Fraction top test item pairs: " << corrOrdItemPairsTop << std::endl;
 
   float corrOrdAllPairsTop = bestModel.matCorrOrderedRatingsWOSetsTop(data.allSets,
       data.ratMat, TOP_RAT_THRESH);
   std::cout << "Ordered top pairs excl all sets: " << corrOrdAllPairsTop 
     << std::endl;
-
-  /*
-  std::vector<int> invalItems = readVector(
-      "mfbias_854X12548_5_0.010000_0.010000_0.001000_invalItems.txt");
-  std::unordered_set<int> invalSet(invalItems.begin(), invalItems.end());
-  std::cout << "inval RMSE: " << bestModel.rmse(data.partTestMat, invalSet) << std::endl;
-  */
-  /* 
-  std::cout << "\nRE: " <<  params.facDim << " " << params.uReg << " " 
-    << params.iReg << " " << params.learnRate << " " << trainRMSE << " " 
-    << testRMSE << " " << valRMSE << " " << trainRatingsRMSE << " " 
-    << testRatingsRMSE << " " << valRatingsRMSE
-    << " " << recN <<  " " << spN << std::endl;
-  */
 
   return 0;
 }

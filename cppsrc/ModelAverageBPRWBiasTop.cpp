@@ -5,7 +5,7 @@ bool ModelAverageBPRWBiasTop::isTerminateRankSetModel(Model& bestModel,
     const Data& data, int iter, int& bestIter, float& prevValRecall,
     float& bestValRecall, float lb) {
   bool ret = false;
-  float currValRecall = fracCorrOrderedSets(data.testValMergeSets, lb);
+  float currValRecall = fracCorrOrderedSets(data.valSets, lb);
   
   if (iter > 0) {
     if (currValRecall > bestValRecall) {

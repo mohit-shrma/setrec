@@ -1373,6 +1373,49 @@ float Model::corrOrderedItems(
 }
 
 
+float Model::corrOrderedItems(gk_csr_t *mat, float lb) {
+  int numUsers = 0;
+  float corrOrderedPairs = 0, nPairs = 0;
+  int firstItem, secondItem;
+  float firstRating, secondRating;
+  float firstPredRating, secondPredRating;
+
+  for (int u = 0; u < mat->nrows; u++) {
+    
+    if (mat->rowptr[u+1] - mat->rowptr[u] < 2) {
+      continue;
+    }
+
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      firstItem = mat->rowind[ii];
+      firstRating = mat->rowval[ii];
+      firstPredRating = estItemRating(u, firstItem);
+      for (int jj = mat->rowptr[u]+1; jj < mat->rowptr[u+1]; jj++) {
+        secondItem = mat->rowind[jj];
+        secondRating = mat->rowval[jj];
+        if (!((firstRating <= lb && secondRating > lb) || 
+            (firstRating > lb && secondRating <= lb))) {
+          continue; 
+        }
+        if (firstRating == secondRating) {
+          continue;
+        }
+        secondPredRating = estItemRating(u, secondItem);
+        if (firstRating < secondRating && firstPredRating < secondPredRating) {
+          corrOrderedPairs += 1; 
+        } else if (firstRating > secondRating && firstPredRating > secondPredRating) {
+          corrOrderedPairs += 1;
+        }
+        nPairs += 1;
+      }
+    }
+    numUsers++;
+  }
+  
+  return corrOrderedPairs/nPairs;
+}
+
+
 float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets) {
   
   int nPairs = 0;
