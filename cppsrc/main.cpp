@@ -83,8 +83,8 @@ int main(int argc, char *argv[]) {
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
   
-  ModelAverageBPRWBiasTop modelAvg(params);
-  ModelAverageBPRWBiasTop bestModel(modelAvg);
+  ModelMFWBias modelAvg(params);
+  ModelMFWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -129,10 +129,12 @@ int main(int argc, char *argv[]) {
   float trainRatingsRMSE   = bestModel.rmse(data.partTrainMat);
   float testRatingsRMSE    = bestModel.rmse(data.partTestMat);
   float valRatingsRMSE     = bestModel.rmse(data.partValMat);
+  float notSetRMSE         = bestModel.rmseNotSets(data.allSets, data.ratMat);
+
   std::cout << "Train RMSE: " << trainRatingsRMSE << std::endl;
   std::cout << "Test RMSE: " << testRatingsRMSE << std::endl;
   std::cout << "Val RMSE: " << valRatingsRMSE << std::endl; 
-
+  std::cout << "Test All Mat RMSE: " << notSetRMSE << std::endl;
   auto precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat,
       5, TOP_RAT_THRESH);
   std::cout << "Precision@5: " << precisionNCall.first << std::endl;
