@@ -27,20 +27,15 @@ def parseFilesForRes(ipFName):
   oneCall10Dic   = {}
   ds.append(oneCall10Dic)
   
-  ordItemPairDic     = {}
-  ds.append(ordItemPairDic)
-  ordSetPairDic      = {}
-  ds.append(ordSetPairDic)
-  ordTestItemPairDic = {}
-  ds.append(ordTestItemPairDic)
-
   valRMSEDic     = {}
   ds.append(valRMSEDic)
   testRMSEDic    = {}
   ds.append(testRMSEDic)
   trainRMSEDic   = {}
   ds.append(trainRMSEDic)
-  
+  testAllRMSEDic = {}
+  ds.append(testAllRMSEDic)
+
   valSRMSEDic    = {}
   ds.append(valSRMSEDic)
   testSRMSEDic   = {}
@@ -48,10 +43,16 @@ def parseFilesForRes(ipFName):
   trainSRMSEDic  = {}
   ds.append(trainSRMSEDic)
  
-  topSetBPRDic       = {}
-  ds.append(topSetBPRDic)
-  topItemBPRDic      = {}
-  ds.append(topItemBPRDic)
+  topValSetBPRDic       = {}
+  ds.append(topValSetBPRDic)
+  topTestSetBPRDic       = {}
+  ds.append(topTestSetBPRDic)
+
+  topValItemBPRDic      = {}
+  ds.append(topValItemBPRDic)
+  topTestItemBPRDic      = {}
+  ds.append(topTestItemBPRDic)
+
   topTestItemPairDic = {}
   ds.append(topTestItemPairDic)
 
@@ -76,19 +77,14 @@ def parseFilesForRes(ipFName):
           if fLine.startswith('OneCall@10:'):
             updateDic(oneCall10Dic, bk, fLine)
 
-          if fLine.startswith('Fraction of correct ordered set'):
-            updateDic(ordSetPairDic, bk, fLine)
-          if fLine.startswith('Fraction of correct ordered item'):
-            updateDic(ordItemPairDic, bk, fLine)
-          if fLine.startswith("Ordered pairs exc"):
-            updateDic(ordTestItemPairDic, bk, fLine)
-
           if fLine.startswith("Val RM"):
             updateDic(valRMSEDic, bk, fLine)
           if fLine.startswith("Test RM"):
             updateDic(testRMSEDic, bk, fLine)
           if fLine.startswith("Train RM"):
             updateDic(trainRMSEDic, bk, fLine)
+          if fLine.startswith('Test All Mat RM'):
+            updateDic(testAllRMSEDic)
 
           if fLine.startswith("Val set"):
             updateDic(valSRMSEDic, bk, fLine)
@@ -96,11 +92,17 @@ def parseFilesForRes(ipFName):
             updateDic(testSRMSEDic, bk, fLine)
           if fLine.startswith('Train set') or 'Train sets RMSE:' in fLine:
             updateDic(trainSRMSEDic, bk, fLine)
+          
+          if fLine.startswith("Fraction top val correct ordered sets"):
+            updateDic(topValSetBPRDic, bk, fLine)
+          if fLine.startswith("Fraction top test correct ordered sets"):
+            updateDic(topTestSetBPRDic, bk, fLine)
+          
+          if fLine.startswith("Fraction top val item pair"):
+            updateDic(topValItemBPRDic, bk, fLine)
+          if fLine.startswith("Fraction top test item pairs:"):
+            updateDic(topTestItemBPRDic, bk, fLine)
 
-          if fLine.startswith("Fraction top correct ordered set"):
-            updateDic(topSetBPRDic, bk, fLine)
-          if fLine.startswith("Fraction top item"):
-            updateDic(topItemBPRDic, bk, fLine)
           if fLine.startswith("Ordered top pairs"):
             updateDic(topTestItemPairDic, bk, fLine)
 
@@ -118,12 +120,11 @@ def parseFilesForRes(ipFName):
     print k + ' ' + str(prec5Dic[k][0]) + ' ' + str(prec10Dic[k][0]) + \
         ' ' + str(oneCall5Dic[k][0]) + ' ' + str(oneCall10Dic[k][0]) + \
         ' ' + str(trainRMSEDic[k][0]) + ' ' + str(valRMSEDic[k][0]) + \
-        ' ' + str(testRMSEDic[k][0]) + \
+        ' ' + str(testRMSEDic[k][0]) +  ' ' +  str(testAllRMSEDic[k][0]) + \
         ' ' + str(trainSRMSEDic[k][0]) + ' ' + str(valSRMSEDic[k][0]) + \
         ' ' + str(testSRMSEDic[k][0]) + \
-        ' ' + str(ordSetPairDic[k][0]) + ' ' + str(ordItemPairDic[k][0]) + \
-        ' ' + str(ordTestItemPairDic[k][0]) + \
-        ' ' + str(topSetBPRDic[k][0]) + ' ' + str(topItemBPRDic[k][0]) + \
+        ' ' + str(topValSetBPRDic[k][0]) + ' ' + str(topTestSetBPRDic[k][0]) + \
+        ' ' + str(topValItemBPRDic[k][0]) + ' ' + str(topTestItemBPRDic[k][1]) + \
         ' ' + str(topTestItemPairDic[k][0]) + \
         ' ' + str(prec5Dic[k][1]) 
   
