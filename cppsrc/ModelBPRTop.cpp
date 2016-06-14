@@ -1,11 +1,10 @@
 #include "ModelBPRTop.h"
 
 bool ModelBPRTop::isTerminatePrecisionModel(Model& bestModel, const Data& data,
-    std::vector<std::vector<std::pair<int, float>>> testRatings,
     int iter, int& bestIter, float& bestValRecall, float& prevValRecall) {
 
   bool ret = false;
-  float currValRecall = corrOrderedItems(testRatings, TOP_RAT_THRESH);
+  float currValRecall = corrOrderedItems(data.partValMat, TOP_RAT_THRESH);
   
   if (iter > 0) {
     if (currValRecall > bestValRecall) {
@@ -53,8 +52,6 @@ void ModelBPRTop::train(const Data& data, const Params& params, Model& bestModel
   //get ratings > TOP_RAT_THRESH
   auto uiRatings = getUIRatingsTup(data.partTrainMat, TOP_RAT_THRESH);
   std::cout << "nUIRatings: " << uiRatings.size() << std::endl;
-
-  auto testRatings = getUIRatings(data.partTestMat, data.partValMat, nUsers);
   
   std::unordered_set<int> updUsers; 
   
@@ -99,7 +96,7 @@ void ModelBPRTop::train(const Data& data, const Params& params, Model& bestModel
 
     //convergence check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter -1) {
-      if (isTerminatePrecisionModel(bestModel, data, testRatings, iter, bestIter, 
+      if (isTerminatePrecisionModel(bestModel, data, iter, bestIter, 
             bestValRecall, prevValRecall)) {
         break;
       }

@@ -128,6 +128,7 @@ class Model {
     std::vector<std::pair<int, float>> itemRatings, float lb);
   float matCorrOrderedRatingsWOSetsTop(
     const std::vector<UserSets>& uSets, gk_csr_t *mat, float lb);
+  float corrOrderedItems(gk_csr_t *mat, float lb);
 };
 
 
