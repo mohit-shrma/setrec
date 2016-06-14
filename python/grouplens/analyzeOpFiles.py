@@ -16,27 +16,44 @@ def averageDic(dic):
 
 
 def parseFilesForRes(ipFName):
+  ds = []
   prec5Dic       = {}
+  ds.append(prec5Dic)
   prec10Dic      = {}
+  ds.append(prec10Dic)
   
   oneCall5Dic    = {}
+  ds.append(oneCall5Dic)
   oneCall10Dic   = {}
+  ds.append(oneCall10Dic)
   
   ordItemPairDic     = {}
+  ds.append(ordItemPairDic)
   ordSetPairDic      = {}
+  ds.append(ordSetPairDic)
   ordTestItemPairDic = {}
+  ds.append(ordTestItemPairDic)
 
   valRMSEDic     = {}
+  ds.append(valRMSEDic)
   testRMSEDic    = {}
+  ds.append(testRMSEDic)
   trainRMSEDic   = {}
+  ds.append(trainRMSEDic)
   
   valSRMSEDic    = {}
+  ds.append(valSRMSEDic)
   testSRMSEDic   = {}
+  ds.append(testSRMSEDic)
   trainSRMSEDic  = {}
+  ds.append(trainSRMSEDic)
  
   topSetBPRDic       = {}
+  ds.append(topSetBPRDic)
   topItemBPRDic      = {}
+  ds.append(topItemBPRDic)
   topTestItemPairDic = {}
+  ds.append(topTestItemPairDic)
 
   keys = set([])
   with open(ipFName, 'r') as f:
@@ -49,14 +66,14 @@ def parseFilesForRes(ipFName):
         keys.add(bk)
         for fLine in h:
           
-          if fLine.startswith('Precision@5'): 
+          if fLine.startswith('Precision@5:'): 
             updateDic(prec5Dic, bk, fLine)
-          if fLine.startswith('Precision@10'):
+          if fLine.startswith('Precision@10:'):
             updateDic(prec10Dic, bk, fLine)
           
-          if fLine.startswith('OneCall@5'):
+          if fLine.startswith('OneCall@5:'):
             updateDic(oneCall5Dic, bk, fLine)
-          if fLine.startswith('OneCall@10'):
+          if fLine.startswith('OneCall@10:'):
             updateDic(oneCall10Dic, bk, fLine)
 
           if fLine.startswith('Fraction of correct ordered set'):
@@ -87,55 +104,8 @@ def parseFilesForRes(ipFName):
           if fLine.startswith("Ordered top pairs"):
             updateDic(topTestItemPairDic, bk, fLine)
 
-  ds = []
- 
-  averageDic(prec5Dic)  
-  ds.append(prec5Dic)
-
-  averageDic(prec10Dic)
-  ds.append(prec10Dic)
-
-  averageDic(oneCall5Dic)
-  ds.append(oneCall5Dic)
-
-  averageDic(oneCall10Dic)
-  ds.append(oneCall10Dic)
-
-  averageDic(ordItemPairDic)
-  ds.append(ordItemPairDic)
-
-  averageDic(ordSetPairDic)
-  ds.append(ordSetPairDic)
-
-  averageDic(ordTestItemPairDic)
-  ds.append(ordTestItemPairDic)
-
-  averageDic(valRMSEDic)
-  ds.append(valRMSEDic)
-
-  averageDic(testRMSEDic)
-  ds.append(testRMSEDic)
-
-  averageDic(trainRMSEDic)
-  ds.append(trainRMSEDic)
-
-  averageDic(valSRMSEDic)
-  ds.append(valSRMSEDic)
-
-  averageDic(testSRMSEDic)
-  ds.append(testSRMSEDic)
-
-  averageDic(trainSRMSEDic)
-  ds.append(trainSRMSEDic)
-
-  averageDic(topSetBPRDic)
-  ds.append(topSetBPRDic)
-
-  averageDic(topItemBPRDic)
-  ds.append(topItemBPRDic)
-
-  averageDic(topTestItemPairDic)
-  ds.append(topTestItemPairDic)
+  for d in ds:
+    averageDic(d)
 
   for d in ds:
     for k in keys:
