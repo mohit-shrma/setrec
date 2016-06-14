@@ -169,8 +169,8 @@ def toLFSTrainTestVal(uSetRatings, opCombName, opTrainName, opTestName,
       undSetRatings = []
       ovrSetRatings = []
       for setRating in setRatings:
-        items = setRating[0]
-        rating  = setRating[1]
+        items         = setRating[0]
+        rating        = setRating[1]
         setRatingType = isSetUnderOverRat(user, items, rating, uiRatings)
         
         if (setRatingType == NEITHER_RATED_SET):
@@ -211,6 +211,52 @@ def toLFSTrainTestVal(uSetRatings, opCombName, opTrainName, opTestName,
   print 'No. of sets: ', nFiltSet
 
 
+def toLFSTrainTestValOnly(uSetRatings, opCombName, opTrainName, opTestName, 
+    opValName, uMap, iMap, uiRatings):
+  
+  invalUsers       = []
+  combUSetRatings  = {}
+  trainUSetRatings = {}
+  testUSetRatings  = {}
+  valUSetRatings   = {}
+  nSet             = 0
+
+  with open(opTrainName, 'w') as tr, open(opTestName, 'w') as te, \
+      open(opValName, 'w') as va, open(opCombName, 'w') as comb:
+    for user, setRatings in uSetRatings.iteritems():
+      for setRating in setRatings:
+        items         = setRating[0]
+        rating        = setRating[1]
+      
+      if len(setRatings) < 5:
+        invalUsers.append(user)
+        continue
+
+      nSet += 1
+      random.shuffle(setRatings)
+      
+      combUSetRatings[user] = setRatings
+      writeSetRating(user, setRatings, comb, uMap, iMap)
+
+      trainUSetRatings[user] = setRatings[:-4]
+      writeSetRating(user, setRatings[:-4], tr, uMap, iMap)
+      
+      testUSetRatings[user] = setRatings[-4:-2]
+      writeSetRating(user, setRatings[-4:-2], te, uMap, iMap)
+
+      valUSetRatings[user] = setRatings[-2:]
+      writeSetRating(user, setRatings[-2:], va, uMap, iMap)
+
+  toCSR(combUSetRatings, "combine.csr", uMap, iMap, uiRatings)
+  toCSR(trainUSetRatings, "train.csr", uMap, iMap, uiRatings)
+  toCSR(testUSetRatings, "test.csr", uMap, iMap, uiRatings)
+  toCSR(valUSetRatings, "val.csr", uMap, iMap, uiRatings)
+
+  print 'No. of users not split: ', len(invalUsers)
+  print 'No. of sets: ', nFiltSet
+
+
+""" neither as test sets"""
 def toLFSTrainTestVal2(uSetRatings, opPrefix, uMap, iMap, uiRatings):
   invalUsers       = []
   combUSetRatings  = {}
@@ -342,13 +388,14 @@ def main():
   writeMap(iMap, opPrefix + '_iMap.txt')
   
   toLFS(uSetRatings, opPrefix + "_set.lfs", uMap, iMap)
-  toLFSTrainTestVal2(uSetRatings, opPrefix,  uMap, iMap, uiRatings)
+  toLFSTrainTestValOnly(uSetRatings, opPrefix,  uMap, iMap, uiRatings)
 
   writeUIRatingsCSR(uiRatings, opPrefix + "_ratings.csr", uMap, iMap)
   ratingsNotInUSets(uiRatings, uSetRatings, 
       opPrefix + "_notTrainSet.csr",
       opPrefix + "_inTrainSet.csr",
       uMap, iMap)
+
 
 if __name__ == '__main__':
   main()
