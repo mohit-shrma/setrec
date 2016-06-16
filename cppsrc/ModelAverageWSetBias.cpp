@@ -117,7 +117,7 @@ void ModelAverageWSetBias::train(const Data& data, const Params& params,
       if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
             bestValRMSE, prevValRMSE)) {
         //save best model
-        bestModel.save(params.prefix);
+        //bestModel.save(params.prefix);
         break;
       }
  
