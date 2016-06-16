@@ -84,7 +84,7 @@ def parseFilesForRes(ipFName):
           if fLine.startswith("Train RM"):
             updateDic(trainRMSEDic, bk, fLine)
           if fLine.startswith('Test All Mat RM'):
-            updateDic(testAllRMSEDic)
+            updateDic(testAllRMSEDic, bk, fLine)
 
           if fLine.startswith("Val set"):
             updateDic(valSRMSEDic, bk, fLine)
@@ -109,14 +109,22 @@ def parseFilesForRes(ipFName):
   for d in ds:
     averageDic(d)
 
+  notFoundK = set([])
+
   for d in ds:
     for k in keys:
       if k not in d:
         print 'Not found: ', k 
-        return 
-
+        notFoundK.add(k)
+  
+  if len(notFoundK) > 0:
+    for nf in notFoundK:
+      print nf
+    return 
 
   for k in keys:
+    if k in notFoundK:
+      continue
     print k + ' ' + str(prec5Dic[k][0]) + ' ' + str(prec10Dic[k][0]) + \
         ' ' + str(oneCall5Dic[k][0]) + ' ' + str(oneCall10Dic[k][0]) + \
         ' ' + str(trainRMSEDic[k][0]) + ' ' + str(valRMSEDic[k][0]) + \
@@ -124,7 +132,7 @@ def parseFilesForRes(ipFName):
         ' ' + str(trainSRMSEDic[k][0]) + ' ' + str(valSRMSEDic[k][0]) + \
         ' ' + str(testSRMSEDic[k][0]) + \
         ' ' + str(topValSetBPRDic[k][0]) + ' ' + str(topTestSetBPRDic[k][0]) + \
-        ' ' + str(topValItemBPRDic[k][0]) + ' ' + str(topTestItemBPRDic[k][1]) + \
+        ' ' + str(topValItemBPRDic[k][0]) + ' ' + str(topTestItemBPRDic[k][0]) + \
         ' ' + str(topTestItemPairDic[k][0]) + \
         ' ' + str(prec5Dic[k][1]) 
   
