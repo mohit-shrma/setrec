@@ -5,7 +5,7 @@ import os
 def checkIfFinished(ipFName):
   with open(ipFName, 'r') as f:
     for line in f:
-      if line.startswith('Val NDCG'):
+      if line.startswith('Fraction top'):
         return True
   return False
 
