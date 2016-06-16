@@ -79,10 +79,22 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
-  
+ 
+
+  writeSubSampledMat(data.partTrainMat, 
+      "train_0.1.csr", 0.1, params.seed);
+  writeSubSampledMat(data.partTrainMat, 
+      "train_0.25.csr", 0.25, params.seed);
+  writeSubSampledMat(data.partTrainMat, 
+      "train_0.5.csr", 0.5, params.seed);
+  writeSubSampledMat(data.partTrainMat, 
+      "train_0.75.csr", 0.75, params.seed);
+
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
+
   
+  /*
   ModelMFWBias modelAvg(params);
   ModelMFWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
@@ -118,7 +130,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Over RMSE: " << bestModel.rmse(ovrSets, data.ratMat) << std::endl;
   std::cout << "All RMSE: " << bestModel.rmse(allSets, data.ratMat) << std::endl;
   */
-  
+  /*
   float trainRMSE = bestModel.rmse(data.trainSets);
   float testRMSE = bestModel.rmse(data.testSets);
   float valRMSE = bestModel.rmse(data.valSets);
@@ -165,7 +177,7 @@ int main(int argc, char *argv[]) {
       data.ratMat, TOP_RAT_THRESH);
   std::cout << "Ordered top pairs excl all sets: " << corrOrdAllPairsTop 
     << std::endl;
-
+  */
   return 0;
 }
 

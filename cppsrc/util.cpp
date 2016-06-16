@@ -607,5 +607,12 @@ std::unordered_set<int> checkIfSetsMatOverlap(std::vector<UserSets>& uSets,
 }
 
 
+int getNNZ(gk_csr_t *mat) {
+  int nnz = 0;
+  for (int u = 0; u < mat->nrows; u++) {
+    nnz += mat->rowptr[u+1] - mat->rowptr[u];
+  }
+  return nnz;
+}
 
 

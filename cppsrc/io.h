@@ -6,6 +6,7 @@
 #include <fstream>
 #include <Eigen/Dense>
 #include "UserSets.h"
+#include "util.h"
 
 std::vector<UserSets> readSets(const char* fileName);
 void writeSets(std::vector<UserSets> uSets, const char* opFName);
@@ -34,4 +35,6 @@ void dispContainer(Iter it, Iter end) {
 void writeItemRMSEFreq(std::map<int, int>& itemFreq, 
     std::map<int, float>& itemRMSE, const char *opFName);
 void statSets(std::vector<UserSets>& uSets);
+void writeSubSampledMat(gk_csr_t *mat,  const char* sampFileName, 
+    float sampPc, int seed);
 #endif

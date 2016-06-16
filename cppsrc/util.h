@@ -50,5 +50,6 @@ std::unordered_set<int> checkIfSetsMatOverlap(std::vector<UserSets>& uSets,
     gk_csr_t *mat);
 void removeSetsWInvalUsers(std::vector<UserSets>& uSets,
     std::unordered_set<int>& inValUsers);
+int getNNZ(gk_csr_t *mat) ;
 #endif
 
