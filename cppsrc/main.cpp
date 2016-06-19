@@ -79,24 +79,13 @@ int main(int argc, char *argv[]) {
 
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
- 
-
-  writeSubSampledMat(data.partTrainMat, 
-      "train_0.1.csr", 0.1, params.seed);
-  writeSubSampledMat(data.partTrainMat, 
-      "train_0.25.csr", 0.25, params.seed);
-  writeSubSampledMat(data.partTrainMat, 
-      "train_0.5.csr", 0.5, params.seed);
-  writeSubSampledMat(data.partTrainMat, 
-      "train_0.75.csr", 0.75, params.seed);
 
   //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
   //writeSets(data.trainSets, opFName.c_str());
-
   
-  /*
-  ModelMFWBias modelAvg(params);
-  ModelMFWBias bestModel(modelAvg);
+  
+  ModelAverageBiasesOnly modelAvg(params);
+  ModelAverageBiasesOnly bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /* 
   std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
@@ -130,7 +119,7 @@ int main(int argc, char *argv[]) {
   std::cout << "Over RMSE: " << bestModel.rmse(ovrSets, data.ratMat) << std::endl;
   std::cout << "All RMSE: " << bestModel.rmse(allSets, data.ratMat) << std::endl;
   */
-  /*
+  
   float trainRMSE = bestModel.rmse(data.trainSets);
   float testRMSE = bestModel.rmse(data.testSets);
   float valRMSE = bestModel.rmse(data.valSets);
@@ -147,16 +136,30 @@ int main(int argc, char *argv[]) {
   std::cout << "Test RMSE: " << testRatingsRMSE << std::endl;
   std::cout << "Val RMSE: " << valRatingsRMSE << std::endl; 
   std::cout << "Test All Mat RMSE: " << notSetRMSE << std::endl;
-  auto precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat,
-      5, TOP_RAT_THRESH);
-  std::cout << "Precision@5: " << precisionNCall.first << std::endl;
-  std::cout << "OneCall@5: " << precisionNCall.second << std::endl;
   
-  precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat,
-      10, TOP_RAT_THRESH);
-  std::cout << "Precision@10: " << precisionNCall.first << std::endl;
-  std::cout << "OneCall@10: " << precisionNCall.second << std::endl;
+  std::vector<int> Ns {1, 5, 10, 25, 50, 100};
+  std::vector<float> precisions;
+  std::vector<float> oneCalls;
 
+  for (auto&& n : Ns) {
+    auto precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat, 
+        n, TOP_RAT_THRESH);
+    precisions.push_back(precisionNCall.first);
+    oneCalls.push_back(precisionNCall.second);
+  }
+
+  std::cout << "Precision: ";
+  for (auto&& prec : precisions) {
+    std::cout << prec << " ";
+  }
+  std::cout << std::endl;
+  
+  std::cout << "OneCall: ";
+  for (auto&& oneCall : oneCalls) {
+    std::cout << oneCall << " ";
+  }
+  std::cout << std::endl;
+  
   float corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.valSets, 
       TOP_RAT_THRESH);
   std::cout << "Fraction top val correct ordered sets: " << corrOrdSetsTop 
@@ -177,7 +180,7 @@ int main(int argc, char *argv[]) {
       data.ratMat, TOP_RAT_THRESH);
   std::cout << "Ordered top pairs excl all sets: " << corrOrdAllPairsTop 
     << std::endl;
-  */
+  
   return 0;
 }
 

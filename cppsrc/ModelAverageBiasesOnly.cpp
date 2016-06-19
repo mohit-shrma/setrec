@@ -1,7 +1,14 @@
 #include "ModelAverageBiasesOnly.h"
 
 float ModelAverageBiasesOnly::estItemRating(int user, int item) {
-  return uBias(user) + iBias(item);
+  float rating = 0;
+  if (trainUsers.find(user) != trainUsers.end()) {
+    rating += uBias(user);
+  }
+  if (trainItems.find(item) != trainItems.end()) {
+    rating += iBias(item);
+  }
+  return rating;
 } 
 
 
@@ -15,7 +22,10 @@ float ModelAverageBiasesOnly::estSetRating(int user, std::vector<int>& items) {
  
  ratSum = ratSum/items.size();
 
- ratSum += uSetBias(user);
+ if (trainUsers.find(user) != trainUsers.end()) {
+   ratSum += uSetBias(user);
+ }
+
  ratSum += gBias;
 
  return ratSum;
@@ -38,6 +48,8 @@ float ModelAverageBiasesOnly::objective(const std::vector<UserSets>& uSets) {
       nSets++;
     }
   }  
+
+  obj = obj/nSets;
 
   norm = uBias.norm();
   obj += uBiasReg*norm*norm;
@@ -76,6 +88,11 @@ void ModelAverageBiasesOnly::train(const Data& data, const Params& params,
   std::cout << "gBias: " << gBias << " nTrSets: " << nTrSets << std::endl;
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
   std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
+  
+  trainUsers = data.trainUsers;
+  trainItems = data.trainItems;
+  std::cout << "Train users: " << trainUsers.size() 
+    << " items: " << trainItems.size() << std::endl;
   
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -127,7 +144,7 @@ void ModelAverageBiasesOnly::train(const Data& data, const Params& params,
       if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
             bestValRMSE, prevValRMSE)) {
         //save best model
-        bestModel.save(params.prefix);
+        //bestModel.save(params.prefix);
         break;
       }
  
@@ -136,11 +153,6 @@ void ModelAverageBiasesOnly::train(const Data& data, const Params& params,
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 
           << " train RMSE:" << rmse(data.trainSets) 
-          << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
-          << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
-          << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
-          << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
-          << " invCount@10: " << inversionCount(data.partTestMat, data.trainSets, 10)
           << std::endl;
       }
 

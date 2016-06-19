@@ -31,7 +31,7 @@ float ModelAverageWBias::estSetRating(int user, std::vector<int>& items) {
 
 float ModelAverageWBias::objective(const std::vector<UserSets>& uSets, 
     gk_csr_t *mat) {
-  return Model::objective(uSets, mat);
+  return Model::objective(uSets);
 }
 
 

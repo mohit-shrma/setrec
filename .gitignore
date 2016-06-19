@@ -11,3 +11,6 @@ makefile
 *.log
 *.out
 *.depend
+*.bbl
+*.blg
+

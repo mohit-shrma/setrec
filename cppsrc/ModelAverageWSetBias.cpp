@@ -20,7 +20,7 @@ float ModelAverageWSetBias::objective(const std::vector<UserSets>& uSets) {
   
   //add user biases regularization
   norm = uSetBias.norm();
-  obj += norm*norm*uReg;
+  obj += norm*norm*uSetBiasReg;
 
   return obj;
 }

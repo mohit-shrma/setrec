@@ -65,7 +65,7 @@ float Model::estItemRating(int user, int item) {
 
 float Model::objective(const std::vector<UserSets>& uSets) {
   
-  float obj = 0.0, uRegErr = 0.0, iRegErr = 0.0;
+  float obj = 0.0;
   float norm, setScore, diff;
   int user, nSets = 0;
   
@@ -80,13 +80,19 @@ float Model::objective(const std::vector<UserSets>& uSets) {
     }
   }
   
+  obj = obj/nSets;
+
   norm = U.norm();
-  uRegErr = uReg*norm*norm;
+  obj += uReg*norm*norm;
 
   norm = V.norm();
-  iRegErr = iReg*norm*norm;
+  obj += iReg*norm*norm;
 
-  obj += uRegErr + iRegErr;
+  norm = uBias.norm();
+  obj += uBiasReg*norm*norm;
+
+  norm = iBias.norm();
+  obj += iBiasReg*norm*norm;
 
   return obj;
 }
@@ -1031,8 +1037,8 @@ std::pair<float, float> Model::precisionNCall(
   
   oneCall = oneCall/nUsers;
   avgPrecN = avgPrecN/nUsers;
-  std::cout << "nUsers: " << numUsers << " avgPrecN: " << avgPrecN 
-    << " oneCall: " << oneCall << std::endl;
+  //std::cout << "nUsers: " << numUsers << " avgPrecN: " << avgPrecN 
+  //  << " oneCall: " << oneCall << std::endl;
   return std::make_pair(avgPrecN, oneCall);
 }
 
@@ -1694,7 +1700,7 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
     if (fabs(prevObj - currObj) < EPS) {
       //objective converged
       std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
-        << " bestValRMSE:" << bestValRMSE;
+        << " prevObj: " << prevObj << " bestValRMSE:" << bestValRMSE;
       ret = true;
     }
     

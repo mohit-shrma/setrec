@@ -39,31 +39,9 @@ float ModelAverageWGBias::estSetRating(int user, std::vector<int>& items) {
 float ModelAverageWGBias::objective(const std::vector<UserSets>& uSets) {
   
   float obj = 0.0;
-  float norm, setScore, diff;
-  int user, nSets = 0;
-  
-  for (auto&& uSet: uSets) {
-    user = uSet.user;
-    for (size_t i = 0; i < uSet.itemSets.size(); i++) {
-      auto items = uSet.itemSets[i].first;
-      setScore = estSetRating(user, items);
-      diff = setScore - uSet.itemSets[i].second;
-      obj += diff*diff;
-      nSets++;
-    }
-  }  
+  float norm;
 
-  norm = U.norm();
-  obj += uReg*norm*norm;
-
-  norm = V.norm();
-  obj += iReg*norm*norm;
-
-  norm = uBias.norm();
-  obj += uBiasReg*norm*norm;
-
-  norm = iBias.norm();
-  obj += iBiasReg*norm*norm;
+  obj = Model::objective(uSets);
 
   norm = uSetBias.norm();
   obj += norm*norm*uSetBiasReg; 
