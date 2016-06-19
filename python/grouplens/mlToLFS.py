@@ -211,8 +211,7 @@ def toLFSTrainTestVal(uSetRatings, opCombName, opTrainName, opTestName,
   print 'No. of sets: ', nFiltSet
 
 
-def toLFSTrainTestValOnly(uSetRatings, opCombName, opTrainName, opTestName, 
-    opValName, uMap, iMap, uiRatings):
+def toLFSTrainTestValOnly(uSetRatings, opPrefix, uMap, iMap, uiRatings):
   
   invalUsers       = []
   combUSetRatings  = {}
@@ -220,6 +219,11 @@ def toLFSTrainTestValOnly(uSetRatings, opCombName, opTrainName, opTestName,
   testUSetRatings  = {}
   valUSetRatings   = {}
   nSet             = 0
+  
+  opCombName  = opPrefix + '_set.comb.lfs'
+  opTrainName = opPrefix + '_set.train.lfs'
+  opTestName  = opPrefix + '_set.test.lfs'
+  opValName   = opPrefix + '_set.val.lfs'
 
   with open(opTrainName, 'w') as tr, open(opTestName, 'w') as te, \
       open(opValName, 'w') as va, open(opCombName, 'w') as comb:
@@ -253,7 +257,7 @@ def toLFSTrainTestValOnly(uSetRatings, opCombName, opTrainName, opTestName,
   toCSR(valUSetRatings, "val.csr", uMap, iMap, uiRatings)
 
   print 'No. of users not split: ', len(invalUsers)
-  print 'No. of sets: ', nFiltSet
+  print 'No. of sets: ', nSet
 
 
 """ neither as test sets"""
