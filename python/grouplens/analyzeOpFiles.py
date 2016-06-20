@@ -67,15 +67,15 @@ def parseFilesForRes(ipFName):
         keys.add(bk)
         for fLine in h:
           
-          if fLine.startswith('Precision@5:'): 
-            updateDic(prec5Dic, bk, fLine)
-          if fLine.startswith('Precision@10:'):
-            updateDic(prec10Dic, bk, fLine)
+          if fLine.startswith('Precision:'):
+            cols = fLine.strip().split()
+            updateDic(prec5Dic, bk, cols[1])
+            updateDic(prec10Dic, bk, cols[2])
           
-          if fLine.startswith('OneCall@5:'):
-            updateDic(oneCall5Dic, bk, fLine)
-          if fLine.startswith('OneCall@10:'):
-            updateDic(oneCall10Dic, bk, fLine)
+          if fLine.startswith('OneCall:'):
+            cols = fLine.strip().split()
+            updateDic(oneCall5Dic, bk, cols[1])
+            updateDic(oneCall10Dic, bk, cols[2])
 
           if fLine.startswith("Val RM"):
             updateDic(valRMSEDic, bk, fLine)
