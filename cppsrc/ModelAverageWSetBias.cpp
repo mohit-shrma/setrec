@@ -1,5 +1,23 @@
 #include "ModelAverageWSetBias.h"
 
+float ModelAverageWSetBias::estItemRating(int user, int item) {
+  bool uFound = false, iFound = true;
+  float rating = 0;
+  if (trainUsers.find(user) != trainUsers.end()) {
+    uFound = true;
+    rating += uBias(user);
+    //rating += uSetBias(user);
+  }
+  if (trainItems.find(item) != trainItems.end()) {
+    iFound = true;
+    rating += iBias(item);
+  }
+  if (uFound && iFound) {
+    rating += U.row(user).dot(V.row(item));
+  }
+  return rating;
+}
+
 
 float ModelAverageWSetBias::estSetRating(int user, std::vector<int>& items) {
   int setSz = items.size();
@@ -120,7 +138,6 @@ void ModelAverageWSetBias::train(const Data& data, const Params& params,
         //bestModel.save(params.prefix);
         break;
       }
- 
       
       if (iter % 10 == 0) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 

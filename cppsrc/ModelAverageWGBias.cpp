@@ -7,6 +7,7 @@ float ModelAverageWGBias::estItemRating(int user, int item) {
   if (trainUsers.find(user) != trainUsers.end()) {
     uFound = true;
     rating += uBias(user);
+    //rating += uSetBias(user);
   }
   if (trainItems.find(item) != trainItems.end()) {
     iFound = true;
@@ -15,6 +16,7 @@ float ModelAverageWGBias::estItemRating(int user, int item) {
   if (uFound && iFound) {
     rating += U.row(user).dot(V.row(item));
   }
+  //rating += gBias;
   return rating;
 }
 
