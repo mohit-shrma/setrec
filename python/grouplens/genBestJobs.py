@@ -2,29 +2,18 @@ import os
 
 #ureg, ireg, ubiasreg, ibiasreg, usessbiasreg, gamma, dim
 MF_PARAMS           = [0.1, 0.01, 0.001, 1, 0, 0, 25]
-LFS_PARAMS          = [10, 0.001, 0.001, 0.01, 0, 0, 75]
-LFS_GBIAS_PARAMS    = [0.1, 0.01, 0.01, 0.01, 0.001, 0, 100]
-LFS_SESSBIAS_PARAMS = [0.1, 0.001, 0.001, 10, 0.001, 0, 10]
+LFS_PARAMS          = [1, 0.001, 0.001, 0.01, 0, 0, 75]
+LFS_GBIAS_PARAMS    = [1, 0.001, 0.1, 0.01, 10, 0, 100]
+LFS_SESSBIAS_PARAMS = [1, 0.001, 0.001, 0.01, 0.01, 0, 100]
 LFS_BPR             = [1, 0.01, 0, 0.001, 0, 0, 75]
 
-LFS_MF_0_1_PARAMS  = [0.1, 0.01, 0.001, 10, 0, 0, 1]
-LFS_MF_0_25_PARAMS = [0.1, 0.01, 0.001, 10, 0, 0, 1]
-LFS_MF_0_5_PARAMS  = [0.1, 0.01, 0.001, 1, 0, 0, 1]
-LFS_MF_0_75_PARAMS = [0.1, 0.01, 0.001, 1, 0, 0, 1]
-LFS_MF_1_0_PARAMS  = [10, 0.001, 0.001, 0.01, 0, 0, 100]
-
-LFS_SESSBIAS_MF_0_1_PARAMS  = [0.01, 0.1, 0.001, 10, 0.1, 0, 15]
-LFS_SESSBIAS_MF_0_25_PARAMS = [0.01, 0.1, 0.001, 10, 0.1, 0, 15]
-LFS_SESSBIAS_MF_0_5_PARAMS  = [0.01, 0.1, 0.001, 10, 0.1, 0, 25]
-LFS_SESSBIAS_MF_0_75_PARAMS = [0.01, 0.1, 0.001, 10, 0.1, 0, 15]
-LFS_SESSBIAS_MF_1_0_PARAMS  = [0.01, 0.1, 0.001, 10, 0.1, 0, 50]
 
 
 PARENT_DATA = "/home/grad02/mohit/exmoh/movielens/" 
 
-SETREC      = "/home/grad02/mohit/exmoh/setrec/cppsrc/setrecAvgWBiasPart"
-PARAMS      = LFS_MF_1_0_PARAMS
-PREFIX      = "avgwpart"
+SETREC      = "/home/grad02/mohit/exmoh/setrec/cppsrc/setrecAvg"
+PARAMS      = LFS_PARAMS
+PREFIX      = "avg"
 
 NUSERS      = 854
 NITEMS      = 12549
