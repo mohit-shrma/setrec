@@ -4,7 +4,9 @@
 float ModelAverageWGBias::estItemRating(int user, int item) {
   bool uFound = false, iFound = true;
   float rating = 0;
-  if (trainUsers.find(user) != trainUsers.end()) {
+  if (trainUsers.find(user) != trainUsers.end() && 
+      invalUsers.find(user) == invalUsers.end()) {
+    //found in train and not in invalid
     uFound = true;
     rating += uBias(user);
     //rating += uSetBias(user);

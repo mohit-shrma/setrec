@@ -211,7 +211,8 @@ def toLFSTrainTestVal(uSetRatings, opCombName, opTrainName, opTestName,
   print 'No. of sets: ', nFiltSet
 
 
-def toLFSTrainTestValOnly(uSetRatings, opPrefix, uMap, iMap, uiRatings):
+def toLFSTrainTestValOnly(uSetRatings, opPrefix, uMap, iMap, uiRatings,
+    nTestValSets = 2):
   
   invalUsers       = []
   combUSetRatings  = {}
@@ -232,7 +233,7 @@ def toLFSTrainTestValOnly(uSetRatings, opPrefix, uMap, iMap, uiRatings):
         items         = setRating[0]
         rating        = setRating[1]
       
-      if len(setRatings) < 5:
+      if len(setRatings) < 2*nTestValSets + 1:
         invalUsers.append(user)
         continue
 
@@ -242,14 +243,14 @@ def toLFSTrainTestValOnly(uSetRatings, opPrefix, uMap, iMap, uiRatings):
       combUSetRatings[user] = setRatings
       writeSetRating(user, setRatings, comb, uMap, iMap)
 
-      trainUSetRatings[user] = setRatings[:-4]
-      writeSetRating(user, setRatings[:-4], tr, uMap, iMap)
+      trainUSetRatings[user] = setRatings[:-2*nTestValSets]
+      writeSetRating(user, setRatings[:-2*nTestValSets], tr, uMap, iMap)
       
-      testUSetRatings[user] = setRatings[-4:-2]
-      writeSetRating(user, setRatings[-4:-2], te, uMap, iMap)
+      testUSetRatings[user] = setRatings[-2*nTestValSets:-nTestValSets]
+      writeSetRating(user, setRatings[-2*nTestValSets:-nTestValSets], te, uMap, iMap)
 
-      valUSetRatings[user] = setRatings[-2:]
-      writeSetRating(user, setRatings[-2:], va, uMap, iMap)
+      valUSetRatings[user] = setRatings[-nTestValSets:]
+      writeSetRating(user, setRatings[-nTestValSets:], va, uMap, iMap)
 
   toCSR(combUSetRatings, "combine.csr", uMap, iMap, uiRatings)
   toCSR(trainUSetRatings, "train.csr", uMap, iMap, uiRatings)
@@ -392,7 +393,7 @@ def main():
   writeMap(iMap, opPrefix + '_iMap.txt')
   
   toLFS(uSetRatings, opPrefix + "_set.lfs", uMap, iMap)
-  toLFSTrainTestValOnly(uSetRatings, opPrefix,  uMap, iMap, uiRatings)
+  toLFSTrainTestValOnly(uSetRatings, opPrefix,  uMap, iMap, uiRatings, 3)
 
   writeUIRatingsCSR(uiRatings, opPrefix + "_ratings.csr", uMap, iMap)
   ratingsNotInUSets(uiRatings, uSetRatings, 

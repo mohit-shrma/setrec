@@ -972,10 +972,6 @@ std::pair<float, float> Model::precisionNCall(
   
   for (auto&& uSet: uSets) {
     int user = uSet.user;
-    if (invalidUsers.find(user) != invalidUsers.end()) {
-      //found invalid user
-      continue;
-    }
 
     auto setItems = uSet.items;
     
@@ -1431,10 +1427,6 @@ float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets) {
     int nUSets = uSet.itemSets.size();
     int user = uSet.user;
     
-    if (invalidUsers.find(user) != invalidUsers.end()) {
-      continue;
-    }
-
     for (int i = 0; i < nUSets; i++) {
       
       float r_ui     = uSet.itemSets[i].second;
@@ -1476,10 +1468,6 @@ float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets, float lb) {
     int nUSets = uSet.itemSets.size();
     int user = uSet.user;
     
-    if (invalidUsers.find(user) != invalidUsers.end()) {
-      continue;
-    }
-
     for (int i = 0; i < nUSets; i++) {
       
       float r_ui     = uSet.itemSets[i].second;
