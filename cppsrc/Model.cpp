@@ -312,7 +312,7 @@ std::map<int, float> Model::itemRMSE(const std::vector<UserSets>& uSets,
 
 
 float Model::spearmanRankN(gk_csr_t *mat, int N) {
-  int item, nUsers = 0;
+  int item, numUsers = 0;
   std::vector<float> actualRatings, predRatings;
   float uSpearman, avgSpearMan = 0;
   for (int u = 0; u < mat->nrows; u++) {
@@ -330,16 +330,16 @@ float Model::spearmanRankN(gk_csr_t *mat, int N) {
       continue;
     }
     avgSpearMan += uSpearman;
-    nUsers++;
+    numUsers++;
   }
-  avgSpearMan = avgSpearMan/nUsers;
+  avgSpearMan = avgSpearMan/numUsers;
   return avgSpearMan;
 }
 
 
 float Model::spearmanRankN(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
     int N) {
-  int item, nUsers = 0;
+  int item, numUsers = 0;
   std::vector<float> actualRatings, predRatings;
   float uSpearman, avgSpearMan = 0;
 
@@ -364,9 +364,9 @@ float Model::spearmanRankN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
       continue;
     }
     avgSpearMan += uSpearman;
-    nUsers++;
+    numUsers++;
   }
-  avgSpearMan = avgSpearMan/nUsers;
+  avgSpearMan = avgSpearMan/numUsers;
   return avgSpearMan;
 }
 
@@ -374,7 +374,7 @@ float Model::spearmanRankN(gk_csr_t *mat, const std::vector<UserSets>& uSets,
 //compute iversions by ranking items not present in user's sets
 float Model::inversionCount(gk_csr_t *mat, const std::vector<UserSets>& uSets, 
     int N) {
-  int item, nUsers = 0;
+  int item, numUsers = 0;
   std::vector<std::pair<int, float>> actualItemRatings, predItemRatings;
   float uInvCount, avgInvCount = 0;
 
@@ -400,16 +400,16 @@ float Model::inversionCount(gk_csr_t *mat, const std::vector<UserSets>& uSets,
     uInvCount = inversionCountPairs(actualItemRatings, predItemRatings);
 
     avgInvCount += uInvCount;
-    nUsers++;
+    numUsers++;
   }
-  avgInvCount = avgInvCount/nUsers;
+  avgInvCount = avgInvCount/numUsers;
   return avgInvCount;
 }
 
 
 float Model::invertRandPairCount(gk_csr_t *mat, 
     const std::vector<UserSets>& uSets, int seed) {
-  int item, nUsers = 0;
+  int item, numUsers = 0;
   std::unordered_set<int> missedPs, missedQs;
   std::vector<std::pair<int, float>> actualItemRatings, predItemRatings;
   float uInvCount, avgInvCount = 0;
@@ -490,16 +490,16 @@ float Model::invertRandPairCount(gk_csr_t *mat,
     }
 
     avgInvCount += uInvCount;
-    nUsers++;
+    numUsers++;
   } 
   std::cout << "users: " << trainUsers.size() << " items: " << trainItems.size() << std::endl;
-  std::cout << "nUsers: " << nUsers << " avgInvCount: " << avgInvCount 
+  std::cout << "nUsers: " << numUsers << " avgInvCount: " << avgInvCount 
     << " missedP: " << missedP << " missedQ: " << missedQ
     << std::endl;
   //writeContainer(missedPs.begin(), missedPs.end(),  "missedPs.txt");
   //writeContainer(missedQs.begin(), missedQs.end(),  "missedQs.txt");
   //writeContainer(trainItems.begin(), trainItems.end(), "trainItems.txt");
-  avgInvCount = avgInvCount/nUsers;
+  avgInvCount = avgInvCount/numUsers;
   return avgInvCount;
 }
 
@@ -894,7 +894,7 @@ std::pair<float, float> Model::ratingsNDCGPrecK(const std::vector<UserSets>& uSe
   avgPrec = avgPrec/numUsers;
   
   //std::cout << "avgNDCG: " << avgNDCG << "avgPrec: " << avgPrec 
-  //  << " nUsers: " << nUsers << std::endl; 
+  //  << " numUsers: " << numUsers << std::endl; 
 
   return std::make_pair(avgNDCG, avgPrec);
 }
@@ -1033,7 +1033,7 @@ std::pair<float, float> Model::precisionNCall(
   
   oneCall = oneCall/numUsers;
   avgPrecN = avgPrecN/numUsers;
-  //std::cout << "nUsers: " << numUsers << " avgPrecN: " << avgPrecN 
+  //std::cout << "numUsers: " << numUsers << " avgPrecN: " << avgPrecN 
   //  << " oneCall: " << oneCall << std::endl;
   return std::make_pair(avgPrecN, oneCall);
 }

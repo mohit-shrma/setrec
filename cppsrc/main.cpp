@@ -80,45 +80,9 @@ int main(int argc, char *argv[]) {
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
 
-  //std::string opFName = std::string(params.prefix) + "_trainSet_temp";
-  //writeSets(data.trainSets, opFName.c_str());
-  
-  
-  ModelAverageBiasesOnly modelAvg(params);
-  ModelAverageBiasesOnly bestModel(modelAvg);
+  ModelMFWBias modelAvg(params);
+  ModelMFWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
-  /* 
-  std::vector<UserSets> undSets = readSets("ml_set.und.lfs");
-  std::cout << "Underrated sets b4 rem stats: " << std::endl;
-  statSets(undSets);
-  removeSetsWOVal(undSets, data.trainUsers, data.trainItems);
-  std::cout << "Underrated sets aftr rem stats: " << std::endl;
-  statSets(undSets);
-
-  std::vector<UserSets> ovrSets = readSets("ml_set.ovr.lfs");
-  std::cout << "Overrated sets b4 rem stats: " << std::endl;
-  statSets(ovrSets);
-  removeSetsWOVal(ovrSets, data.trainUsers, data.trainItems);
-  std::cout << "Overrated sets aftr rem stats: " << std::endl;
-  statSets(ovrSets);
-
-  std::vector<UserSets> allSets;
-  //allSets.insert(allSets.end(), data.trainSets.begin(), data.trainSets.end());
-  allSets.insert(allSets.end(), data.testSets.begin(), data.testSets.end());
-  //allSets.insert(allSets.end(), data.valSets.begin(), data.valSets.end());
-  allSets.insert(allSets.end(), undSets.begin(), undSets.end());
-  allSets.insert(allSets.end(), ovrSets.begin(), ovrSets.end());
-  
-  std::cout << "All sets b4 rem stats: " << std::endl;
-  statSets(allSets);
-  removeSetsWOVal(allSets, data.trainUsers, data.trainItems);
-  std::cout << "All sets aftr rem stats: " << std::endl;
-  statSets(allSets);
-  
-  std::cout << "Under RMSE: " << bestModel.rmse(undSets, data.ratMat) << std::endl;
-  std::cout << "Over RMSE: " << bestModel.rmse(ovrSets, data.ratMat) << std::endl;
-  std::cout << "All RMSE: " << bestModel.rmse(allSets, data.ratMat) << std::endl;
-  */
   
   float trainRMSE = bestModel.rmse(data.trainSets);
   float testRMSE = bestModel.rmse(data.testSets);
@@ -141,12 +105,10 @@ int main(int argc, char *argv[]) {
   std::vector<float> precisions;
   std::vector<float> oneCalls;
 
-  for (auto&& n : Ns) {
-    auto precisionNCall = bestModel.precisionNCall(data.allSets, data.ratMat, 
-        n, TOP_RAT_THRESH);
-    precisions.push_back(precisionNCall.first);
-    oneCalls.push_back(precisionNCall.second);
-  }
+  auto precisionNCalls = bestModel.precisionNCall(data.allSets, data.ratMat, Ns,
+      TOP_RAT_THRESH);
+  precisions = precisionNCalls.first; 
+  oneCalls   = precisionNCalls.second;
 
   std::cout << "Precision: ";
   for (auto&& prec : precisions) {
