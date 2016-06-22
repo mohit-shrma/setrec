@@ -1039,6 +1039,105 @@ std::pair<float, float> Model::precisionNCall(
 }
 
 
+std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
+    const std::vector<UserSets>& uSets, gk_csr_t *mat, std::vector<int>& Ns, 
+    float ratingThresh) {  
+ 
+  std::vector<float> avgPrecNs(Ns.size(), 0);
+  std::vector<float> oneCallNs(Ns.size(), 0);
+
+  int numUsers = 0;
+
+  std::vector<std::pair<int, float>> actRatings;
+  std::unordered_set<int> actItems;
+  std::vector<std::pair<int, float>> predRatings;
+
+  int maxN = -1;
+  for (auto&& n: Ns) {
+    if (n > maxN) {
+      maxN = n;
+    }
+  }
+
+  for (auto&& uSet: uSets) {
+    int user = uSet.user;
+
+    auto setItems = uSet.items;
+    
+    //get actual ratings greater than the threshold
+    actRatings.clear();
+    actItems.clear();
+    for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+      int item = mat->rowind[ii];
+      float rating = mat->rowval[ii];
+      if (rating <= ratingThresh) {
+        continue;
+      }
+      if (setItems.find(item) != setItems.end()) {
+        //item found in u set
+        continue;
+      }
+      actRatings.push_back(std::make_pair(item, rating));
+      actItems.insert(item);
+    }
+    
+    if (actItems.size() == 0) {
+      continue;
+    }
+
+    //get predictions over train items except those in the set 
+    predRatings.clear();
+    for (auto&& item: trainItems) {
+      if (setItems.find(item) != setItems.end()) {
+        //item found in u set
+        continue;
+      }
+      predRatings.push_back(std::make_pair(item, estItemRating(user, item))); 
+    }
+    
+    //std::sort(actRatings.begin(), actRatings.end(), descComp);
+    std::nth_element(predRatings.begin(), predRatings.begin() + (maxN - 1), 
+        predRatings.end(), descComp);
+    
+    int k = 0; 
+    
+    for (auto&& n: Ns) {
+
+      float uFound = 0;
+      
+      for (int i = 0; i < n; i++) {
+        int predItem = predRatings[i].first;
+        if (actItems.find(predItem) != actItems.end()) {
+          //relevant item found
+          uFound += 1;
+         } 
+      }
+      
+      if ((int)actItems.size() < n) {
+        avgPrecNs[k] += uFound/actItems.size();
+      } else {
+        avgPrecNs[k] += uFound/n;
+      }
+    
+      if (uFound > 0) {
+        oneCallNs[k] += 1;
+      }
+
+      k++;
+    }
+    
+    numUsers++;
+  }
+ 
+  for (int k = 0; k < (int)Ns.size(); k++) {
+    oneCallNs[k] = oneCallNs[k]/numUsers;
+    avgPrecNs[k] = avgPrecNs[k]/numUsers;
+  }
+
+  return std::make_pair(avgPrecNs, oneCallNs);
+}
+
+
 float Model::matCorrOrderedRatingsWOSets(
     const std::vector<UserSets>& uSets, gk_csr_t *mat) {
   float corrOrderedPairs = 0, nPairs = 0;

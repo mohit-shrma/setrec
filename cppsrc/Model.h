@@ -111,6 +111,9 @@ class Model {
     std::vector<std::tuple<int, int, int>> allTriplets);
   std::pair<float, float> precisionNCall(const std::vector<UserSets>& uSets, 
       gk_csr_t *mat, int N, float ratingThresh);  
+  std::pair<std::vector<float>, std::vector<float>> precisionNCall(
+    const std::vector<UserSets>& uSets, gk_csr_t *mat, std::vector<int>& Ns, 
+    float ratingThresh);  
   float fracCorrOrderedSets(const std::vector<UserSets>& uSets);
   float fracCorrOrderedSets(const std::vector<UserSets>& uSets, float lb);
   float precisionN(gk_csr_t* testMat, gk_csr_t* valMat, gk_csr_t* trainMat,
