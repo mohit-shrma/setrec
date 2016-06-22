@@ -1031,8 +1031,8 @@ std::pair<float, float> Model::precisionNCall(
     numUsers++;
   }
   
-  oneCall = oneCall/nUsers;
-  avgPrecN = avgPrecN/nUsers;
+  oneCall = oneCall/numUsers;
+  avgPrecN = avgPrecN/numUsers;
   //std::cout << "nUsers: " << numUsers << " avgPrecN: " << avgPrecN 
   //  << " oneCall: " << oneCall << std::endl;
   return std::make_pair(avgPrecN, oneCall);
@@ -1098,7 +1098,8 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
     //std::sort(actRatings.begin(), actRatings.end(), descComp);
     std::nth_element(predRatings.begin(), predRatings.begin() + (maxN - 1), 
         predRatings.end(), descComp);
-    
+    std::sort(predRatings.begin(), predRatings.begin() + maxN, descComp);
+
     int k = 0; 
     
     for (auto&& n: Ns) {
@@ -1110,7 +1111,7 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
         if (actItems.find(predItem) != actItems.end()) {
           //relevant item found
           uFound += 1;
-         } 
+        } 
       }
       
       if ((int)actItems.size() < n) {
