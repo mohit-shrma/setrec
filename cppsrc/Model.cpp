@@ -80,8 +80,6 @@ float Model::objective(const std::vector<UserSets>& uSets) {
     }
   }
   
-  obj = obj/nSets;
-
   norm = U.norm();
   obj += uReg*norm*norm;
 
