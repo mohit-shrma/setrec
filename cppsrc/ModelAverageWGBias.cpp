@@ -18,38 +18,25 @@ float ModelAverageWGBias::estItemRating(int user, int item) {
   if (uFound && iFound) {
     rating += U.row(user).dot(V.row(item));
   }
-  //rating += gBias;
+  rating += gBias;
   return rating;
 }
 
 
 float ModelAverageWGBias::estSetRating(int user, std::vector<int>& items) {
- 
   float ratSum = 0;
-
   for (auto&& item: items) {
     ratSum += estItemRating(user, item);
   }
-
   ratSum = ratSum/items.size();
-
-  ratSum += uSetBias(user);
-  ratSum += gBias;
-
   return ratSum;
 }
 
 
 float ModelAverageWGBias::objective(const std::vector<UserSets>& uSets) {
-  
   float obj = 0.0;
   float norm;
-
   obj = Model::objective(uSets);
-
-  norm = uSetBias.norm();
-  obj += norm*norm*uSetBiasReg; 
-
   return obj;
 } 
 
@@ -135,10 +122,6 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
         //update user bias
         uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
 
-        //update user set bias
-        uSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
-            + 2.0*uSetBiasReg*uSetBias(user));
-        
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
         for (auto&& item: items) {
