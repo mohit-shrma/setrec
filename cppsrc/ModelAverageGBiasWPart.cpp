@@ -1,6 +1,6 @@
-#include "ModelAverageWPart.h"
+#include "ModelAverageGBiasWPart.h"
 
-bool ModelAverageWPart::isTerminateModelWPartIRMSE(Model& bestModel, 
+bool ModelAverageGBiasWPart::isTerminateModelWPartIRMSE(Model& bestModel, 
     const Data& data, int iter, int& bestIter, float& bestObj, float& prevObj, 
     float& bestValRMSE, float& prevValRMSE) {
 
@@ -61,21 +61,19 @@ bool ModelAverageWPart::isTerminateModelWPartIRMSE(Model& bestModel,
 }
 
 
-float ModelAverageWPart::objective(const std::vector<UserSets>& uSets,
+float ModelAverageGBiasWPart::objective(const std::vector<UserSets>& uSets, 
     gk_csr_t *mat) {
-  return ModelAverageWBias::objective(uSets, mat);
+  return ModelAverageWGBias::objective(uSets, mat);
 }
 
 
-void ModelAverageWPart::train(const Data& data, const Params& params,
+void ModelAverageGBiasWPart::train(const Data& data, const Params& params, 
     Model& bestModel) {
-
-  std::cout << "ModelAverageWPart::train" << std::endl;
+  
+  std::cout << "ModelAverageGBiasWPart::train" << std::endl;
   
   //initialize user-item factors with SVD
   svdFrmSvdlibCSR(data.partTrainMat, facDim, U, V, false);
-  
-  std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
   
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
@@ -87,6 +85,20 @@ void ModelAverageWPart::train(const Data& data, const Params& params,
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
+  
+  //initialize global bias
+  int nTrainSets = 0;
+  float meanSetRating = 0;
+  for (auto&& uInd: uInds) {
+    const auto& uSet = data.trainSets[uInd];
+    for (auto&& itemSet: uSet.itemSets) {
+      meanSetRating += itemSet.second;
+      nTrainSets++;
+    } 
+  }
+
+  meanSetRating = meanSetRating/nTrainSets;
+  gBias = meanSetRating;
 
   auto partUIRatings = getUIRatings(data.partTrainMat);
 
@@ -94,6 +106,8 @@ void ModelAverageWPart::train(const Data& data, const Params& params,
   trainItems = data.trainItems;
   std::cout << "train Users: " << trainUsers.size() 
     << " trainItems: " << trainItems.size() << std::endl;
+
+  std::cout << "gBias: " << gBias << " nTrSets: " << nTrainSets << std::endl;
 
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -116,7 +130,7 @@ void ModelAverageWPart::train(const Data& data, const Params& params,
         float r_us = uSet.itemSets[setInd].second;
 
         if (items.size() == 0) {
-          std::cerr << "!! zero size itemset found !!" << std::endl; 
+          std::cerr << "!! zero size itemset foundi !!" << std::endl; 
           continue;
         }
 
@@ -148,7 +162,11 @@ void ModelAverageWPart::train(const Data& data, const Params& params,
         
         //update user bias
         uBias(user) -= learnRate*((2.0*(r_us_est - r_us) + uBiasGrad) + 2.0*uBiasReg*uBias(user));
-
+        
+        //update user set bias
+        uSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
+            + 2.0*uSetBiasReg*uSetBias(user));
+        
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
         for (auto&& item: items) {
@@ -190,7 +208,10 @@ void ModelAverageWPart::train(const Data& data, const Params& params,
     }
   }
 
+
+
 }
+
 
 
 

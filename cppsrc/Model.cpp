@@ -152,8 +152,14 @@ float Model::objective(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
 
   norm = V.norm();
   iRegErr = iReg*norm*norm;
-
+  
   obj += uRegErr + iRegErr;
+
+  norm = uBias.norm();
+  obj += uBiasReg*norm*norm;
+
+  norm = iBias.norm();
+  obj += iBiasReg*norm*norm;
 
   return obj;
 }

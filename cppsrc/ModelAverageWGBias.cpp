@@ -32,13 +32,14 @@ float ModelAverageWGBias::estSetRating(int user, std::vector<int>& items) {
   return ratSum;
 }
 
-
 float ModelAverageWGBias::objective(const std::vector<UserSets>& uSets) {
-  float obj = 0.0;
-  float norm;
-  obj = Model::objective(uSets);
-  return obj;
-} 
+  return Model::objective(uSets);
+}
+
+
+float ModelAverageWGBias::objective(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
+  return Model::objective(uSets, mat);
+}
 
 
 void ModelAverageWGBias::train(const Data& data, const Params& params, 

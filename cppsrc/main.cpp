@@ -14,7 +14,6 @@
 #include "ModelAverageBiasesOnly.h"
 #include "ModelAverageWGBias.h"
 #include "ModelItemAverage.h"
-#include "ModelAverageSetBiasWPart.h"
 
 #include "ModelMFWBias.h"
 #include "ModelAverageHingeWBias.h"
@@ -23,7 +22,7 @@
 #include "ModelBPR.h"
 #include "ModelBPRTop.h"
 #include "ModelAverageBPRWBiasTop.h"
-
+#include "ModelAverageGBiasWPart.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 23) {
@@ -80,8 +79,8 @@ int main(int argc, char *argv[]) {
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
 
-  ModelMFWBias modelAvg(params);
-  ModelMFWBias bestModel(modelAvg);
+  ModelAverageGBiasWPart modelAvg(params);
+  ModelAverageGBiasWPart bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   
   float trainRMSE = bestModel.rmse(data.trainSets);
