@@ -76,7 +76,6 @@ void ModelAverageWGBias::train(const Data& data, const Params& params,
 
   std::cout << "gBias: " << gBias << " nTrSets: " << nTrainSets << std::endl;
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
-  std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
 
   //initialize random engine
   std::mt19937 mt(params.seed);

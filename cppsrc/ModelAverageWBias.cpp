@@ -56,7 +56,6 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
     Model& bestModel) {
   std::cout << "ModelAverageWBias::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
-  std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
   
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
