@@ -16,16 +16,17 @@ def averageDic(dic):
 
 
 def parseFilesForRes(ipFName):
+  Ns = [1, 5, 10, 25, 50, 100]
+
   ds = []
-  prec5Dic       = {}
-  ds.append(prec5Dic)
-  prec10Dic      = {}
-  ds.append(prec10Dic)
   
-  oneCall5Dic    = {}
-  ds.append(oneCall5Dic)
-  oneCall10Dic   = {}
-  ds.append(oneCall10Dic)
+  precDics    = []
+  oneCallDics = []
+  for n in Ns:
+    precDics.append({})
+    ds.append(precDics[-1])
+    oneCallDics.append({})
+    ds.append(oneCallDics[-1])
   
   valRMSEDic     = {}
   ds.append(valRMSEDic)
@@ -69,13 +70,13 @@ def parseFilesForRes(ipFName):
           
           if fLine.startswith('Precision:'):
             cols = fLine.strip().split()
-            updateDic(prec5Dic, bk, cols[1])
-            updateDic(prec10Dic, bk, cols[2])
+            for i in range(len(Ns)):
+              updateDic(precDics[i], bk, cols[i+1])
           
           if fLine.startswith('OneCall:'):
             cols = fLine.strip().split()
-            updateDic(oneCall5Dic, bk, cols[1])
-            updateDic(oneCall10Dic, bk, cols[2])
+            for i in range(len(Ns)):
+              updateDic(oneCallDics[i], bk, cols[i+1])
 
           if fLine.startswith("Val RM"):
             updateDic(valRMSEDic, bk, fLine)
@@ -111,13 +112,20 @@ def parseFilesForRes(ipFName):
 
   notFoundK = set([])
 
+  topTestItemPairDicNF = 0
+  
   for d in ds:
     for k in keys:
       if k not in d:
         print 'Not found: ', k 
         notFoundK.add(k)
+  for k in keys:
+    if k not in topTestItemPairDic:
+      topTestItemPairDicNF += 1
   
   if len(notFoundK) > 0:
+    print 'not found Count: ', len(notFoundK)
+    print 'topTestK: ', topTestItemPairDicNF
     for nf in notFoundK:
       print nf
     return 
@@ -125,16 +133,19 @@ def parseFilesForRes(ipFName):
   for k in keys:
     if k in notFoundK:
       continue
-    print k + ' ' + str(prec5Dic[k][0]) + ' ' + str(prec10Dic[k][0]) + \
-        ' ' + str(oneCall5Dic[k][0]) + ' ' + str(oneCall10Dic[k][0]) + \
-        ' ' + str(trainRMSEDic[k][0]) + ' ' + str(valRMSEDic[k][0]) + \
-        ' ' + str(testRMSEDic[k][0]) +  ' ' +  str(testAllRMSEDic[k][0]) + \
-        ' ' + str(trainSRMSEDic[k][0]) + ' ' + str(valSRMSEDic[k][0]) + \
-        ' ' + str(testSRMSEDic[k][0]) + \
-        ' ' + str(topValSetBPRDic[k][0]) + ' ' + str(topTestSetBPRDic[k][0]) + \
-        ' ' + str(topValItemBPRDic[k][0]) + ' ' + str(topTestItemBPRDic[k][0]) + \
-        ' ' + str(topTestItemPairDic[k][0]) + \
-        ' ' + str(prec5Dic[k][1]) 
+    tempL = [k]
+    for precD in precDics:
+      tempL.append(precD[k][0])
+    for oneCallD in oneCallDics:
+      tempL.append(oneCallD[k][0])
+    tempL += [trainRMSEDic[k][0], valRMSEDic[k][0], testRMSEDic[k][0],
+        testAllRMSEDic[k][0]]
+    tempL += [trainSRMSEDic[k][0], valSRMSEDic[k][0], testSRMSEDic[k][0]]
+    tempL += [topValSetBPRDic[k][0], topTestSetBPRDic[k][0]]
+    tempL += [topValItemBPRDic[k][0], topTestItemBPRDic[k][0]]
+    tempL += [topTestItemPairDic[k][0]]
+    tempL += [topTestItemPairDic[k][1]]
+    print ' '.join(map(str, tempL))
   
 
 
