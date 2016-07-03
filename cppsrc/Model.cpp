@@ -1198,8 +1198,7 @@ std::pair<float, float> Model::fracCorrOrderedRatingsUser(int user,
       secondPredRating = estItemRating(user, secondItem);
       
       if ((firstRating < secondRating && firstPredRating < secondPredRating)
-          ||(firstRating > secondPredRating 
-             && firstPredRating > secondPredRating)) {
+          ||(firstRating > secondRating && firstPredRating > secondPredRating)) {
         corrOrderedPairs += 1;
       } 
       nPairs += 1;
@@ -1232,12 +1231,14 @@ std::pair<float, float> Model::fracCorrOrderedRatingsUserTop(int user,
       secondRating     = itemRatings[j].second;
       secondPredRating = estItemRating(user, secondItem);
       
-      if ((firstRating <= lb && secondRating > lb) 
-          || (firstRating > lb && secondRating <= lb)) {
-        if ((firstRating < secondRating && firstPredRating < secondPredRating)
-            ||(firstRating > secondPredRating 
-               && firstPredRating > secondPredRating)) {
+      if ((firstRating <= lb && secondRating > lb) || 
+          (firstRating > lb && secondRating <= lb)) {
+
+        if ((firstRating < secondRating && firstPredRating < secondPredRating) ||
+            (firstRating > secondRating && firstPredRating > secondPredRating)) {
+
           corrOrderedPairs += 1;
+
         } 
         nPairs += 1;
       }
@@ -1275,6 +1276,9 @@ float Model::matCorrOrderedRatingsWOSetsTop(
     nPairs += corrPairs.second;
     numUsers++;
   }
+
+  std::cout << "corrOrderedPairs: " << corrOrderedPairs 
+    << " nPairs: " << nPairs << std::endl;
 
   corrOrderedPairs = corrOrderedPairs/nPairs;
 
