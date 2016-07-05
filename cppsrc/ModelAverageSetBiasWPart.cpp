@@ -18,15 +18,7 @@ float ModelAverageSetBiasWPart::estSetRating(int user,
 
 float ModelAverageSetBiasWPart::objective(const std::vector<UserSets>& uSets,
     gk_csr_t *mat) {
-  
-  float norm;
-  float obj = ModelAverageWPart::objective(uSets, mat);
-
-  //add set bias reg
-  norm = uSetBias.norm();
-  obj += uSetBiasReg*norm*norm;
-
-  return obj;
+  return ModelAverageWPart::objective(uSets, mat);
 }
 
 
