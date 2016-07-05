@@ -69,6 +69,15 @@ void loadModelNRMSEs(Data& data, const Params& params) {
 }
 
 
+void subSampleMats(gk_csr_t *mat, std::string prefix, int seed) {
+  std::vector<double> pcs {0.01, 0.25, 0.5, 0.75};
+  for (auto&& pc: pcs) {
+    std::string fName = prefix + "_" + std::to_string(pc) + ".csr";
+    writeSubSampledMat(mat, fName.c_str(), pc, seed);
+  }
+}
+
+
 int main(int argc, char *argv[]) {
   Params params = parse_cmd_line(argc, argv);
   params.display();
@@ -79,10 +88,14 @@ int main(int argc, char *argv[]) {
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
 
-  ModelAverageGBiasWPart modelAvg(params);
-  ModelAverageGBiasWPart bestModel(modelAvg);
+  //subSampleMats(data.partTrainMat, params.prefix, params.seed);
+
+  ModelAverageWBias modelAvg(params);
+  ModelAverageWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
-  
+  //bestModel.save(params.prefix);
+  //bestModel.load(params.prefix);
+
   float trainRMSE = bestModel.rmse(data.trainSets);
   float testRMSE = bestModel.rmse(data.testSets);
   float valRMSE = bestModel.rmse(data.valSets);
