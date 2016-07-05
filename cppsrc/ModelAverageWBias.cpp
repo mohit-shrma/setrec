@@ -33,17 +33,7 @@ float ModelAverageWBias::estSetRating(int user, std::vector<int>& items) {
 
 float ModelAverageWBias::objective(const std::vector<UserSets>& uSets, 
     gk_csr_t *mat) {
-  float norm; 
-  float obj = Model::objective(uSets, mat);
-
-  //add biases regularization
-  norm = uBias.norm();
-  obj += norm*norm*uBiasReg;
-
-  norm = iBias.norm();
-  obj += norm*norm*iBiasReg;
-
- return obj;
+  return Model::objective(uSets, mat);
 }
 
 

@@ -1566,6 +1566,7 @@ float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets) {
   return nCorrOrderedPairs/nPairs;
 }
 
+
 //compute fraction of correctly ordered pair of sets such that r_us <= lb, r_ut > lb
 float Model::fracCorrOrderedSets(const std::vector<UserSets>& uSets, float lb) {
   

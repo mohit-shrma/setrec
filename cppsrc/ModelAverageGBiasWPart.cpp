@@ -164,8 +164,8 @@ void ModelAverageGBiasWPart::train(const Data& data, const Params& params,
         uBias(user) -= learnRate*((2.0*(r_us_est - r_us) + uBiasGrad) + 2.0*uBiasReg*uBias(user));
         
         //update user set bias
-        uSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
-            + 2.0*uSetBiasReg*uSetBias(user));
+        //uSetBias(user) -= learnRate*(2.0*(r_us_est - r_us) 
+        //    + 2.0*uSetBiasReg*uSetBias(user));
         
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
