@@ -486,6 +486,7 @@ int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt) {
   return j;
 }
 
+
 //sample neg item with rating <= thresh
 int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt,
     float thresh) {
@@ -533,6 +534,87 @@ int sampleNegItem(gk_csr_t *mat, int u, float r_ui, std::mt19937& mt,
   }
 
   return j;
+}
+
+
+std::pair<int, int> samplePosNegItem(gk_csr_t *mat, int u, std::mt19937& mt,
+    float thresh) {
+  
+  int j = -1, i = -1, posTry = 0, negTry = 0;
+  float r_uj, r_ui;
+  int start, end;
+  int nRatedItems = mat->rowptr[u+1] - mat->rowptr[u];
+  
+  if (nRatedItems < 2) {
+    return std::make_pair(i,j);
+  }
+
+  std::uniform_int_distribution<int> dist(0, nRatedItems-1);
+  std::uniform_int_distribution<int> dist2(0, mat->ncols-1);
+
+  //sample pos Item
+  while (posTry < 100) {
+    int rInd = dist(mt);
+    int startInd = mat->rowptr[u];
+    i = mat->rowind[startInd + rInd];
+    r_ui = mat->rowval[startInd + rInd];
+    if (r_ui > thresh) {
+      break;
+    }
+    posTry++;
+  }
+  
+  if (r_ui <= thresh) {
+    //sequentially select the first r_ui > thresh
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      i = mat->rowind[ii];
+      r_ui = mat->rowval[ii];
+      if (r_ui > thresh) {
+        break;
+      }
+    }
+  }
+
+  if (r_ui <= thresh) {
+    i == -1;
+  }
+
+  //sample neg Item
+  while (negTry < 100) {
+    int rInd = dist(mt);
+    int startInd = mat->rowptr[u];
+    j = mat->rowind[startInd + rInd];
+    r_uj = mat->rowval[startInd + rInd];
+
+    if (r_uj <= thresh) {
+      //found an item rated explicitly low
+      break;
+    } else {
+      //find an implicit 0
+      if (0 == rInd) {
+        start = 0;
+        end = j; //first rated item
+      } else if (nRatedItems - 1 == rInd) {
+        start = j + 1; //item appearing after last rated items
+        end = mat->ncols;
+      } else {
+        start = j + 1; //item after j
+        end = mat->rowind[startInd + rInd  + 1]; //item rated after jth item
+      }
+    }
+
+    if (end - start > 0) {
+      j = dist2(mt)%(end - start) + start;
+    }
+
+    negTry++;
+  }
+  
+  if (100 == negTry) {
+    j = -1;
+  }
+
+  return std::make_pair(i,j);
 }
 
 

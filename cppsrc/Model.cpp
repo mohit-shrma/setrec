@@ -9,6 +9,7 @@ Model::Model(const Params &params) {
   uReg        = params.uReg;
   uBiasReg    = params.uBiasReg;
   iBiasReg    = params.iBiasReg;
+  gBiasReg    = params.g_kReg;
   uSetBiasReg = params.u_mReg;
   iReg        = params.iReg;
   learnRate   = params.learnRate;
@@ -1783,6 +1784,12 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
       bestValRMSE = currValRMSE;
       bestIter    = iter;
       bestObj     = currObj;
+    } else {
+      //decrease learn rate
+      learnRate = learnRate/2;
+      if (learnRate < 1e-5) {
+        learnRate = 1e-5;
+      }
     } 
   
     if (iter - bestIter >= CHANCE_ITER) {

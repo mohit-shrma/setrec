@@ -51,5 +51,7 @@ std::unordered_set<int> checkIfSetsMatOverlap(std::vector<UserSets>& uSets,
 void removeSetsWInvalUsers(std::vector<UserSets>& uSets,
     std::unordered_set<int>& inValUsers);
 int getNNZ(gk_csr_t *mat) ;
+std::pair<int, int> samplePosNegItem(gk_csr_t *mat, int u, std::mt19937& mt,
+    float thresh) ;
 #endif
 

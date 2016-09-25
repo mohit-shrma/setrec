@@ -15,6 +15,7 @@
 #include "ModelAverageWGBias.h"
 #include "ModelItemAverage.h"
 
+#include "ModelFM.h"
 #include "ModelMFWBias.h"
 #include "ModelAverageHingeWBias.h"
 #include "ModelAverageLogWBias.h"
@@ -23,6 +24,8 @@
 #include "ModelBPRTop.h"
 #include "ModelAverageBPRWBiasTop.h"
 #include "ModelAverageGBiasWPart.h"
+#include "ModelAverageBPRWPart.h"
+
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 23) {
@@ -90,8 +93,8 @@ int main(int argc, char *argv[]) {
 
   //subSampleMats(data.partTrainMat, params.prefix, params.seed);
 
-  ModelAverageWBias modelAvg(params);
-  ModelAverageWBias bestModel(modelAvg);
+  ModelFM modelAvg(params);
+  ModelFM bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   //bestModel.save(params.prefix);
   //bestModel.load(params.prefix);
