@@ -4,14 +4,15 @@ import numpy as np
 
 NUSERS      = 854
 NITEMS      = 12549
-#FACDIMS     = [1, 5, 10, 15, 25, 50, 75, 100]
-FACDIMS     = [1, 10, 15, 25, 50, 75, 100]
+FACDIMS     = [1, 5, 10, 25, 50, 75, 100]
+#FACDIMS     = [1, 10, 15, 25, 50, 75, 100]
 REGS        = [0.001, 0.01, 0.1, 1, 10] 
 
 uREGS       = REGS #[0.1, 1]
 iREGS       = REGS #[0.001, 0.01]
 ubiasREGS   = REGS #[0.001, 0.01, 1, 10]
 ibiasREGS   = REGS #[0.01, 10]
+gbiasREGS   = REGS
 #biasREGS   = [0.001, 0.01]
 setBiasRegs = REGS #[0.001, 0.01, 1, 10]
 
@@ -21,10 +22,10 @@ GAMMAS      = list(GAMMAS) + [-0.05, 0.05]
 LEARNRATE   = 0.001
 SEED        = 1
 
-DATA         = "/home/karypisg/msharma/data/setrec/movielens/split5/"
+DATA         = "/scratch/glu28/mohit/data/movielens/setRatings/fiveSplits/split1"
 
-SETREC       = "/home/karypisg/msharma/dev/setrec/cppsrc/setrecRankBPRTop_30"
-PREFIX       = "rankBPRTop_30"
+SETREC       = "/scratch/glu28/mohit/dev/bitbucket/setrec/cppsrc/setrecFM"
+PREFIX       = "setFM"
 OPDIR        = DATA + PREFIX 
 
 TRAIN_SET    = DATA + "ml_set.train.lfs"
@@ -65,12 +66,13 @@ def genGridRegJobs():
       for ireg in iREGS:
         for ubiasreg in ubiasREGS:
           for ibiasreg in ibiasREGS:
-            for usetbiasreg in setBiasRegs:
+            for gbiasreg in gbiasREGS:
+            #for usetbiasreg in setBiasRegs:
             #for usetbiasreg in [0]:
                 jobStr      = '_'.join(map(str, [ureg, ireg, ubiasreg, ibiasreg, 
-                  usetbiasreg, dim]))
+                  gbiasreg, dim]))
                 print SETREC, NUSERS, NITEMS, dim, 5000, SEED, \
-                    ureg, ireg, usetbiasreg, ubiasreg, ibiasreg, 0, LEARNRATE, 0, 0, \
+                    ureg, ireg, 0, ubiasreg, ibiasreg, gbiasreg, LEARNRATE, 0, 0, \
                     TRAIN_SET, TEST_SET, VAL_SET, RATMAT, TRAIN_RATMAT, TEST_RATMAT, \
                     VAL_RATMAT, PREFIX, \
                     " > " + OPDIR + "/" + PREFIX + "_" + jobStr + ".txt"
@@ -154,6 +156,6 @@ def genJobs():
           " > " + OPDIR + "/" + PREFIX + "_" + jobStr + ".txt"
     
 
-genRankRegJobs() 
+genGridRegJobs() 
 
 
