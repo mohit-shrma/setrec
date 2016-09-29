@@ -17,7 +17,7 @@ Model::Model(const Params &params) {
 
   //random engine
   std::mt19937 mt(params.seed);
-  std::uniform_real_distribution<> dis(0, 1);
+  std::uniform_real_distribution<> dis(-0.01, 0.01);
 
   //initialize User factors and biases
   U = Eigen::MatrixXf(nUsers, facDim);
@@ -43,7 +43,7 @@ Model::Model(const Params &params) {
   }
   
   //init global bias
-  gBias = 0;
+  gBias = dis(mt);
 }
 
 
