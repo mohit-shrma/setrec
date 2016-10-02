@@ -224,7 +224,6 @@ void ModelFMUWt::train(const Data& data, const Params& params,
         
         //update user bias
         uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
-
        
         //update user div wt
         uDivWt(user) -= learnRate*((2.0*(r_us_est - r_us)/sz))*avgItemsPairwiseSim;
@@ -253,6 +252,6 @@ void ModelFMUWt::train(const Data& data, const Params& params,
     }
 
   }
-  std::cout << "gBias: " << gBias << std::endl;
+  std::cout << " gBias: " << gBias << std::endl;
 }
 
