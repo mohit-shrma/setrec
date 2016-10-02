@@ -1,19 +1,29 @@
-#include "ModelFM.h"
+#include "ModelFMUWt.h"
 
-float ModelFM::estSetRating(int user, std::vector<int>& items) {
-  
+
+float ModelFMUWt::estSetRating(int user, std::vector<int>& items) {
+ 
   float r_us = 0;
   float fmSqrSum = 0;
   float fmSumsqr = 0;
   
-  r_us += gBias;
-  r_us += uBias(user);
+  float avgItemsPairwiseSim = 0;
+
+  r_us += gBias; //global bias
+  r_us += uBias(user); //user bias
+  
+  float sumItemBias = 0;
+  float sumItemRatings = 0;
+  int sz = items.size();
+  int nItemPairs = (sz*(sz -1))/2;
 
   //add item biases
   for (auto&& item: items) {
-    r_us += iBias(item);
+    sumItemBias += iBias(item);
   }
-
+  sumItemBias = sumItemBias/sz;
+  r_us += sumItemBias;
+  
   for (int k = 0; k < facDim; k++) {
     float tempSqrsum = 0;
     
@@ -21,37 +31,51 @@ float ModelFM::estSetRating(int user, std::vector<int>& items) {
     for (auto&& item: items) {
       tempSqrsum += V.row(item)[k];
       fmSumsqr += V.row(item)[k] * V.row(item)[k];
-    } 
     
-    //user
-    tempSqrsum += U.row(user)[k];
+      //user
+      sumItemRatings += U.row(user)[k]*V.row(item)[k];
+    } 
+
     tempSqrsum = tempSqrsum*tempSqrsum;
     fmSqrSum += tempSqrsum;
-    fmSumsqr += U.row(user)[k] * U.row(user)[k];
   }
-  
-  r_us += 0.5*(fmSqrSum - fmSumsqr);
+
+  sumItemRatings = sumItemRatings/sz;
+  r_us += sumItemRatings;
+
+  avgItemsPairwiseSim = 0.5*(fmSqrSum - fmSumsqr);
+  avgItemsPairwiseSim = avgItemsPairwiseSim/nItemPairs;
+  r_us += uDivWt(user)*avgItemsPairwiseSim;
 
   return r_us;
 }
 
 
-float ModelFM::estSetRating(int user, std::vector<int>& items, 
-    Eigen::VectorXf& sumFactors) {
+float ModelFMUWt::estSetRating(int user, std::vector<int>& items, 
+    Eigen::VectorXf& sumItemFactors, float& avgItemsPairwiseSim) {
   
   float r_us = 0;
   float fmSqrSum = 0;
   float fmSumsqr = 0;
   
-  sumFactors.fill(0);
-  r_us += gBias;
-  r_us += uBias(user);
+  sumItemFactors.fill(0);
+  avgItemsPairwiseSim = 0;
+
+  r_us += gBias; //global bias
+  r_us += uBias(user); //user bias
+  
+  float sumItemBias = 0;
+  float sumItemRatings = 0;
+  int sz = items.size();
+  int nItemPairs = (sz*(sz -1))/2;
 
   //add item biases
   for (auto&& item: items) {
-    r_us += iBias(item);
+    sumItemBias += iBias(item);
   }
-
+  sumItemBias = sumItemBias/sz;
+  r_us += sumItemBias;
+  
   for (int k = 0; k < facDim; k++) {
     float tempSqrsum = 0;
     
@@ -59,24 +83,28 @@ float ModelFM::estSetRating(int user, std::vector<int>& items,
     for (auto&& item: items) {
       tempSqrsum += V.row(item)[k];
       fmSumsqr += V.row(item)[k] * V.row(item)[k];
-      sumFactors[k] += V.row(item)[k];
-    } 
+      sumItemFactors[k] += V.row(item)[k];
     
-    //user
-    tempSqrsum += U.row(user)[k];
+      //user
+      sumItemRatings += U.row(user)[k]*V.row(item)[k];
+    } 
+
     tempSqrsum = tempSqrsum*tempSqrsum;
     fmSqrSum += tempSqrsum;
-    fmSumsqr += U.row(user)[k] * U.row(user)[k];
-    sumFactors[k] += U.row(user)[k];
   }
-  
-  r_us += 0.5*(fmSqrSum - fmSumsqr);
+
+  sumItemRatings = sumItemRatings/sz;
+  r_us += sumItemRatings;
+
+  avgItemsPairwiseSim = 0.5*(fmSqrSum - fmSumsqr);
+  avgItemsPairwiseSim = avgItemsPairwiseSim/nItemPairs;
+  r_us += uDivWt(user)*avgItemsPairwiseSim;
 
   return r_us;
 }
 
 
-float ModelFM::estItemRating(int user, int item) {
+float ModelFMUWt::estItemRating(int user, int item) {
   bool uFound = false, iFound = true;
   float rating = 0;
   if (trainUsers.find(user) != trainUsers.end() && 
@@ -96,23 +124,24 @@ float ModelFM::estItemRating(int user, int item) {
 }
 
 
-float ModelFM::objective(const std::vector<UserSets>& uSets, 
+float ModelFMUWt::objective(const std::vector<UserSets>& uSets, 
     gk_csr_t *mat) {
   return Model::objective(uSets, mat) + gBiasReg*gBias*gBias;
 }
 
 
-float ModelFM::objective(const std::vector<UserSets>& uSets) {
+float ModelFMUWt::objective(const std::vector<UserSets>& uSets) {
   return Model::objective(uSets) + gBiasReg*gBias*gBias;
 }
 
 
-void ModelFM::train(const Data& data, const Params& params, 
+void ModelFMUWt::train(const Data& data, const Params& params, 
     Model& bestModel) {
-  std::cout << "ModelFM::train" << std::endl; 
+  std::cout << "ModelFMUWt::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
-  
-  Eigen::VectorXf sumFactors(facDim);
+ 
+  float avgItemsPairwiseSim;
+  Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
   Eigen::VectorXf tempGrad(facDim);
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
@@ -161,6 +190,8 @@ void ModelFM::train(const Data& data, const Params& params,
         int setInd = dist(mt) % uSet.itemSets.size();
         auto items = uSet.itemSets[setInd].first;
         float r_us = uSet.itemSets[setInd].second;
+        int sz = items.size();
+        int nPairs = (sz*(sz-1)) / 2;
 
         if (items.size() == 0) {
           std::cerr << "!! zero size itemset found !!" << std::endl; 
@@ -168,11 +199,24 @@ void ModelFM::train(const Data& data, const Params& params,
         }
 
         //estimate rating on the set & sum of item factors
-        float r_us_est = estSetRating(user, items, sumFactors);
+        float r_us_est = estSetRating(user, items, sumItemFactors, 
+            avgItemsPairwiseSim);
+
+        //update items
+        for (auto&& item: items) {
+          grad = (uDivWt(user)*(sumItemFactors - V.row(item).transpose()))/nPairs;
+          grad += U.row(user)/sz;
+          grad *= (2.0*(r_us_est - r_us));
+          grad += 2.0*iReg*V.row(item).transpose(); 
+          V.row(item) -= learnRate*(grad.transpose());
+          //update item bias
+          iBias(item) -= learnRate*((2.0*(r_us_est - r_us)/sz) 
+              + 2.0*iBiasReg*iBias(item));
+        }
 
         //user gradient
-        grad = sumFactors - U.row(user).transpose();
-        grad = (2.0*(r_us_est - r_us))*(grad)
+        grad = sumItemFactors/sz;
+        grad = (2.0*(r_us_est - r_us))*grad
                 + 2.0*uReg*U.row(user).transpose();
 
         //update user
@@ -181,17 +225,10 @@ void ModelFM::train(const Data& data, const Params& params,
         //update user bias
         uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
 
-        //update items
-        for (auto&& item: items) {
-          grad = sumFactors - V.row(item).transpose();
-          grad = (2.0*(r_us_est - r_us))*(grad);
-          tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
-          V.row(item) -= learnRate*(tempGrad.transpose());
-          //update item bias
-          iBias(item) -= learnRate*((2.0*(r_us_est - r_us)) 
-              + 2.0*iBiasReg*iBias(item));
-        }
-        
+       
+        //update user div wt
+        uDivWt(user) -= learnRate*((2.0*(r_us_est - r_us)/sz))*avgItemsPairwiseSim;
+
         //update global bias
         gBias -= learnRate*(2.0*(r_us_est - r_us)) + 2.0*gBiasReg*gBias;
       }
@@ -218,5 +255,4 @@ void ModelFM::train(const Data& data, const Params& params,
   }
   std::cout << "gBias: " << gBias << std::endl;
 }
-
 

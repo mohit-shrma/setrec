@@ -26,6 +26,7 @@ Model::Model(const Params &params) {
 
   for (int u = 0; u < nUsers; u++) {
     uBias(u) = dis(mt);
+    uDivWt(u) = dis(mt);
     uSetBias(u) = dis(mt);
     for (int k = 0; k < facDim; k++) {
       U(u, k) = dis(mt);

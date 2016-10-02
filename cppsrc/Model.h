@@ -27,6 +27,9 @@ class Model {
     //user set biases
     Eigen::VectorXf uSetBias;
     
+    //user diversity biases
+    Eigen::VectorXf uDivWt;
+
     //global set bias
     float gBias;
     

@@ -16,6 +16,7 @@
 #include "ModelItemAverage.h"
 
 #include "ModelFM.h"
+#include "ModelFMUWt.h"
 #include "ModelMFWBias.h"
 #include "ModelAverageHingeWBias.h"
 #include "ModelAverageLogWBias.h"
@@ -93,8 +94,8 @@ int main(int argc, char *argv[]) {
 
   //subSampleMats(data.partTrainMat, params.prefix, params.seed);
 
-  ModelFM modelAvg(params);
-  ModelFM bestModel(modelAvg);
+  ModelFMUWt modelAvg(params);
+  ModelFMUWt bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   //bestModel.save(params.prefix);
   //bestModel.load(params.prefix);
