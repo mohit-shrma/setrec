@@ -22,8 +22,9 @@ Model::Model(const Params &params) {
   //initialize User factors and biases
   U = Eigen::MatrixXf(nUsers, facDim);
   uBias = Eigen::VectorXf(nUsers);
+  uDivWt = Eigen::VectorXf(nUsers);
   uSetBias = Eigen::VectorXf(nUsers);
-
+  
   for (int u = 0; u < nUsers; u++) {
     uBias(u) = dis(mt);
     uDivWt(u) = dis(mt);
