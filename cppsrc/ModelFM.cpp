@@ -39,6 +39,11 @@ float ModelFM::estSetRating(int user, std::vector<int>& items,
   r_us += gBias;
   r_us += uBias(user);
 
+  //add item biases
+  for (auto&& item: items) {
+    r_us += iBias(item);
+  }
+
   for (int k = 0; k < facDim; k++) {
     float tempSqrsum = 0;
     
