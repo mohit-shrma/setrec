@@ -126,12 +126,20 @@ float ModelFMUWt::estItemRating(int user, int item) {
 
 float ModelFMUWt::objective(const std::vector<UserSets>& uSets, 
     gk_csr_t *mat) {
-  return Model::objective(uSets, mat) + gBiasReg*gBias*gBias;
+  float obj = Model::objective(uSets, mat) + gBiasReg*gBias*gBias; 
+  for (auto&& user: trainUsers) {
+    obj += uSetBiasReg*uDivWt(user)*uDivWt(user);
+  }
+  return obj; 
 }
 
 
 float ModelFMUWt::objective(const std::vector<UserSets>& uSets) {
-  return Model::objective(uSets) + gBiasReg*gBias*gBias;
+  float obj = Model::objective(uSets) + gBiasReg*gBias*gBias; 
+  for (auto&& user: trainUsers) {
+    obj += uSetBiasReg*uDivWt(user)*uDivWt(user);
+  }
+  return obj;
 }
 
 
@@ -230,7 +238,6 @@ void ModelFMUWt::train(const Data& data, const Params& params,
             + 2.0*uSetBiasReg*uDivWt(user));
 
         //update global bias
-        //TODO: was incorrect re-run
         gBias -= learnRate*(2.0*(r_us_est - r_us) + 2.0*gBiasReg*gBias);
       }
     }    

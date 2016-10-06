@@ -65,8 +65,8 @@ class Params {
       std::cout << "\niReg: " << iReg;
       std::cout << "\nuBiasReg: " << uBiasReg;
       std::cout << "\niBiasReg: " << iBiasReg;
-      std::cout << "\nu_mReg: " << u_mReg;
-      std::cout << "\ng_kReg: " << g_kReg;
+      std::cout << "\nu_mReg (uSetBiasReg): " << u_mReg;
+      std::cout << "\ng_kReg (gBiasReg): " << g_kReg;
       std::cout << "\nlearnRate: " << learnRate;
       std::cout << "\nconstWt: " << constWt;
       std::cout << "\nrhoRMS: " << rhoRMS;
