@@ -226,10 +226,12 @@ void ModelFMUWt::train(const Data& data, const Params& params,
         uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
        
         //update user div wt
-        uDivWt(user) -= learnRate*((2.0*(r_us_est - r_us)/sz))*avgItemsPairwiseSim;
+        uDivWt(user) -= learnRate*((2.0*(r_us_est - r_us)/sz)*avgItemsPairwiseSim 
+            + 2.0*uSetBiasReg*uDivWt(user));
 
         //update global bias
-        gBias -= learnRate*(2.0*(r_us_est - r_us)) + 2.0*gBiasReg*gBias;
+        //TODO: was incorrect re-run
+        gBias -= learnRate*(2.0*(r_us_est - r_us) + 2.0*gBiasReg*gBias);
       }
     }    
     

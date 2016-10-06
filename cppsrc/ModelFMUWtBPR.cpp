@@ -198,9 +198,8 @@ void ModelFMUWtBPR::train(const Data& data, const Params& params,
         U.row(user) -= learnRate*grad.transpose();
         
         //update user div wt
-        //TODO: is regularize?
         uDivWt(user) -= learnRate*(expDiff*(s_avgItemsPairwiseSim 
-              - t_avgItemsPairwiseSim));
+              - t_avgItemsPairwiseSim) + 2.0*uSetBiasReg*uDivWt(user));
 
       }
     }    
