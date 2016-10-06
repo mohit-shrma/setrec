@@ -9,6 +9,7 @@
 
 float sigmoid(float x, float k);
 double spearmanRankCorrN(std::vector<float> x, std::vector<float> y, int N);
+float mean(std::vector<double> arr);
 
 #endif
 

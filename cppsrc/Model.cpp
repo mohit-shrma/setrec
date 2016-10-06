@@ -1066,6 +1066,10 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
     }
   }
 
+
+  std::string opFName = "userPrecRecNEntropy.txt";
+  std::ofstream opFile(opFName.c_str());
+
   for (auto&& uSet: uSets) {
     int user = uSet.user;
 
@@ -1107,8 +1111,10 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
         predRatings.end(), descComp);
     std::sort(predRatings.begin(), predRatings.begin() + maxN, descComp);
 
+    opFile << user << " ";
+
     int k = 0; 
-    
+
     for (auto&& n: Ns) {
 
       float uFound = 0;
@@ -1123,24 +1129,44 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
       
       if ((int)actItems.size() < n) {
         avgPrecNs[k] += uFound/actItems.size();
+        if (5 == n) {
+          opFile << uFound/actItems.size() << " ";
+        }
       } else {
         avgPrecNs[k] += uFound/n;
+        if (5 == n) {
+          opFile << uFound/n << " ";
+        }
       }
     
       if (uFound > 0) {
         oneCallNs[k] += 1;
       }
 
+      if (5 == n) {
+        if (uFound) {
+          opFile << 1 << " ";
+        } else {
+          opFile << 0 << " ";
+        }
+      }
+
       k++;
     }
     
+    //TODO: print user average entropy
+    opFile << mean(uSet.setsEntropy);
     numUsers++;
+
+    opFile << std::endl;
   }
  
   for (int k = 0; k < (int)Ns.size(); k++) {
     oneCallNs[k] = oneCallNs[k]/numUsers;
     avgPrecNs[k] = avgPrecNs[k]/numUsers;
   }
+  
+  opFile.close();
 
   return std::make_pair(avgPrecNs, oneCallNs);
 }

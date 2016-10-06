@@ -33,5 +33,12 @@ double spearmanRankCorrN(std::vector<float> x, std::vector<float> y, int N) {
   return uSpearMan;
 }
 
-
+float mean(std::vector<double> arr) {
+  double mean = 0;
+  for (auto&& num: arr) {
+    mean += num;
+  }
+  mean = mean/arr.size();
+  return mean;
+}
 

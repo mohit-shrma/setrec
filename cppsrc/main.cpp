@@ -89,6 +89,9 @@ int main(int argc, char *argv[]) {
   Data data(params);
   
   data.initRankMap(params.seed);
+  data.computeSetsEntropy();
+  //data.writeTrainSetsEntropy();
+  
 
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;

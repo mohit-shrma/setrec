@@ -83,15 +83,35 @@ def getSetEntropy(user, itemsSet, uiRatings):
   return entropy
 
 
+def getSetHiLoEntropy(user, itemsSet, uiRatings):
+  setSz = len(itemsSet)
+  #bins for rating: [0,3), [3,5]
+  bins = [0.0 for i in range(2)]  
+  for item in itemsSet:
+    rating = uiRatings[user][item]
+    if rating < 3:
+      bins[0] += 1
+    else:
+      bins[1] += 1
+
+  entropy = 0.0
+  for count in bins:
+    if count > 0:
+      entropy += -(count/setSz)*np.log10(count/setSz)
+  return entropy
+
+
 def writeUserSetsWSimEntropy(uSets, uiRatings):
   for user, sets in uSets.iteritems():
     for [setRating, itemsSet] in sets:
-      entropy = getSetEntropy(user, itemsSet, uiRatings)
-      sim = getSetRatingSim(user, itemsSet, uiRatings)
+      entropy     = getSetEntropy(user, itemsSet, uiRatings)
+      hiLoEntropy = getSetHiLoEntropy(user, itemsSet, uiRatings)
+      sim         = getSetRatingSim(user, itemsSet, uiRatings)
       itemRatings = []
       for item in itemsSet:
         itemRatings.append(uiRatings[user][item])
-      print user, ' '.join(map(str, itemsSet)), ' '.join(map(str, itemRatings)), entropy, sim
+      print user, ' '.join(map(str, itemsSet)), ' '.join(map(str, itemRatings)), \
+        sim, entropy, hiLoEntropy
 
 
 def main():
