@@ -1838,7 +1838,12 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
         << " prevObj: " << prevObj << " bestValRMSE:" << bestValRMSE;
       ret = true;
     }
-    
+   
+    if (std::isnan(currObj)) {
+      std::cout << "Found NaN obj: " << currObj << std::endl;
+      ret = true;
+    }
+
   } else if (0  == iter) {
     bestObj     = currObj;
     bestValRMSE = currValRMSE;

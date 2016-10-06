@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <random>
 #include <tuple>
+#include <cmath>
 
 #include "datastruct.h"
 #include "const.h"
