@@ -17,7 +17,7 @@ Model::Model(const Params &params) {
 
   //random engine
   std::mt19937 mt(params.seed);
-  std::uniform_real_distribution<> dis(-0.01, 0.01);
+  std::uniform_real_distribution<> dis(0, 1);
 
   //initialize User factors and biases
   U = Eigen::MatrixXf(nUsers, facDim);
@@ -27,7 +27,6 @@ Model::Model(const Params &params) {
   
   for (int u = 0; u < nUsers; u++) {
     uBias(u) = dis(mt);
-    uDivWt(u) = dis(mt);
     uSetBias(u) = dis(mt);
     for (int k = 0; k < facDim; k++) {
       U(u, k) = dis(mt);
@@ -45,6 +44,9 @@ Model::Model(const Params &params) {
   }
   
   //init global bias
+  for (int u = 0; u < nUsers; u++) {
+    uDivWt(u) = dis(mt);
+  }
   gBias = dis(mt);
 }
 
@@ -1067,8 +1069,8 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
   }
 
 
-  std::string opFName = "userPrecRecNEntropy.txt";
-  std::ofstream opFile(opFName.c_str());
+  //std::string opFName = "userPrecRecNEntropy.txt";
+  //std::ofstream opFile(opFName.c_str());
 
   for (auto&& uSet: uSets) {
     int user = uSet.user;
@@ -1111,7 +1113,7 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
         predRatings.end(), descComp);
     std::sort(predRatings.begin(), predRatings.begin() + maxN, descComp);
 
-    opFile << user << " ";
+    //opFile << user << " ";
 
     int k = 0; 
 
@@ -1130,12 +1132,12 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
       if ((int)actItems.size() < n) {
         avgPrecNs[k] += uFound/actItems.size();
         if (5 == n) {
-          opFile << uFound/actItems.size() << " ";
+          //opFile << uFound/actItems.size() << " ";
         }
       } else {
         avgPrecNs[k] += uFound/n;
         if (5 == n) {
-          opFile << uFound/n << " ";
+          //opFile << uFound/n << " ";
         }
       }
     
@@ -1145,9 +1147,9 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
 
       if (5 == n) {
         if (uFound) {
-          opFile << 1 << " ";
+          //opFile << 1 << " ";
         } else {
-          opFile << 0 << " ";
+          //opFile << 0 << " ";
         }
       }
 
@@ -1155,10 +1157,10 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
     }
     
     //TODO: print user average entropy
-    opFile << mean(uSet.setsEntropy);
+    //opFile << mean(uSet.setsEntropy);
     numUsers++;
 
-    opFile << std::endl;
+    //opFile << std::endl;
   }
  
   for (int k = 0; k < (int)Ns.size(); k++) {
@@ -1166,7 +1168,7 @@ std::pair<std::vector<float>, std::vector<float>> Model::precisionNCall(
     avgPrecNs[k] = avgPrecNs[k]/numUsers;
   }
   
-  opFile.close();
+  //opFile.close();
 
   return std::make_pair(avgPrecNs, oneCallNs);
 }
@@ -1283,13 +1285,14 @@ float Model::matCorrOrderedRatingsWOSetsTop(
     const std::vector<UserSets>& uSets, gk_csr_t *mat, float lb) {
   float corrOrderedPairs = 0, nPairs = 0;
   int numUsers = 0;
-  std::vector<std::pair<int, float>> itemRatings;
-  
-  for (auto&& uSet: uSets) {
-    
+  int nSets = uSets.size();
+
+#pragma omp parallel for reduction(+:numUsers, corrOrderedPairs, nPairs)
+  for (int i = 0; i < nSets; i++) {
+    const auto& uSet = uSets[i];
     int user = uSet.user;
     auto setItems = uSet.items;
-    itemRatings.clear();
+    std::vector<std::pair<int, float>> itemRatings;
     
     for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
       int item = mat->rowind[ii];
@@ -1812,13 +1815,13 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
       bestValRMSE = currValRMSE;
       bestIter    = iter;
       bestObj     = currObj;
-    } else {
+    } /* else {
       //decrease learn rate
       learnRate = learnRate/2;
       if (learnRate < 1e-5) {
         learnRate = 1e-5;
       }
-    } 
+    } */
   
     if (iter - bestIter >= CHANCE_ITER) {
       //cant improve validation RMSE

@@ -138,17 +138,13 @@ class Data {
  
     void scaleSetsTo01(float maxRat);
 
-   
-
     void computeSetsEntropy();
 
     void removeInvalUI();
 
     void initRankMap(int seed);
 
-
     void writeTrainSetsEntropy();
-
 
     ~Data() {
       if (NULL != ratMat) {

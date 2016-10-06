@@ -47,7 +47,9 @@
       for (auto&& uSet: trainSets) {
         uSet.computeEntropy(ratMat);
         //remove high entropy
-        //uSet.removeLowEntropy(0.25);
+        //uSet.removeRandom(0.5, params.seed);
+        //uSet.removeHighEntropy(0.5);
+        //uSet.removeLowEntropy(0.5);
       }
 
       //remove over-under rated sets
