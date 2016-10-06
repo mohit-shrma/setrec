@@ -136,6 +136,8 @@ class Model {
   float matCorrOrderedRatingsWOSetsTop(
     const std::vector<UserSets>& uSets, gk_csr_t *mat, float lb);
   float corrOrderedItems(gk_csr_t *mat, float lb);
+  float computeEntropy(int user, ItemsSet& item);
+
 };
 
 

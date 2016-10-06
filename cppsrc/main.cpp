@@ -15,6 +15,8 @@
 #include "ModelAverageWGBias.h"
 #include "ModelItemAverage.h"
 
+#include "ModelAverageWBiasEntropy.h"
+
 #include "ModelFM.h"
 #include "ModelFMUWt.h"
 #include "ModelFMUWtBPR.h"
@@ -98,8 +100,8 @@ int main(int argc, char *argv[]) {
 
   //subSampleMats(data.partTrainMat, params.prefix, params.seed);
 
-  ModelFMUWtBPR modelAvg(params);
-  ModelFMUWtBPR bestModel(modelAvg);
+  ModelAverageWBiasEntropy modelAvg(params);
+  ModelAverageWBiasEntropy bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   //bestModel.save(params.prefix);
   //bestModel.load(params.prefix);
@@ -162,7 +164,7 @@ int main(int argc, char *argv[]) {
       data.ratMat, TOP_RAT_THRESH);
   std::cout << "Ordered top pairs excl all sets: " << corrOrdAllPairsTop 
     << std::endl;
-  
+  params.display();  
   return 0;
 }
 

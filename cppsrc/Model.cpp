@@ -2108,3 +2108,32 @@ bool Model::isTerminateRankSetModel(Model& bestModel, const Data& data, int iter
 }
 
 
+float Model::computeEntropy(int user, ItemsSet& itemsSet) {
+  float entropy = 0;
+  int sz = itemsSet.size();
+  std::vector<float> bins(5, 0.0);
+  for (auto&& item: itemsSet) {
+    float rating = estItemRating(user, item);
+    if (rating < 1) {
+      bins[0] += 1;
+    } else if (rating < 2) {
+      bins[1] += 1;
+    } else if (rating < 3) {
+      bins[2] += 1;
+    } else if (rating < 4) {
+      bins[3] += 1;
+    } else {
+      bins[4] += 1;
+    }
+  }
+  
+  for (auto&& bin: bins) {
+    if (bin > 0) {
+      entropy += -(bin/sz) * std::log10(bin/sz);
+    }
+  }
+  
+  return entropy;
+}
+
+
