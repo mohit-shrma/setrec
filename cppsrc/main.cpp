@@ -15,8 +15,9 @@
 #include "ModelAverageWGBias.h"
 #include "ModelItemAverage.h"
 
+#include "ModelWtAverage.h"
 #include "ModelAverageWBiasEntropy.h"
-
+#include "ModelAverageSigmoidWBias.h"
 #include "ModelFM.h"
 #include "ModelFMUWt.h"
 #include "ModelFMUWtBPR.h"
@@ -93,15 +94,15 @@ int main(int argc, char *argv[]) {
   data.initRankMap(params.seed);
   data.computeSetsEntropy();
   //data.writeTrainSetsEntropy();
-  
+  //data.scaleSetsTo01(5.0); 
 
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
 
   //subSampleMats(data.partTrainMat, params.prefix, params.seed);
 
-  ModelAverageWBiasEntropy modelAvg(params);
-  ModelAverageWBiasEntropy bestModel(modelAvg);
+  ModelWtAverage modelAvg(params);
+  ModelWtAverage bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   //bestModel.save(params.prefix);
   //bestModel.load(params.prefix);
@@ -144,11 +145,13 @@ int main(int argc, char *argv[]) {
   }
   std::cout << std::endl;
   
-  float corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.valSets, 
-      TOP_RAT_THRESH);
+  //float corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.valSets, 
+  //    TOP_RAT_THRESH);
+  float corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.valSets);
   std::cout << "Fraction top val correct ordered sets: " << corrOrdSetsTop 
     << std::endl;
-  corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.testSets, TOP_RAT_THRESH);
+  //corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.testSets, TOP_RAT_THRESH);
+  corrOrdSetsTop = bestModel.fracCorrOrderedSets(data.testSets);
   std::cout << "Fraction top test correct ordered sets: " << corrOrdSetsTop 
     << std::endl;
 

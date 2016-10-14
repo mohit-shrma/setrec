@@ -2,8 +2,8 @@
 #define _MODEL_WT_AVERAGE_H_
 
 #include "ModelAverageWBias.h"
-#include "stdafx.h"
-#include "optimization.h"
+#include "alglib/stdafx.h"
+#include "alglib/optimization.h"
 
 
 class ModelWtAverage: public ModelAverageWBias {

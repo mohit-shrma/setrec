@@ -11,6 +11,7 @@
 #include "GKlib.h"
 
 bool descComp(std::pair<int, float>& a, std::pair<int, float>& b);
+bool ascComp(std::pair<int, float>& a, std::pair<int, float>& b);
 void removeInvalUIFrmSets(std::vector<UserSets>& uSets, 
     std::unordered_set<int>& valUsers, std::unordered_set<int>& valItems);
 void userItemsFrmSets(std::vector<UserSets>& uSets, 

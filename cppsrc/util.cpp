@@ -5,6 +5,9 @@ bool descComp(std::pair<int, float>& a, std::pair<int, float>& b) {
   return a.second > b.second;
 }
 
+bool ascComp(std::pair<int, float>& a, std::pair<int, float>& b) {
+  return a.second < b.second;
+}
 
 void removeInvalUIFrmSets(std::vector<UserSets>& uSets, 
     std::unordered_set<int>& valUsers, std::unordered_set<int>& valItems) {

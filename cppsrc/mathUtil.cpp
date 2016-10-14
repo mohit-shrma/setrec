@@ -8,7 +8,8 @@ float sigmoid(float x, float k) {
 
 
 double spearmanRankCorrN(std::vector<float> x, std::vector<float> y, int N) {
-
+  return 0;
+  /*
   int sz = (N < (int)x.size())? N : x.size();
 
   double *actualRat     = (double*) malloc(sizeof(double)*N);
@@ -31,6 +32,7 @@ double spearmanRankCorrN(std::vector<float> x, std::vector<float> y, int N) {
   free(spearmanWork);
   
   return uSpearMan;
+  */
 }
 
 float mean(std::vector<double> arr) {

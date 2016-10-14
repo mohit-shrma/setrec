@@ -42,12 +42,32 @@ Model::Model(const Params &params) {
       V(item, k) = dis(mt);
     }
   }
-  
-  //init global bias
+ 
+  //init user specific weights
   for (int u = 0; u < nUsers; u++) {
     uDivWt(u) = dis(mt);
   }
+  //init global bias
   gBias = dis(mt);
+
+  g_k = 1.0;
+
+  //initialize u membership weights
+  nWts = 3;
+  UWts = Eigen::MatrixXf(nUsers, nWts);
+  for (int u = 0; u < nUsers; u++) {
+    float sm = 0;
+    for (int i = 0; i < nWts; i++) {
+      UWts(u, i) = dis(mt);
+      sm += UWts(u, i);
+    }
+    //normalize weights such that they sum to 1
+    for (int i = 0; i < nWts; i++) {
+      UWts(u, i) /= sm;
+    }
+  }
+  
+
 }
 
 

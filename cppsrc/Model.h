@@ -31,6 +31,13 @@ class Model {
     //user diversity biases
     Eigen::VectorXf uDivWt;
 
+    //user memb wts to function
+    Eigen::MatrixXf UWts;
+    int nWts;
+
+    //sigmoid steepness
+    float g_k;
+
     //global set bias
     float gBias;
     

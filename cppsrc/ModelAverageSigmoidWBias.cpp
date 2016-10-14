@@ -1,24 +1,7 @@
-#include "ModelAverageSigmoid.h"
-
-float ModelAverageSigmoid::estSetRating(int user, std::vector<int> items, 
-    Eigen::VectorXf& sumItemFac) {
-  float r_us_est = 0;
-
-  sumItemFac.fill(0);
-  for (auto&& item: items) {
-    r_us_est += estItemRating(user, item);
-    sumItemFac += V.row(item);
-  }
-  r_us_est = r_us_est/items.size();
-
-  float dev = r_us_est - u_m[user];
-  r_us_est = sigmoid(dev, g_k);
-
-  return r_us_est;
-}
+#include "ModelAverageSigmoidWBias.h"
 
 
-float ModelAverageSigmoid::estSetRating(int user, std::vector<int>& items) {
+float ModelAverageSigmoidWBias::estSetRating(int user, std::vector<int>& items) {
   float r_us_est = 0;
   
   for (auto&& item: items) {
@@ -26,17 +9,36 @@ float ModelAverageSigmoid::estSetRating(int user, std::vector<int>& items) {
   }
   r_us_est = r_us_est/items.size();
 
-  float dev = r_us_est - u_m[user];
+  float dev = r_us_est - uDivWt(user);
   r_us_est = sigmoid(dev, g_k);
 
   return r_us_est;
 }
 
 
-void ModelAverageSigmoid::train(const Data& data, const Params& params, 
+float ModelAverageSigmoidWBias::objective(const std::vector<UserSets>& uSets, 
+    gk_csr_t *mat) {
+  float obj = ModelAverageWBias::objective(uSets, mat);
+  for (int user = 0; user < nUsers; user++) {
+    obj += uDivWt(user)*uDivWt(user)*uSetBiasReg;
+  } 
+  return obj;
+}
+
+
+float ModelAverageSigmoidWBias::objective(const std::vector<UserSets>& uSets) {
+  float obj = ModelAverageWBias::objective(uSets);
+  for (int user = 0; user < nUsers; user++) {
+    obj += uDivWt(user)*uDivWt(user)*uSetBiasReg;
+  } 
+  return obj;
+}
+
+
+void ModelAverageSigmoidWBias::train(const Data& data, const Params& params, 
     Model& bestModel) {
   
-  std::cout << "ModelAverageSigmoid::train" << std::endl;
+  std::cout << "ModelAverageSigmoidWBias::train" << std::endl;
 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
   std::cout << "Train RMSE: " << rmse(data.trainSets) << std::endl;
@@ -46,8 +48,26 @@ void ModelAverageSigmoid::train(const Data& data, const Params& params,
 
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
-  int nUsers = (int)uInds.size(); 
+  int nTrUsers = (int)uInds.size(); 
  
+  //initialize global bias
+  int nTrainSets = 0;
+  float meanSetRating = 0;
+  for (auto&& uInd: uInds) {
+    const auto& uSet = data.trainSets[uInd];
+    for (auto&& itemSet: uSet.itemSets) {
+      meanSetRating += itemSet.second;
+      nTrainSets++;
+    } 
+  }
+  meanSetRating = meanSetRating/nTrainSets;
+  //gBias = meanSetRating;
+
+  trainUsers = data.trainUsers;
+  trainItems = data.trainItems;
+  std::cout << "train Users: " << trainUsers.size() 
+    << " trainItems: " << trainItems.size() << std::endl;
+
   Eigen::VectorXf sumItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
   std::vector<int> items; 
@@ -57,7 +77,7 @@ void ModelAverageSigmoid::train(const Data& data, const Params& params,
 
   for (int iter = 0; iter < params.maxIter; iter++) {
     std::shuffle(uInds.begin(), uInds.end(), mt);
-    for (int i = 0; i < data.nTrainSets/nUsers; i++) {
+    for (int i = 0; i < data.nTrainSets/nTrUsers; i++) {
       for (auto&& uInd: uInds) {
         UserSets uSet = data.trainSets[uInd];
         int user = uSet.user;
@@ -69,15 +89,15 @@ void ModelAverageSigmoid::train(const Data& data, const Params& params,
 
         //estimate rating on the set and latent factor sum
         float r_us_est = 0;
-
         sumItemFactors.fill(0);
         for (auto&& item: items) {
-          r_us_est += estItemRating(user, item);
+          r_us_est += iBias(item) + estItemRating(user, item);
           sumItemFactors += V.row(item);
         }
         r_us_est = r_us_est/items.size();
+        r_us_est += uBias(user);
 
-        float dev = r_us_est - u_m[user];
+        float dev = r_us_est - uDivWt(user);
         r_us_est = sigmoid(dev, g_k);
 
         float commGradCoeff = exp(-1.0*g_k*dev)*r_us_est*r_us_est;
@@ -88,17 +108,20 @@ void ModelAverageSigmoid::train(const Data& data, const Params& params,
         
         //update user
         U.row(user) -= learnRate*(grad.transpose() + 2.0*uReg*U.row(user));
+        uBias(user) -= learnRate*(g_k*commGradCoeff + 2.0*uBiasReg*uBias(user));
 
         //update items
         grad = ((g_k*commGradCoeff)/items.size())*U.row(user);
         for (auto&& item: items) {
           V.row(item) -= learnRate*(grad.transpose() + 2.0*iReg*V.row(item));
+          iBias(item) -= learnRate*((g_k*commGradCoeff)/items.size() 
+              + 2.0*iBiasReg*iBias(item));
         }
 
         //u_m gradient
-        float u_mGrad = commGradCoeff*-1.0*g_k + 2.0*u_m[user]*u_mReg;
+        float u_mGrad = commGradCoeff*-1.0*g_k + 2.0*uDivWt(user)*uSetBiasReg;
         //update u_m
-        u_m[user] -= learnRate*u_mGrad;
+        uDivWt(user) -= learnRate*u_mGrad;
        
         /*
         //compute g_k grad
@@ -114,17 +137,16 @@ void ModelAverageSigmoid::train(const Data& data, const Params& params,
             bestValRMSE, prevValRMSE)) {
         break;
       }
-      std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
-        << prevValRMSE << " best val RMSE:" << bestValRMSE 
-        << " train RMSE:" << rmse(data.trainSets)
-        << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
-        << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
-        << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
-        << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
-        << std::endl;
+
+      if (iter%10 == 0 || iter == params.maxIter - 1) {
+        std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
+          << prevValRMSE << " best val RMSE:" << bestValRMSE 
+          << " train RMSE:" << rmse(data.trainSets)
+          << std::endl;
+      }
+
     }
 
   }
 
 }
-

@@ -2,7 +2,7 @@
 #define _MATH_UTIL_H_
 
 #include <vector>
-#include <gsl/gsl_statistics.h>
+//#include <gsl/gsl_statistics.h>
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
