@@ -12,7 +12,7 @@ uREGS       = REGS #[0.1, 1]
 iREGS       = REGS #[0.001, 0.01]
 ubiasREGS   = REGS #[0.001, 0.01, 1, 10]
 ibiasREGS   = REGS #[0.01, 10]
-gbiasREGS   = REGS
+gbiasREGS   = [0]#REGS
 #biasREGS   = [0.001, 0.01]
 setBiasRegs = REGS #[0.001, 0.01, 1, 10]
 
@@ -22,10 +22,10 @@ GAMMAS      = list(GAMMAS) + [-0.05, 0.05]
 LEARNRATE   = 0.001
 SEED        = 1
 
-DATA         = "/scratch/glu28/mohit/data/movielens/setRatings/fiveSplits/split1"
+DATA         = "/home/karypisg/msharma/data/setrec/movielens/fiveSplits/split1/"
 
-SETREC       = "/scratch/glu28/mohit/dev/bitbucket/setrec/cppsrc/setrecFM"
-PREFIX       = "setFM"
+SETREC       = "/home/karypisg/msharma/dev/setrec/cppsrc/setrecFMEntropy"
+PREFIX       = "setFMEntropy"
 OPDIR        = DATA + PREFIX 
 
 TRAIN_SET    = DATA + "ml_set.train.lfs"
@@ -67,12 +67,12 @@ def genGridRegJobs():
         for ubiasreg in ubiasREGS:
           for ibiasreg in ibiasREGS:
             for gbiasreg in gbiasREGS:
-            #for usetbiasreg in setBiasRegs:
-            #for usetbiasreg in [0]:
+              for usetbiasreg in setBiasRegs:
+              #for usetbiasreg in [0]:
                 jobStr      = '_'.join(map(str, [ureg, ireg, ubiasreg, ibiasreg, 
-                  gbiasreg, dim]))
+                  usetbiasreg, gbiasreg, dim]))
                 print SETREC, NUSERS, NITEMS, dim, 5000, SEED, \
-                    ureg, ireg, 0, ubiasreg, ibiasreg, gbiasreg, LEARNRATE, 0, 0, \
+                    ureg, ireg, usetbiasreg, ubiasreg, ibiasreg, gbiasreg, LEARNRATE, 0, 0, \
                     TRAIN_SET, TEST_SET, VAL_SET, RATMAT, TRAIN_RATMAT, TEST_RATMAT, \
                     VAL_RATMAT, PREFIX, \
                     " > " + OPDIR + "/" + PREFIX + "_" + jobStr + ".txt"
@@ -89,7 +89,7 @@ def genRankRegJobs():
           jobStr      = '_'.join(map(str, [ureg, ireg, 0, ibiasreg, 
             0, dim]))
           print SETREC, NUSERS, NITEMS, dim, 5000, SEED, \
-              ureg, ireg, 0, 0, ibiasreg, 0, LEARNRATE, 0, gamma, \
+              ureg, ireg, 0, 0, ibiasreg, 0, LEARNRATE, 0, 0, \
               TRAIN_SET, TEST_SET, VAL_SET, RATMAT, TRAIN_RATMAT, TEST_RATMAT, \
               VAL_RATMAT, PREFIX, \
               " > " + OPDIR + "/" + PREFIX + "_" + jobStr + ".txt"

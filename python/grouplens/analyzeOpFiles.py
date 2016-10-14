@@ -58,9 +58,13 @@ def parseFilesForRes(ipFName):
   ds.append(topTestItemPairDic)
 
   keys = set([])
+  fileCount = 0
   with open(ipFName, 'r') as f:
     for line in f:
       fName = line.strip()
+      fileCount += 1
+      #if fileCount % 500 == 0:
+      #  print 'Processed files ...', fileCount 
       with open(fName, 'r') as h:
         bName = os.path.basename(fName)
         bk = bName.strip('.txt').split('_')

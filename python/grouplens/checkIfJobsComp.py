@@ -1,11 +1,12 @@
 import sys
 import os
 
+# grep '^Ordered' setFM/* -L > notdone
 
 def checkIfFinished(ipFName):
   with open(ipFName, 'r') as f:
     for line in f:
-      if line.startswith('Fraction top'):
+      if line.startswith('Ordered top'):
         return True
   return False
 

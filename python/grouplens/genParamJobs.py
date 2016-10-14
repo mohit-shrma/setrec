@@ -2,7 +2,7 @@ import sys
 import os
 
 
-DATA      = "/home/karypisg/msharma/data/setrec/movielens"
+DATA      = "/home/karypisg/msharma/data/setrec/movielens/fiveSplits"
 NUSERS    = 854
 NITEMS    = 12549
 LEARNRATE = 0.001
@@ -13,20 +13,22 @@ def genJobs(paramsFile, prefix, setrec):
     for line in f:
       cols        = line.strip().split()
       
-      if len(cols) < 6 or len(cols) > 6:
+      if len(cols) < 7 or len(cols) > 7:
         print 'Err: ncols:', len(cols), cols
         return 
       uReg        = float(cols[0])
       iReg        = float(cols[1])
       uBiasReg    = float(cols[2])
       iBiasReg    = float(cols[3])
-      sessBiasReg = float(cols[4])
-      dim         = int(cols[5])
+      uSetBiasReg = float(cols[4])
+      gBiasReg    = float(cols[5])
+      dim         = int(cols[6])
       
       jobStr      = '_'.join(map(str, [uReg, iReg, uBiasReg, iBiasReg,
-        sessBiasReg, dim]))
+        uSetBiasReg, gBiasReg, dim]))
       
       for splitInd in range(1,6):
+      #for splitInd in range(1,2):
         trainSet = os.path.join(DATA, "split" + str(splitInd),
             "ml_set.train.lfs")
         testSet = os.path.join(DATA, "split" + str(splitInd), 
@@ -48,7 +50,7 @@ def genJobs(paramsFile, prefix, setrec):
         if not os.path.exists(opDir):
           os.mkdir(opDir)
         print setrec, NUSERS, NITEMS, dim, 5000, SEED, \
-            uReg, iReg, sessBiasReg, uBiasReg, iBiasReg, 0, LEARNRATE, 0, 0, \
+            uReg, iReg, uSetBiasReg, uBiasReg, iBiasReg, gBiasReg, LEARNRATE, 0, 0, \
             trainSet, testSet, valSet, ratMat, trainMat, testMat, valMat, prefix, \
             " > " + opDir + "/" + prefix + "_" + jobStr + ".txt"
 
