@@ -25,7 +25,7 @@ void ModelWtAverage::estSetRatings(int user, const std::vector<int>& items,
     r_us2 += preds[i];
 
     if (i > 0) {
-      r_us3 +=preds[i];
+      r_us3 += preds[i];
     }
   }
  
@@ -64,9 +64,8 @@ float ModelWtAverage::estSetRating(int user, std::vector<int>& items) {
     r_us2 += preds[i];
 
     if (i > 0) {
-      r_us3 +=preds[i];
+      r_us3 += preds[i];
     }
-
   }
  
   r_us1 /= (setSz - 1);
