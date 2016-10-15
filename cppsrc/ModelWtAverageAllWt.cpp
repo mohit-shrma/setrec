@@ -1,53 +1,33 @@
-#include "ModelWtAverage.h"
+#include "ModelWtAverageAllRange.h"
 
-void ModelWtAverage::estSetRatings(int user, const std::vector<int>& items, 
-    float& r_us1, float& r_us2, float& r_us3) {
-  
-  r_us1 = 0;
-  r_us2 = 0;
-  r_us3 = 0;
-  int setSz = items.size();
-  
-  std::vector<float> preds(setSz, 0);
-  //get predictions
-  for (int i = 0; i < setSz; i++) {
-    int item = items[i];
-    preds[i] = estItemRating(user, item);
+float ModelWtAverageAllRange::estItemRating(int user, int item) {
+  bool uFound = false, iFound = true;
+  float rating = 0;
+  if (trainUsers.find(user) != trainUsers.end() && 
+      invalidUsers.find(user) == invalidUsers.end()) {
+    //found in train and not in invalid
+    uFound = true;
+    rating += uBias(user);
   }
-  //sort predictions
-  std::sort(preds.begin(), preds.end());
-
-  for (int i = 0; i < setSz; i++) {
-    if (i < setSz-1) {
-      r_us1 += preds[i];
-    }  
-    
-    r_us2 += preds[i];
-
-    if (i > 0) {
-      r_us3 += preds[i];
-    }
+  if (trainItems.find(item) != trainItems.end()) {
+    iFound = true;
+    rating += iBias(item);
   }
- 
-  r_us1 /= (setSz - 1);
-  r_us2 /= setSz;
-  r_us3 /= (setSz - 1);
+  if (uFound && iFound) {
+    rating += U.row(user).dot(V.row(item));
+  }
+  return rating;
 }
 
 
-float ModelWtAverage::estSetRating(int user, std::vector<int>& items) {
+float ModelWtAverageAllRange::estSetRating(int user, std::vector<int>& items) {
   
   float r_us = 0; 
-  float r_us1 = 0, r_us2 = 0, r_us3 = 0;
-  int setSz = items.size();
-  float w1 = UWts(user, 0);
-  float w2 = UWts(user, 1);
-  float w3 = UWts(user, 2);
 
-  //r_us += ((setSz-1)*UWts(user, 0) + setSz*UWts(user, 1) 
-  //    + (setSz-1)*UWts(user, 2))*uBias(user);
-  
+  int setSz = items.size();
+
   std::vector<float> preds(setSz, 0);
+  std::vector<float> cumSumPreds(setSz, 0);
   //get predictions
   for (int i = 0; i < setSz; i++) {
     int item = items[i];
@@ -56,37 +36,76 @@ float ModelWtAverage::estSetRating(int user, std::vector<int>& items) {
   //sort predictions
   std::sort(preds.begin(), preds.end());
 
-  for (int i = 0; i < setSz; i++) {
-    if (i < setSz-1) {
-      r_us1 += preds[i];
-    }  
-    
-    r_us2 += preds[i];
-
-    if (i > 0) {
-      r_us3 += preds[i];
-    }
+  cumSumPreds[0] = preds[0];
+  for (int i = 1; i < setSz; i++) {
+    cumSumPreds[i] = cumSumPreds[i-1] + preds[i];
   }
- 
-  r_us1 /= (setSz - 1);
-  r_us2 /= setSz;
-  r_us3 /= (setSz - 1);
-  
-  r_us = w1*r_us1 + w2*r_us2 + w3*r_us3;
+
+  //accumulate sums starting from beginning
+  for (int i = 0; i < setSz; i++) {
+    r_us += UWts(user, i)*(cumSumPreds[i]/(i+1));
+  }
+
+  //accumulate sums from end
+  for (int i = 0; i < setSz-1; i++) {
+    r_us += UWts(user, setSz + i)*((cumSumPreds[setSz-1]-cumSumPreds[i])/(setSz-(i+1)));
+  }
 
   return r_us;
 }
 
 
-void ModelWtAverage::train(const Data& data, const Params& params, 
+float ModelWtAverageAllRange::estSetRating(int user, std::vector<int>& items, 
+    std::vector<Eigen::VectorXf>& cumSumItemFactors, 
+    std::vector<std::pair<int, float>>& setItemRatings,
+    std::vector<float>& cumSumPreds ) {
+  
+  float r_us = 0; 
+
+  int setSz = items.size();
+
+  //get predictions
+  for (int i = 0; i < setSz; i++) {
+    int item = items[i];
+    setItemRatings[0] = std::make_pair(item, estItemRating(user, item));
+  }
+  //sort predictions
+  std::sort(setItemRatings.begin(), setItemRatings.end(), ascComp);
+
+  cumSumPreds[0] = itemRatings[0].second;
+  cumSumItemFactors[0] = V.row(itemRatings[0].first); 
+  for (int i = 1; i < setSz; i++) {
+    cumSumPreds[i] = cumSumPreds[i-1] + itemRatings[i].second;
+    cumSumItemFactors[i] = cumSumItemFactors[i-1] + V.row(itemRatings[i].first)
+  }
+
+  //accumulate sums starting from beginning
+  for (int i = 0; i < setSz; i++) {
+    r_us += UWts(user, i)*(cumSumPreds[i]/(i+1));
+  }
+
+  //accumulate sums from end
+  for (int i = 0; i < setSz-1; i++) {
+    r_us += UWts(user, setSz + i)*((cumSumPreds[setSz-1]-cumSumPreds[i])/(setSz-(i+1)));
+  }
+
+  return r_us;
+}
+
+
+void ModelWtAverageAllRange::train(const Data& data, const Params& params, 
     Model& bestModel) {
-  std::cout << "ModelWtAverage::train" << std::endl; 
+  std::cout << "ModelWtAverageAllRange::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
   
-  Eigen::VectorXf sumFirstItemFactors(facDim);
-  Eigen::VectorXf sumAllItemFactors(facDim);
-  Eigen::VectorXf sumLastItemFactors(facDim);
+  std::vector<std::pair<int, float>> setItemRatings(SET_SZ);
+  std::vector<Eigen::VectorXf> cumSumItemFactors(SET_SZ); 
+  for (int i = 0; i < SET_SZ; i++) {
+    cumSumItemFactors[i] = Eigen::VectorXf(facDim);
+  }
+  std::vector<float> cumSumPreds(SET_SZ);
 
+  Eigen::VectorXf sumAllItemFactors(facDim);
   Eigen::VectorXf grad(facDim);
   Eigen::VectorXf tempGrad(facDim);
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
@@ -131,7 +150,7 @@ void ModelWtAverage::train(const Data& data, const Params& params,
 
     std::shuffle(uInds.begin(), uInds.end(), mt);
     
-    for (int i = 0; i < data.nTrainSets/nTrUsers; i++) {
+    for (int subIter = 0; subIter < data.nTrainSets/nTrUsers; subIter++) {
       
       for (auto&& uInd: uInds) {
         const UserSets& uSet = data.trainSets[uInd];
@@ -152,75 +171,57 @@ void ModelWtAverage::train(const Data& data, const Params& params,
         }
         
         int setSz = items.size();
-
-        //sort predicted ratings in set in ascending order
-        std::vector<std::pair<int, float>> itemRatings;
-        for (auto item: items) {
-          itemRatings.push_back(std::make_pair(item, 
-                estItemRating(user, item)));
-        }
-        std::sort(itemRatings.begin(), itemRatings.end(), ascComp);
-       
-        sumFirstItemFactors.fill(0);
-        sumAllItemFactors.fill(0);
-        sumLastItemFactors.fill(0);
-        float w1 = UWts(user, 0);
-        float w2 = UWts(user, 1);
-        float w3 = UWts(user, 2);
-        float r_us_est = 0;
-        float r_us1 = 0, r_us2 = 0, r_us3 = 0;
-        for (int i = 0; i < setSz; i++) {
-          int item = itemRatings[i].first;
-          float rating = itemRatings[i].second;
-          sumAllItemFactors += V.row(item);
-          
-          if (i < setSz-1) {
-            r_us1 += rating;
-          }  
-          
-          r_us2 += rating;
-
-          if (i > 0) {
-            r_us3 += rating;
-          }
-
-        }
-        r_us1 /= (setSz - 1);
-        r_us2 /= setSz;
-        r_us3 /= (setSz - 1);
-        r_us_est = w1*r_us1 + w2*r_us2 + w3*r_us3;
-
-        sumFirstItemFactors = sumAllItemFactors - V.row(itemRatings[setSz-1].first).transpose();
-        sumLastItemFactors = sumAllItemFactors - V.row(itemRatings[0].first).transpose();
+        
+        float r_us_est = estSetRating(user, items, cumSumItemFactors, 
+            setItemRatings, cumSumPreds);
 
         //user gradient
-        grad = 2.0*(r_us_est - r_us)*(  (w1/(setSz-1))*sumFirstItemFactors 
-                                      + (w2/setSz)*sumAllItemFactors 
-                                      + (w3/(setSz-1))*sumLastItemFactors)
-                                    + 2.0*uReg*U.row(user).transpose();
+        //accumulated weighted item factors' sum from beginning
+        grad.fill(0);
+        float sumWt = 0;
+        for (int i = 0; i < SET_SZ; i++) {
+          grad += UWts(user, i)*cumSumItemFactors[i]/(i+1);
+          sumWt += UWts(user, i);
+        }
+        
+        //accumulate weighted item factors' sum from end
+        for (int i = 0; i < SET_SZ; i++) {
+          grad += UWts(user, SET_SZ + i)*(cumSumItemFactors[SET_SZ-1] -
+              cumSumItemFactors[i])/(SET_SZ - (i + 1));
+          sumWt += UWts(user, SET_SZ + i);
+        }
+        
+        grad *= 2.0*(r_us_est - r_us);
+        grad += 2.0*uReg*U.row(user).transpose();
 
         //update user
         U.row(user) -= learnRate*(grad.transpose());
         
         //update user bias
-        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)*(w1 + w2 + w3)) + 2.0*uBiasReg*uBias(user));
+        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)*sumWt) + 2.0*uBiasReg*uBias(user));
 
         //update items
-        float iBiasGrad;
+        float iBiasGrad, sumWt;
         grad = 2.0*(r_us_est - r_us)*U.row(user);
         for (int i = 0; i < setSz; i++) {
-          int item = itemRatings[i].first;
-          tempGrad = 2.0*iReg*V.row(item).transpose(); 
-          if (0 == i) {
-            tempGrad  += grad*(w1/(setSz-1) + w2/setSz);
-            iBiasGrad = w1/(setSz-1) + w2/setSz; 
-          } else if (setSz-1 == i) {
-            tempGrad  += grad*(w2/setSz + w3/(setSz-1));
-            iBiasGrad = w2/setSz + w3/(setSz-1); 
-          } else { 
-            tempGrad  += grad*(w1/(setSz-1) + w2/setSz +  w3/(setSz-1));
-            iBiasGrad = w1/(setSz-1) + w2/setSz +  w3/(setSz-1); 
+          int item = setItemRatings[i].first;
+          tempGrad = 2.0*iReg*V.row(item).transpose();
+          sumWt = 0;
+          int div = 0;
+          //TODO: simplify below 
+          for (int j = i; j < i+5; j++) {
+            if (j < 5) {
+              div = j + 1;
+              sumWt += UWts(user, j)/div;
+            } else {
+              div--;
+              sumWt += UWts(user, j)/div;
+            }
           }
+          
+          tempGrad += grad*sumWt;
+          iBiasGrad = sumWt;
+
           //update item factor
           V.row(item) -= learnRate*(tempGrad.transpose());
           //update item bias
@@ -237,13 +238,16 @@ void ModelWtAverage::train(const Data& data, const Params& params,
         int nSets = uSet.itemSets.size();
         Eigen::MatrixXf Q(nSets, nWts);
         Eigen::VectorXf c(nSets);
-        float r_us1, r_us2, r_us3; 
         for (int i = 0; i < nSets; i++) {
           auto&& itemsSetNRating = uSet.itemSets[i];
-          estSetRatings(user, itemsSetNRating.first, r_us1, r_us2, r_us3);
-          Q(i, 0) = r_us1;
-          Q(i, 1) = r_us2;
-          Q(i, 2) = r_us3;
+          estSetRating(user, itemsSetNRating.first, cumSumItemFactors, 
+              setItemRatings, cumSumPreds);
+          for (int j = 0; j < SET_SZ; j++) {
+            Q(i, j) = cumSumPreds[j]/(j+1);
+          }
+          for (int j = 0; j < SET_SZ-1; j++) {
+            Q(i, SET_SZ+j) = (cumSumPreds[SET_SZ-1]-cumSumPreds[j])/(SET_SZ - (j+1));
+          }
           c(i)    = itemsSetNRating.second;
         }
         
@@ -269,8 +273,8 @@ void ModelWtAverage::train(const Data& data, const Params& params,
         }
        
         //lower and upper bounds
-        alglib::real_1d_array bndl = "[0.0, 0.0, 0.0]";
-        alglib::real_1d_array bndu = "[10.0, 10.0, 10.0]";
+        alglib::real_1d_array bndl = "[0,0,0,    0,0,0,    0,0,0]";
+        alglib::real_1d_array bndu = "[10,10,10, 10,10,10, 10,10,10]";
         
         //starting point
         alglib::real_1d_array x0;
@@ -279,8 +283,8 @@ void ModelWtAverage::train(const Data& data, const Params& params,
           x0[i] = UWts(user, i);
         }
         
-        //constraint: x0 + x1 + x2 = 1;
-        alglib::real_2d_array constr = "[[1.0, 1.0, 1.0, 1]]";
+        //constraint: x0 + x1 + x2 + ... + x8 = 1;
+        alglib::real_2d_array constr = "[[1,1,1, 1,1,1, 1,1,1, 1]]";
         alglib::integer_1d_array ct = "[0]"; // = constraint 
 
         //solution
@@ -290,7 +294,7 @@ void ModelWtAverage::train(const Data& data, const Params& params,
         alglib::minqpreport rep;
       
         //scaling parameter indicating that model variables are in same scale
-        alglib::real_1d_array s = "[1,1,1]";
+        alglib::real_1d_array s = "[1,1,1, 1,1,1, 1,1,1]";
 
         //create solver
         minqpcreate(nWts, state);
@@ -347,3 +351,5 @@ void ModelWtAverage::train(const Data& data, const Params& params,
   }
 
 }
+
+

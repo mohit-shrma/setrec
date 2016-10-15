@@ -53,7 +53,7 @@ Model::Model(const Params &params) {
   g_k = 1.0;
 
   //initialize u membership weights
-  nWts = 3;
+  nWts = 9;
   UWts = Eigen::MatrixXf(nUsers, nWts);
   for (int u = 0; u < nUsers; u++) {
     float sm = 0;
