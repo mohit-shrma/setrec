@@ -5,5 +5,5 @@
 #define OBJ_ITER 1 
 #define CHANCE_ITER 100
 #define EPS 0.00001
-
+#define SET_SZ 5
 #endif
