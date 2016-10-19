@@ -323,7 +323,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
     }
     */
 
-    if (false) {
+    if (true) {
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
 #pragma omp parallel for
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
@@ -451,7 +451,6 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
     }
 
     if (false) {
-      
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
 #pragma omp parallel for
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
@@ -483,7 +482,6 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         UWts.row(user).fill(0);
         UWts(user, minInd) = 1;
       }
-    
     }
 
 
