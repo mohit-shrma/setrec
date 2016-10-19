@@ -1,5 +1,73 @@
 #include "ModelWtAverageAllRange.h"
 
+bool ModelWtAverageAllRange::isTerminateModelWPartIRMSE(Model& bestModel, 
+    const Data& data, int iter, int& bestIter, float& bestObj, float& prevObj, 
+    float& bestValRMSE, float& prevValRMSE) {
+
+  bool ret = false;  
+  float currObj = objective(data.trainSets, data.partTrainMat);
+  float currValRMSE = -1;
+  
+  currValRMSE = rmse(data.partValMat); 
+
+  if (iter > 0) {
+    if (currValRMSE < bestValRMSE) {
+      bestModel = *this;
+      bestValRMSE = currValRMSE;
+      bestIter = iter;
+      bestObj = currObj;
+    } 
+   
+    if (iter - bestIter >= CHANCE_ITER/2) {
+      if (learnRate > 5e-4) {
+        std::cout << "Changing learn rate from: " << learnRate;
+        learnRate = learnRate/2;
+        std::cout << " to: " << learnRate << std::endl; 
+      }
+    } 
+
+    if (iter - bestIter >= CHANCE_ITER) {
+      //cant improve validation RMSE
+      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
+        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
+        << iter << " currObj: " << currObj << " currValRMSE:" 
+        << currValRMSE << std::endl;
+      ret = true;
+    }
+    
+    
+    if (fabs(prevObj - currObj) < EPS) {
+      //objective converged
+      std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
+        << " bestValRMSE:" << bestValRMSE;
+      ret = true;
+    }
+    
+     
+    /*
+    if (fabs(prevValRMSE - currValRMSE) < EPS) {
+      //Validation rmse converged
+      std::cout << "CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
+        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
+        << iter << " currObj: " << currObj << " currValRMSE:" 
+        << currValRMSE << std::endl;
+      ret = true;
+    }
+    */
+  }
+  
+  if (0 == iter) {
+    bestObj = currObj;
+    bestValRMSE = currValRMSE;
+    bestIter = iter;
+  }
+  
+  prevObj = currObj;
+  prevValRMSE = currValRMSE;
+
+  return ret;
+}
+
 
 float ModelWtAverageAllRange::estItemRating(int user, int item) {
   bool uFound = false, iFound = true;
@@ -22,7 +90,7 @@ float ModelWtAverageAllRange::estItemRating(int user, int item) {
 
 
 float ModelWtAverageAllRange::estSetRating(int user, std::vector<int>& items) {
-  
+ 
   float r_us = 0; 
 
   int setSz = items.size();
@@ -52,11 +120,41 @@ float ModelWtAverageAllRange::estSetRating(int user, std::vector<int>& items) {
 }
 
 
+void ModelWtAverageAllRange::estSetRatings(int user, const std::vector<int>& items,
+    std::vector<float>& setRatings) {
+ 
+  int setSz = items.size();
+
+  std::vector<float> preds(setSz, 0);
+  //get predictions
+  for (int i = 0; i < setSz; i++) {
+    int item = items[i];
+    preds[i] = estItemRating(user, item);
+  }
+  //sort predictions
+  std::sort(preds.begin(), preds.end());
+
+  float cumSum = 0;
+  int wtInd = 0;
+  for (int i = 0; i < setSz; i++) {
+    cumSum += preds[i];
+    setRatings[wtInd++] = cumSum/(i+1);
+  }
+
+  //accumulate sums from end
+  for (int i = 0; i < setSz-1; i++) {
+    cumSum -= preds[i];
+    setRatings[wtInd++] = cumSum/(setSz-(i+1));
+  }
+
+}
+
+
 void ModelWtAverageAllRange::train(const Data& data, const Params& params, 
     Model& bestModel) {
   std::cout << "ModelWtAverageAllRange::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
-  
+
   std::vector<std::pair<int, float>> setItemRatings(SET_SZ);
   std::vector<Eigen::VectorXf> cumSumItemFactors(SET_SZ); 
   for (int i = 0; i < SET_SZ; i++) {
@@ -91,7 +189,15 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
   trainItems = data.trainItems;
   std::cout << "train Users: " << trainUsers.size() 
     << " trainItems: " << trainItems.size() << std::endl;
+  std::cout << "Objective: " << objective(data.trainSets);
+  std::cout << " train sets RMSE:" << rmse(data.trainSets) 
+            << " test sets RMSE:" << rmse(data.testSets) 
+            << " train ratings RMSE: " << rmse(data.partTrainMat) 
+            << " test ratings RMSE: " << rmse(data.partTestMat) 
+            << std::endl; 
 
+  auto partUIRatingsTup = getUIRatingsTup(data.partTrainMat);
+  
   //initialize random engine
   std::mt19937 mt(params.seed);
 
@@ -110,7 +216,6 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
     std::shuffle(uInds.begin(), uInds.end(), mt);
     
     for (int subIter = 0; subIter < data.nTrainSets/nTrUsers; subIter++) {
-      
       for (auto&& uInd: uInds) {
         const UserSets& uSet = data.trainSets[uInd];
         int user = uSet.user;
@@ -201,7 +306,25 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         }
         
       }
-      
+    }
+    
+    /*
+    std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
+    for (auto&& uiRating: partUIRatingsTup) {
+      int user       = std::get<0>(uiRating);
+      int item       = std::get<1>(uiRating);
+      float r_ui     = std::get<2>(uiRating);
+      float r_ui_est = estItemRating(user, item);
+      float diff     = r_ui_est - r_ui;
+      //update user latent factor
+      U.row(user) -= learnRate*(2.0*diff*V.row(item) + 2.0*uReg*U.row(user));
+      //update item latent factor
+      V.row(item) -= learnRate*(2.0*diff*U.row(user) + 2.0*iReg*V.row(item));
+    }
+    */
+
+    if (false) {
+      //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
 #pragma omp parallel for
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
         const UserSets& uSet = data.trainSets[uInd];
@@ -238,8 +361,6 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
           c(k)    = itemsSetNRating.second;
         }
         
-        Eigen::MatrixXf A = Q.transpose()*Q;
-        Eigen::VectorXf q = - (Q.transpose()*c);
               
         //std::cout << "User: " << user << " A (" << A.rows() << "," << A.cols() << ") norm: " << A.norm() << std::endl;
         //std::cout << "User: " << user << " q (" << q.size() << ") norm: " << q.norm() << std::endl;
@@ -249,7 +370,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         alg_A.setlength(nWts, nWts);
         for (int i = 0; i < nWts; i++) {
           for (int j = i; j < nWts; j++) {
-            alg_A[i][j] = A(i, j);
+            alg_A[i][j] = Q.col(i).dot(Q.col(j));
             alg_A[j][i] = alg_A[i][j];
           }
         }
@@ -257,7 +378,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         alglib::real_1d_array alg_q;
         alg_q.setlength(nWts);
         for (int i = 0; i < nWts; i++) {
-          alg_q[i] = q(i);
+          alg_q[i] = -(Q.col(i).dot(c));
         }
        
         //lower and upper bounds
@@ -304,9 +425,23 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         
         bool isFail = int(rep.terminationtype) < 0;
         if (!isFail) {
+          /*
+          int maxInd = 0;
+          float maxX = x[maxInd];
+          for (int i = 1; i < nWts; i++) {
+            if (x[i] > maxX) {
+              maxInd = i;
+              maxX = x[i];
+            }
+          }
+          */
+
           for (int i = 0; i < nWts; i++) {
             UWts(user, i) = x[i];
+            //UWts(user, i) = 0;
           }
+          //UWts(user, maxInd) = 1;
+
         } else {
           std::cout << "Failed for user: " << user << int(rep.terminationtype) 
             << std::endl;
@@ -314,22 +449,62 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         
       }
     }
+
+    if (false) {
       
+      //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
+#pragma omp parallel for
+      for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
+        const UserSets& uSet = data.trainSets[uInd];
+        int user = uSet.user;
+        int nSets = uSet.itemSets.size();
+        
+        std::vector<float> setRatings(nWts, 0);
+        std::vector<float> wtRMSE(nWts, 0);
+        float diff;
+        for (int k = 0; k < nSets; k++) {
+          auto&& itemsSetNRating = uSet.itemSets[k];
+          const auto& items = itemsSetNRating.first;
+          float r_us = itemsSetNRating.second;
+          estSetRatings(user, items, setRatings);
+          for (int i = 0; i < nWts; i++) {
+            diff = setRatings[i] - r_us;
+            wtRMSE[i] += diff*diff;
+          }
+        }
+        
+        int minInd = 0;
+        for (int i = 0; i < nWts; i++) {
+          wtRMSE[i] = std::sqrt(wtRMSE[i]/nSets);
+          if (wtRMSE[minInd] < wtRMSE[i]) {
+            minInd = i;
+          } 
+        }
+        UWts.row(user).fill(0);
+        UWts(user, minInd) = 1;
+      }
+    
+    }
+
+
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
             bestValRMSE, prevValRMSE)) {
+      //if (isTerminateModelWPartIRMSE(bestModel, data, iter, bestIter, bestObj, prevObj,
+      //      bestValRMSE, prevValRMSE)) {
         //save best model
         //bestModel.save(params.prefix);
         break;
       }
       
-      if (iter%10 == 0 || iter == params.maxIter - 1) {
+      if (iter%50 == 0 || iter == params.maxIter - 1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
-          << prevValRMSE << " best val RMSE:" << bestValRMSE 
-          << " train RMSE:" << rmse(data.trainSets) 
+          << prevValRMSE << " best val RMSE: " << bestValRMSE 
+          << " train RMSE: " << rmse(data.trainSets) 
           << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
           << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
+          << " bIter: " << bestIter
           << std::endl;
       }
 
@@ -337,6 +512,21 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
 
   }
 
+  /* 
+  std::ofstream opFile("user_weights_qp_outer1.txt");
+  for (int u = 0; u < nUsers; u++) {
+  //for (auto&& u: trainUsers) {
+    //opFile << u << " ";
+    for (int i = 0; i < nWts; i++) {
+      opFile << UWts(u, i) << " "; 
+      if (i == 3 || i == 4) {
+        //opFile << "|";
+      }
+    }
+    opFile << std::endl;
+  }
+  opFile.close();
+  */ 
 }
 
 

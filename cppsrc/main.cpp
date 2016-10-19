@@ -4,26 +4,19 @@
 #include "datastruct.h"
 #include "ModelAverage.h"
 #include "ModelAverageWBias.h"
-#include "ModelAverageWSetBias.h"
-#include "ModelBaseline.h"
-#include "ModelMajority.h"
-#include "ModelMajorityWCons.h"
-#include "ModelAverageHinge.h"
 #include "ModelAverageWPart.h"
 #include "ModelBaseline.h"
 #include "ModelAverageBiasesOnly.h"
 #include "ModelAverageWGBias.h"
-#include "ModelItemAverage.h"
 
+#include "ModelMaxMin.h"
+#include "ModelWeightedVariance.h"
+#include "ModelWtAverageAllRange.h"
 #include "ModelWtAverage.h"
-#include "ModelAverageWBiasEntropy.h"
 #include "ModelAverageSigmoidWBias.h"
-#include "ModelFM.h"
 #include "ModelFMUWt.h"
 #include "ModelFMUWtBPR.h"
 #include "ModelMFWBias.h"
-#include "ModelAverageHingeWBias.h"
-#include "ModelAverageLogWBias.h"
 #include "ModelAverageBPRWBias.h"
 #include "ModelBPR.h"
 #include "ModelBPRTop.h"
@@ -92,7 +85,7 @@ int main(int argc, char *argv[]) {
   Data data(params);
   
   data.initRankMap(params.seed);
-  data.computeSetsEntropy();
+  //data.computeSetsEntropy();
   //data.writeTrainSetsEntropy();
   //data.scaleSetsTo01(5.0); 
 
@@ -101,8 +94,8 @@ int main(int argc, char *argv[]) {
 
   //subSampleMats(data.partTrainMat, params.prefix, params.seed);
 
-  ModelWtAverage modelAvg(params);
-  ModelWtAverage bestModel(modelAvg);
+  ModelAverage modelAvg(params);
+  ModelAverage bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   //bestModel.save(params.prefix);
   //bestModel.load(params.prefix);
@@ -127,7 +120,8 @@ int main(int argc, char *argv[]) {
   std::vector<int> Ns {1, 5, 10, 25, 50, 100};
   std::vector<float> precisions;
   std::vector<float> oneCalls;
-
+  
+  /*
   auto precisionNCalls = bestModel.precisionNCall(data.allSets, data.ratMat, Ns,
       TOP_RAT_THRESH);
   precisions = precisionNCalls.first; 
@@ -167,7 +161,9 @@ int main(int argc, char *argv[]) {
       data.ratMat, TOP_RAT_THRESH);
   std::cout << "Ordered top pairs excl all sets: " << corrOrdAllPairsTop 
     << std::endl;
+  */  
   params.display();  
+  
   return 0;
 }
 

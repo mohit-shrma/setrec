@@ -581,7 +581,7 @@ std::pair<int, int> samplePosNegItem(gk_csr_t *mat, int u, std::mt19937& mt,
   }
 
   if (r_ui <= thresh) {
-    i == -1;
+    i = -1;
   }
 
   //sample neg Item

@@ -186,12 +186,11 @@ void readEigenMat(const char* fileName, Eigen::MatrixXf& mat, int nrows,
       colInd = 0;
       while((pos = line.find(delimiter)) != std::string::npos) {
         token = line.substr(0, pos);
-        mat(rowInd, colInd) = std::stof(token);
-        colInd++;
+        mat(rowInd, colInd++) = std::stof(token);
         line.erase(0, pos + delimiter.length());
       }
       if (line.length() > 0) {
-        mat(rowInd, colInd) = std::stof(line);
+        mat(rowInd, colInd++) = std::stof(line);
       }
       rowInd++;
     } 

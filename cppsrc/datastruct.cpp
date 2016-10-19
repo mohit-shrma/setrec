@@ -44,24 +44,24 @@
       trainSets  = readSets(params.trainSetFile);    
       
       //compute entropy
-      for (auto&& uSet: trainSets) {
-        uSet.computeEntropy(ratMat);
+      //for (auto&& uSet: trainSets) {
+        //uSet.computeEntropy(ratMat);
         //remove high entropy
         //uSet.removeRandom(0.5, params.seed);
         //uSet.removeHighEntropy(0.5);
         //uSet.removeLowEntropy(0.5);
-      }
+      //}
 
       //remove over-under rated sets
       //removeOverUnderRatedSets(trainSets, ratMat);
       std::cout << "trainSets and partTrainMat differ: " << std::endl; 
       checkIfSetsMatDiffer(trainSets, partTrainMat);
 
-      std::cout << "trainSets and partTestMat overlap: " << std::endl; 
-      auto invalU1 = checkIfSetsMatOverlap(trainSets, partTestMat);
+      //std::cout << "trainSets and partTestMat overlap: " << std::endl; 
+      //auto invalU1 = checkIfSetsMatOverlap(trainSets, partTestMat);
 
-      std::cout << "trainSets and partValMat overlap: " << std::endl; 
-      auto invalU2 = checkIfSetsMatOverlap(trainSets, partValMat);
+      //std::cout << "trainSets and partValMat overlap: " << std::endl; 
+      //auto invalU2 = checkIfSetsMatOverlap(trainSets, partValMat);
       
       //removeSetsWInvalUsers(trainSets, invalU1);
       //removeSetsWInvalUsers(trainSets, invalU2);

@@ -67,7 +67,6 @@ Model::Model(const Params &params) {
     }
   }
   
-
 }
 
 
@@ -78,7 +77,6 @@ Model::Model(const Params &params, const char* uFacName,
 }
 
 
-//TODO: init train users and train items in models
 float Model::estItemRating(int user, int item) {
   if (trainUsers.find(user) != trainUsers.end() && 
       trainItems.find(item) != trainItems.end()) {
@@ -1835,13 +1833,16 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
       bestValRMSE = currValRMSE;
       bestIter    = iter;
       bestObj     = currObj;
-    } /* else {
+    } 
+    
+    if (iter - bestIter >= CHANCE_ITER/2) {
       //decrease learn rate
-      learnRate = learnRate/2;
-      if (learnRate < 1e-5) {
-        learnRate = 1e-5;
+      if (learnRate > 5e-4) {
+        std::cout << "Changing learn rate from: " << learnRate;
+        learnRate = learnRate/2;
+        std::cout << " to: " << learnRate << std::endl; 
       }
-    } */
+    } 
   
     if (iter - bestIter >= CHANCE_ITER) {
       //cant improve validation RMSE

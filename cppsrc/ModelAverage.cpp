@@ -34,6 +34,11 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
 
+  trainUsers = data.trainUsers;
+  trainItems = data.trainItems;
+  std::cout << "train Users: " << trainUsers.size() 
+    << " trainItems: " << trainItems.size() << std::endl;
+  
   //initialize random engine
   std::mt19937 mt(params.seed);
   std::uniform_int_distribution<int> dist(0, 1000);
@@ -53,62 +58,52 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
         int setInd = dist(mt) % uSet.itemSets.size();
         auto items = uSet.itemSets[setInd].first;
         float r_us = uSet.itemSets[setInd].second;
+        int setSz = items.size();
 
-        if (items.size() == 0) {
+        if (setSz == 0) {
           std::cerr << "!! zero size itemset foundi !!" << std::endl; 
           continue;
         }
-
+  
         //estimate rating on the set
-        float r_us_est = estSetRating(user, items);
+        float r_us_est = 0;
 
         //compute sum of item latent factors
         sumItemFactors.fill(0);    
         for (auto item: items) {
           sumItemFactors += V.row(item);
         }
+        r_us_est += (U.row(user).dot(sumItemFactors)) / setSz;
 
         //user gradient
         grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
                 + 2.0*uReg*U.row(user).transpose();
-        //uGradsAcc.row(user) = uGradsAcc.row(user)*params.rhoRMS 
-        //  + (1.0 - params.rhoRMS)*(grad.cwiseProduct(grad).transpose());
-
         //update user
         U.row(user) -= learnRate*(grad.transpose());
-        
-        //update rms prop
-        //for (int k = 0; k < facDim; k++) {
-        //  U(user, k) -= (learnRate/(sqrt(uGradsAcc(user, k) + 0.0000001)))*grad[k];
-        //}
 
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
         for (auto&& item: items) {
           tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
-          //iGradsAcc.row(item) = iGradsAcc.row(item)*params.rhoRMS
-          //  + (1.0 - params.rhoRMS)*(tempGrad.cwiseProduct(tempGrad).transpose());
-          //update rmsprop
-          //for (int k = 0; k < facDim; k++) {
-          //  V(item, k) -= (learnRate/(sqrt(iGradsAcc(item, k) + 0.0000001)))*tempGrad[k];
-          //}
           V.row(item) -= learnRate*(tempGrad.transpose());
         }
       }
     }    
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj)) {
+      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
+            bestValRMSE, prevValRMSE)) {
         break;
       }
-      std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
-        << prevValRMSE << " best val RMSE:" << bestValRMSE 
-        << " train RMSE:" << rmse(data.trainSets) 
-        << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
-        << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
-        << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
-        << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
-        << std::endl;
+      if (iter % 100 == 0  || iter == params.maxIter-1) {
+        std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
+          << prevValRMSE << " best val RMSE:" << bestValRMSE 
+          << " train RMSE:" << rmse(data.trainSets) 
+          << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
+          << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
+          << " bIter: " << bestIter
+          << std::endl;
+      }
     }
 
   }

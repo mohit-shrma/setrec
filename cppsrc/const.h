@@ -3,7 +3,7 @@
 
 #define TOP_RAT_THRESH 3.5
 #define OBJ_ITER 1 
-#define CHANCE_ITER 100
+#define CHANCE_ITER 500
 #define EPS 0.00001
 #define SET_SZ 5
 #endif
