@@ -63,7 +63,7 @@ float ModelMaxMin::objective(const std::vector<UserSets>& uSets,
 } 
 
 
- float ModelMaxMin::objective(const std::vector<UserSets>& uSets) {
+float ModelMaxMin::objective(const std::vector<UserSets>& uSets) {
   float obj = Model::objective(uSets);
   for (auto&& user: trainUsers) {
     obj += uDivWt(user)*uDivWt(user)*uSetBiasReg;
