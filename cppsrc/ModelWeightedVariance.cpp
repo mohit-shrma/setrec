@@ -193,7 +193,7 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
     
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      
+      /*
       if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
             bestObj, prevObj, bestValRMSE, prevValRMSE))) {
         break;
@@ -203,6 +203,10 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
             bestIter, bestObj, prevObj, bestValRMSE, prevValRMSE))) {
         //save best model
         //bestModel.save(params.prefix);
+        break;
+      }*/
+      if (isTerminateModel(bestModel, data, iter, bestIter,
+            bestObj, prevObj, bestValRMSE, prevValRMSE)) {
         break;
       }
 

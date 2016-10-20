@@ -99,6 +99,7 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
 
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
+      /*
       if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
             bestObj, prevObj, bestValRMSE, prevValRMSE))) {
         break;
@@ -108,6 +109,11 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
             bestIter, bestObj, prevObj, bestValRMSE, prevValRMSE))) {
         //save best model
         //bestModel.save(params.prefix);
+        break;
+      }
+      */
+      if (isTerminateModel(bestModel, data, iter, bestIter,
+            bestObj, prevObj, bestValRMSE, prevValRMSE)) {
         break;
       }
       if (iter % 100 == 0  || iter == params.maxIter-1) {

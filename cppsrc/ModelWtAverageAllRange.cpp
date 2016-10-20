@@ -409,7 +409,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
 
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      
+      /*
       if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
             bestObj, prevObj, bestValRMSE, prevValRMSE))) {
         break;
@@ -421,7 +421,11 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         //bestModel.save(params.prefix);
         break;
       }
-
+      */
+      if (isTerminateModel(bestModel, data, iter, bestIter,
+            bestObj, prevObj, bestValRMSE, prevValRMSE)) {
+        break;
+      }
       
       if (iter%50 == 0 || iter == params.maxIter - 1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
