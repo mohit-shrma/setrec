@@ -73,6 +73,9 @@ class Model {
     bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
         float& prevValRMSE); 
+    bool isTerminateModelWPartIRMSE(Model& bestModel, 
+        const Data& data, int iter, int& bestIter, float& bestObj, float& prevObj, 
+        float& bestValRMSE, float& prevValRMSE);
     bool isTerminateModelWPart(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
         float& prevValRMSE); 
@@ -144,6 +147,7 @@ class Model {
     const std::vector<UserSets>& uSets, gk_csr_t *mat, float lb);
   float corrOrderedItems(gk_csr_t *mat, float lb);
   float computeEntropy(int user, ItemsSet& item);
+  void updateFacUsingRatMat(std::vector<std::tuple<int, int, float>>& ratings); 
 
 };
 

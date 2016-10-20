@@ -22,6 +22,7 @@
         << " nItems: " << partTrainMat->ncols << std::endl;
     }
     
+
     if (NULL != params.partTestMatFile) {
       std::cout << "\nReading partial rating matrix 0 indexed..." 
         << params.partTestMatFile << std::endl;
@@ -29,7 +30,8 @@
       std::cout << "nUsers: " << partTestMat->nrows 
         << " nItems: " << partTestMat->ncols << std::endl;
     } 
-    
+  
+
     if (NULL != params.partValMatFile) {
       std::cout << "\nReading partial rating matrix 0 indexed..." 
         << params.partValMatFile << std::endl;
@@ -75,6 +77,22 @@
       trainUsers = trainUserItems.first;
       trainItems = trainUserItems.second;
       std::cout << "nTrainSets: " << nTrainSets << std::endl;
+      
+      
+      if (params.isMixRat) {
+        std::cout << "nTrainUsers b4 mix: " << trainUsers.size() << std::endl;
+        std::cout << "nTrainItems b4 mix: " << trainItems.size() << std::endl;
+        //do union with users and items in partial train matrix
+        auto partialUserItems  = getUserItems(partTrainMat);
+        for (auto user : partialUserItems.first) {
+          trainUsers.insert(user);
+        }
+        for (auto item : partialUserItems.second) {
+          trainItems.insert(item);
+        }
+      }
+
+
       std::cout << "nTrainUsers: " << trainUsers.size() << std::endl;
       std::cout << "nTrainItems: " << trainItems.size() << std::endl;
     }

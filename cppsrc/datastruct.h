@@ -24,8 +24,9 @@ class Params {
     float iBiasReg;
     float g_kReg;
     float learnRate;
-    float constWt;
+    int isMixRat;
     float rhoRMS;
+    float constWt;
 
     char *trainSetFile;
     char *testSetFile;
@@ -40,7 +41,7 @@ class Params {
         float uReg, float iReg, float u_mReg, 
         float uBiasReg, float iBiasReg,
         float g_kReg, float learnRate,
-        float constWt, float rhoRMS,
+        int isMixRat, float rhoRMS,
         char *trainSetFile, char *testSetFile, char *valSetFile, 
         char *ratMatFile, char *partTrainMatFile, char *partTestMatFile, 
         char *partValMatFile, char *prefix)
@@ -48,11 +49,11 @@ class Params {
       uReg(uReg), iReg(iReg), u_mReg(u_mReg), 
       uBiasReg(uBiasReg), iBiasReg(iBiasReg),
       g_kReg(g_kReg), learnRate(learnRate), 
-      constWt(constWt), rhoRMS(rhoRMS),
+      isMixRat(isMixRat), rhoRMS(rhoRMS),
       trainSetFile(trainSetFile), testSetFile(testSetFile), 
       valSetFile(valSetFile), ratMatFile(ratMatFile), 
       partTrainMatFile(partTrainMatFile), partTestMatFile(partTestMatFile),
-      partValMatFile(partValMatFile), prefix(prefix) {}
+      partValMatFile(partValMatFile), prefix(prefix) {constWt = 0;}
 
     void display() {
       std::cout << "******* PARAMETERS ********";
@@ -68,8 +69,8 @@ class Params {
       std::cout << "\nu_mReg (uSetBiasReg): " << u_mReg;
       std::cout << "\ng_kReg (gBiasReg): " << g_kReg;
       std::cout << "\nlearnRate: " << learnRate;
-      std::cout << "\nconstWt: " << constWt;
-      std::cout << "\nrhoRMS: " << rhoRMS;
+      std::cout << "\nisMixRat: " << isMixRat;
+      std::cout << "\nrhoRMS (gamma): " << rhoRMS;
       std::cout << "\ntrainSetFile: " << trainSetFile;
       std::cout << "\ntestSetFile: " << testSetFile;
       std::cout << "\nvalSetFile: " << valSetFile;

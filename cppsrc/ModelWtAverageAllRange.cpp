@@ -1,73 +1,5 @@
 #include "ModelWtAverageAllRange.h"
 
-bool ModelWtAverageAllRange::isTerminateModelWPartIRMSE(Model& bestModel, 
-    const Data& data, int iter, int& bestIter, float& bestObj, float& prevObj, 
-    float& bestValRMSE, float& prevValRMSE) {
-
-  bool ret = false;  
-  float currObj = objective(data.trainSets, data.partTrainMat);
-  float currValRMSE = -1;
-  
-  currValRMSE = rmse(data.partValMat); 
-
-  if (iter > 0) {
-    if (currValRMSE < bestValRMSE) {
-      bestModel = *this;
-      bestValRMSE = currValRMSE;
-      bestIter = iter;
-      bestObj = currObj;
-    } 
-   
-    if (iter - bestIter >= CHANCE_ITER/2) {
-      if (learnRate > 5e-4) {
-        std::cout << "Changing learn rate from: " << learnRate;
-        learnRate = learnRate/2;
-        std::cout << " to: " << learnRate << std::endl; 
-      }
-    } 
-
-    if (iter - bestIter >= CHANCE_ITER) {
-      //cant improve validation RMSE
-      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
-        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
-        << iter << " currObj: " << currObj << " currValRMSE:" 
-        << currValRMSE << std::endl;
-      ret = true;
-    }
-    
-    
-    if (fabs(prevObj - currObj) < EPS) {
-      //objective converged
-      std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
-        << " bestValRMSE:" << bestValRMSE;
-      ret = true;
-    }
-    
-     
-    /*
-    if (fabs(prevValRMSE - currValRMSE) < EPS) {
-      //Validation rmse converged
-      std::cout << "CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
-        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
-        << iter << " currObj: " << currObj << " currValRMSE:" 
-        << currValRMSE << std::endl;
-      ret = true;
-    }
-    */
-  }
-  
-  if (0 == iter) {
-    bestObj = currObj;
-    bestValRMSE = currValRMSE;
-    bestIter = iter;
-  }
-  
-  prevObj = currObj;
-  prevValRMSE = currValRMSE;
-
-  return ret;
-}
-
 
 float ModelWtAverageAllRange::estItemRating(int user, int item) {
   bool uFound = false, iFound = true;
@@ -307,21 +239,11 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         
       }
     }
-    
-    /*
-    std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-    for (auto&& uiRating: partUIRatingsTup) {
-      int user       = std::get<0>(uiRating);
-      int item       = std::get<1>(uiRating);
-      float r_ui     = std::get<2>(uiRating);
-      float r_ui_est = estItemRating(user, item);
-      float diff     = r_ui_est - r_ui;
-      //update user latent factor
-      U.row(user) -= learnRate*(2.0*diff*V.row(item) + 2.0*uReg*U.row(user));
-      //update item latent factor
-      V.row(item) -= learnRate*(2.0*diff*U.row(user) + 2.0*iReg*V.row(item));
+
+    if (params.isMixRat) {
+      std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
+      updateFacUsingRatMat(partUIRatingsTup);
     }
-    */
 
     if (true) {
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
@@ -487,14 +409,19 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
 
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
-            bestValRMSE, prevValRMSE)) {
-      //if (isTerminateModelWPartIRMSE(bestModel, data, iter, bestIter, bestObj, prevObj,
-      //      bestValRMSE, prevValRMSE)) {
+      
+      if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
+            bestObj, prevObj, bestValRMSE, prevValRMSE))) {
+        break;
+        //save best model
+        //bestModel.save(params.prefix);
+      } else if ((params.isMixRat && isTerminateModelWPartIRMSE(bestModel, data, iter, 
+            bestIter, bestObj, prevObj, bestValRMSE, prevValRMSE))) {
         //save best model
         //bestModel.save(params.prefix);
         break;
       }
+
       
       if (iter%50 == 0 || iter == params.maxIter - 1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 

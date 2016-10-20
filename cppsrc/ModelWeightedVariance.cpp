@@ -102,6 +102,8 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
   trainItems = data.trainItems;
   std::cout << "train Users: " << trainUsers.size() 
     << " trainItems: " << trainItems.size() << std::endl;
+  
+  auto partUIRatingsTup = getUIRatingsTup(data.partTrainMat);
 
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -183,19 +185,27 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
           + 2.0*uSetBiasReg*uDivWt(user));
       }
     }    
+  
+    if (params.isMixRat) {
+      std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
+      updateFacUsingRatMat(partUIRatingsTup);
+    }
+    
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
-            bestValRMSE, prevValRMSE)) {
-        if (std::isnan(prevObj)) {
-          std::cout << "U norm: " << U.norm() << " V norm: " << V.norm() 
-            << " uWtNorm: " << uDivWt.norm()  << std::endl ;
-        }
+      
+      if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
+            bestObj, prevObj, bestValRMSE, prevValRMSE))) {
+        break;
+        //save best model
+        //bestModel.save(params.prefix);
+      } else if ((params.isMixRat && isTerminateModelWPartIRMSE(bestModel, data, iter, 
+            bestIter, bestObj, prevObj, bestValRMSE, prevValRMSE))) {
         //save best model
         //bestModel.save(params.prefix);
         break;
       }
-      
+
       if (iter % 100 == 0 || iter == params.maxIter - 1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 

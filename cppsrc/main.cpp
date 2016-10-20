@@ -35,7 +35,7 @@ Params parse_cmd_line(int argc, char* argv[]) {
       std::atoi(argv[4]), std::atoi(argv[5]),
       std::atof(argv[6]), std::atof(argv[7]), std::atof(argv[8]),
       std::atof(argv[9]), std::atof(argv[10]),
-      std::atof(argv[11]), std::atof(argv[12]), std::atof(argv[13]), std::atof(argv[14]),
+      std::atof(argv[11]), std::atof(argv[12]), std::atoi(argv[13]), std::atof(argv[14]),
       argv[15], argv[16], argv[17], argv[18], argv[19], argv[20], argv[21], argv[22]);
 }
 
@@ -94,8 +94,8 @@ int main(int argc, char *argv[]) {
 
   //subSampleMats(data.partTrainMat, params.prefix, params.seed);
 
-  ModelAverage modelAvg(params);
-  ModelAverage bestModel(modelAvg);
+  ModelWtAverageAllRange modelAvg(params);
+  ModelWtAverageAllRange bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   //bestModel.save(params.prefix);
   //bestModel.load(params.prefix);

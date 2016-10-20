@@ -13,9 +13,6 @@ class ModelWtAverageAllRange: public Model {
     void estSetRatings(int user, const std::vector<int>& items,
         std::vector<float>& setRatings);
     virtual void train(const Data& data, const Params& params, Model& bestModel);
-    bool isTerminateModelWPartIRMSE(Model& bestModel, 
-        const Data& data, int iter, int& bestIter, float& bestObj, float& prevObj, 
-        float& bestValRMSE, float& prevValRMSE);
 };
 
 
