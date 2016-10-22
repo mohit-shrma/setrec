@@ -19,14 +19,14 @@ def genGridRegJobs(setrec, prefix, data, nSplits=5):
     testSet     = "split" + str(i) + "/" + "ml_set.test.syn_" + str(i) + ".lfs"
     valSet      = "split" + str(i) + "/" + "ml_set.val.syn_" + str(i) + ".lfs"
     trainRatMat = "train.syn.csr"
-    opDir = "split" + str(i) + "/" + prefix
+    opDir = os.path.join(data, "split" + str(i), prefix)
     if not os.path.exists(opDir):
       os.mkdir(opDir)
 
     for ureg in REGS:
       for ireg in REGS:
-        for usetbiasreg in REGS:#setBiasRegs:
-          for gamma in [0]:#[0.1, 0.25, 0.5]:
+        for usetbiasreg in [0]:#REGS:#setBiasRegs:
+          for gamma in [0]:#[0.25, 0.5]:
             jobStr = '_'.join(map(str, [ureg, ireg, usetbiasreg, gamma]))
             print 'cd ' + data + ' && ', setrec, NUSERS, NITEMS, 5, 5000, SEED, \
                 ureg, ireg, usetbiasreg, 0, 0, 0, \
@@ -41,15 +41,15 @@ def genGridMixRegJobs(setrec, prefix, data, nSplits=5):
     trainSet    = "split" + str(i) + "/" + "ml_set.train.syn_" + str(i) + ".lfs"
     testSet     = "split" + str(i) + "/" + "ml_set.test.syn_" + str(i) + ".lfs"
     valSet      = "split" + str(i) + "/" + "ml_set.val.syn_" + str(i) + ".lfs"
-    opDir = "split" + str(i) + "/" + prefix
+    opDir = os.path.join(data, "split" + str(i), prefix)
     if not os.path.exists(opDir):
       os.mkdir(opDir)
     for trainMatInd in range(5):
       trainRatMat = "train_" + str(trainMatInd) + ".syn.csr"
       for ureg in REGS:
         for ireg in REGS:
-          for usetbiasreg in REGS:#setBiasRegs:
-            for gamma in [0]:#[0.1, 0.25, 0.5]:
+          for usetbiasreg in [0]:#REGS:#setBiasRegs:#for var, maxmin
+            for gamma in [0]:#[0.25, 0.5]:#for var
               jobStr = '_'.join(map(str, [ureg, ireg, usetbiasreg, gamma]))
               print 'cd ' + data + ' && ', setrec, NUSERS, NITEMS, 5, 5000, SEED, \
                   ureg, ireg, usetbiasreg, 0, 0, 0, \
@@ -61,13 +61,32 @@ def genGridMixRegJobs(setrec, prefix, data, nSplits=5):
 
 def main():
   setrec = sys.argv[1]
-  data = sys.argv[2]
-  prefix = sys.argv[3]
+  data   = sys.argv[2]
   
-  #genGridRegJobs(setrec, prefix, data)
-  genGridMixRegJobs(setrec, prefix, data)
+  prefix = os.path.basename(setrec)
+  
+  
+  for i in range(1,4):
+    subDirName = 'buckets' + str(i)
+    subDir = os.path.join(data, subDirName)
+    if not os.path.exists(subDir):
+      print 'Path not found: ', subDir
+      return
+    subPref = prefix# + '_' + subDirName
+    genGridRegJobs(setrec, subPref, subDir)
+    #genGridMixRegJobs(setrec, subPref + 'mix', subDir)
 
-
+  """
+  for i in range(1,4):
+    subDirName = 'var' + str(i)
+    subDir = os.path.join(data, subDirName)
+    if not os.path.exists(subDir):
+      print 'Path not found: ', subDir
+      return
+    subPref = prefix# + '_' + subDirName
+    genGridRegJobs(setrec, subPref, subDir)
+    #genGridMixRegJobs(setrec, subPref + 'mix', subDir)
+  """
 if __name__ == '__main__':
   main()
 
