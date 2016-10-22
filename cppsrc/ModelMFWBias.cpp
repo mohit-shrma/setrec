@@ -53,11 +53,11 @@ float ModelMFWBias::estItemRating(int user, int item) {
   float rating = gBias;
   if (trainUsers.find(user) != trainUsers.end()) {
     uFound = true;
-    rating += uBias(user);
+    //rating += uBias(user);
   }
   if (trainItems.find(item) != trainItems.end()) {
     iFound = true;
-    rating += iBias(item);
+    //rating += iBias(item);
   }
   if (uFound && iFound) {
     rating += U.row(user).dot(V.row(item));
@@ -103,11 +103,11 @@ void ModelMFWBias::train(const Data& data, const Params& params,
       diff = r_ui_est - r_ui;
       
       //update user bias
-      uBias(u) -= learnRate*(2.0*diff + 2.0*uBiasReg*uBias(u)); 
+      //uBias(u) -= learnRate*(2.0*diff + 2.0*uBiasReg*uBias(u)); 
       //update user latent factor
       U.row(u) -= learnRate*(2.0*diff*V.row(item) + 2.0*uReg*U.row(u));
       //update item bias
-      iBias(item) -= learnRate*(2.0*diff + 2.0*iBiasReg*iBias(item));
+      //iBias(item) -= learnRate*(2.0*diff + 2.0*iBiasReg*iBias(item));
       //update item latent factor
       V.row(item) -= learnRate*(2.0*diff*U.row(u) + 2.0*iReg*V.row(item));
     }
@@ -120,7 +120,7 @@ void ModelMFWBias::train(const Data& data, const Params& params,
         //bestModel.save(params.prefix);
         break;
       }
-      if (iter % 10 == 0) {
+      if (iter % 100 == 0) {
         std::cout << "Iter: " << iter << " obj: " << prevObj << " valRMSE: "
           << prevValRMSE << " best valRMSE: " << bestValRMSE 
           << " trainRMSE: " << rmse(data.partTrainMat) << " testRMSE: " 
