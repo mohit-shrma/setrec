@@ -240,6 +240,23 @@ std::vector<float> readFVector(const char *ipFileName) {
 }
 
 
+void readEigenVec(const char* fileName, Eigen::VectorXf& vec, int nrows) {
+  std::ifstream ipFile(fileName);
+  std::string line; 
+  int i = 0;
+  if (ipFile.is_open()) {
+    while(getline(ipFile, line)) {
+      if (line.length() > 0) {
+        vec[i++] = std::stof(line);
+      }
+    }
+    ipFile.close();
+  } else {
+    std::cerr <<  "\nCan't open file: " << fileName;
+    exit(0);
+  }
+} 
+
 bool isFileExist(const char *fileName) {
   std::ifstream infile(fileName);
   return infile.good();

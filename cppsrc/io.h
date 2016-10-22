@@ -15,6 +15,7 @@ std::vector<float> readFVector(const char *ipFileName);
 bool isFileExist(const char *fileName);
 void readEigenMat(const char* fileName, Eigen::MatrixXf& mat, int nrows, 
     int ncols);
+void readEigenVec(const char* fileName, Eigen::VectorXf& vec, int nrows);
 template <typename Iter>
 void writeContainer(Iter it, Iter end, const char *opFileName) {
   std::ofstream opFile(opFileName);
