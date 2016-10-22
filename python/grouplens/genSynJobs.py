@@ -9,8 +9,9 @@ LEARNRATE   = 0.001
 RATMAT      = "ratings.syn.csr"
 TEST_RATMAT = "test.syn.csr"
 VAL_RATMAT  = "val.syn.csr"
-TRAIN_RATMATS = ["train_0.syn.csr", "train_1.syn.csr", "train_2.syn.csr", \
-    "train_3.syn.csr", "train_4.syn.csr"]
+#TRAIN_RATMATS = ["train_0.syn.csr", "train_1.syn.csr", "train_2.syn.csr", \
+#    "train_3.syn.csr", "train_4.syn.csr", "train_5.syn.csr"]
+TRAIN_RATMATS = ["train_5.syn.csr"]
 
 
 def genGridRegJobs(setrec, prefix, data, nSplits=5):
@@ -72,11 +73,11 @@ def genGridMixRegJobs(setrec, prefix, data, nSplits=5):
     opDir = os.path.join(data, "split" + str(i), prefix)
     if not os.path.exists(opDir):
       os.mkdir(opDir)
-    for trainMatInd in range(5):
+    for trainMatInd in range(5,6):
       trainRatMat = "train_" + str(trainMatInd) + ".syn.csr"
       for ureg in REGS:
         for ireg in REGS:
-          for usetbiasreg in [0]:#REGS:#setBiasRegs:#for var, maxmin
+          for usetbiasreg in [0]:#setBiasRegs:#for var, maxmin
             for gamma in [0]:#[0.25, 0.5]:#for var
               jobStr = '_'.join(map(str, [ureg, ireg, usetbiasreg, gamma]))
               print 'cd ' + data + ' && ', setrec, NUSERS, NITEMS, 5, 5000, SEED, \
@@ -91,11 +92,12 @@ def main():
   setrec = sys.argv[1]
   data   = sys.argv[2]
   topParamFName = ''
-  if len(sys.argv) > 3
+  if len(sys.argv) > 3:
     topParamFName = sys.argv[3];
 
   prefix = os.path.basename(setrec)
   
+  """
   for i in range(1,4):
     subDirName = 'buckets' + str(i)
     subDir = os.path.join(data, subDirName)
@@ -103,10 +105,11 @@ def main():
       print 'Path not found: ', subDir
       return
     subPref = prefix# + '_' + subDirName
-    genGridRegJobs(setrec, subPref, subDir)
-    genMixJobsFromParam(setrec, subPref + 'mix', topParamFName, subDir)
-
+    #genGridRegJobs(setrec, subPref, subDir)
+    genGridMixRegJobs(setrec, subPref, subDir)
+    #genMixJobsFromParam(setrec, subPref + 'mix', topParamFName, subDir)
   """
+
   for i in range(1,4):
     subDirName = 'var' + str(i)
     subDir = os.path.join(data, subDirName)
@@ -114,10 +117,9 @@ def main():
       print 'Path not found: ', subDir
       return
     subPref = prefix# + '_' + subDirName
-    genGridRegJobs(setrec, subPref, subDir)
-    genMixJobsFromParam(setrec, subPref + 'mix', topParamFName, subDir)
-    #genGridMixRegJobs(setrec, subPref + 'mix', subDir)
-  """
+    #genGridRegJobs(setrec, subPref, subDir)
+    #genMixJobsFromParam(setrec, subPref + 'mix', topParamFName, subDir)
+    genGridMixRegJobs(setrec, subPref + 'mix', subDir)
 
 if __name__ == '__main__':
   main()
