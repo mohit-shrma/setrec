@@ -24,9 +24,9 @@ def parseFilesForRes(ipFName):
   oneCallDics = []
   for n in Ns:
     precDics.append({})
-    ds.append(precDics[-1])
+    #ds.append(precDics[-1])
     oneCallDics.append({})
-    ds.append(oneCallDics[-1])
+    #ds.append(oneCallDics[-1])
   
   valRMSEDic     = {}
   ds.append(valRMSEDic)
@@ -45,17 +45,17 @@ def parseFilesForRes(ipFName):
   ds.append(trainSRMSEDic)
  
   topValSetBPRDic       = {}
-  ds.append(topValSetBPRDic)
+  #ds.append(topValSetBPRDic)
   topTestSetBPRDic       = {}
-  ds.append(topTestSetBPRDic)
+  #ds.append(topTestSetBPRDic)
 
   topValItemBPRDic      = {}
-  ds.append(topValItemBPRDic)
+  #ds.append(topValItemBPRDic)
   topTestItemBPRDic      = {}
-  ds.append(topTestItemBPRDic)
+  #ds.append(topTestItemBPRDic)
 
   topTestItemPairDic = {}
-  ds.append(topTestItemPairDic)
+  #ds.append(topTestItemPairDic)
 
   keys = set([])
   fileCount = 0
@@ -63,6 +63,8 @@ def parseFilesForRes(ipFName):
     for line in f:
       fName = line.strip()
       fileCount += 1
+      if not os.path.isfile(fName):
+        continue
       #if fileCount % 500 == 0:
       #  print 'Processed files ...', fileCount 
       with open(fName, 'r') as h:
@@ -72,6 +74,7 @@ def parseFilesForRes(ipFName):
         keys.add(bk)
         for fLine in h:
           
+          """ 
           if fLine.startswith('Precision:'):
             cols = fLine.strip().split()
             for i in range(len(Ns)):
@@ -81,6 +84,7 @@ def parseFilesForRes(ipFName):
             cols = fLine.strip().split()
             for i in range(len(Ns)):
               updateDic(oneCallDics[i], bk, cols[i+1])
+          """
 
           if fLine.startswith("Val RM"):
             updateDic(valRMSEDic, bk, fLine)
@@ -98,6 +102,7 @@ def parseFilesForRes(ipFName):
           if fLine.startswith('Train set') or 'Train sets RMSE:' in fLine:
             updateDic(trainSRMSEDic, bk, fLine)
           
+          """ 
           if fLine.startswith("Fraction top val correct ordered sets"):
             updateDic(topValSetBPRDic, bk, fLine)
           if fLine.startswith("Fraction top test correct ordered sets"):
@@ -110,6 +115,7 @@ def parseFilesForRes(ipFName):
 
           if fLine.startswith("Ordered top pairs"):
             updateDic(topTestItemPairDic, bk, fLine)
+          """
 
   for d in ds:
     averageDic(d)
@@ -138,17 +144,20 @@ def parseFilesForRes(ipFName):
     if k in notFoundK:
       continue
     tempL = [k]
+    """
     for precD in precDics:
       tempL.append(precD[k][0])
     for oneCallD in oneCallDics:
       tempL.append(oneCallD[k][0])
+    """
     tempL += [trainRMSEDic[k][0], valRMSEDic[k][0], testRMSEDic[k][0],
         testAllRMSEDic[k][0]]
     tempL += [trainSRMSEDic[k][0], valSRMSEDic[k][0], testSRMSEDic[k][0]]
-    tempL += [topValSetBPRDic[k][0], topTestSetBPRDic[k][0]]
-    tempL += [topValItemBPRDic[k][0], topTestItemBPRDic[k][0]]
-    tempL += [topTestItemPairDic[k][0]]
-    tempL += [topTestItemPairDic[k][1]]
+    #tempL += [topValSetBPRDic[k][0], topTestSetBPRDic[k][0]]
+    #tempL += [topValItemBPRDic[k][0], topTestItemBPRDic[k][0]]
+    #tempL += [topTestItemPairDic[k][0]]
+    #tempL += [topTestItemPairDic[k][1]]
+    tempL += [testRMSEDic[k][1]]
     print ' '.join(map(str, tempL))
   
 
