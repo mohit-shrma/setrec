@@ -274,6 +274,46 @@ float Model::rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
 }
 
 
+//compute RMSE for items not in the sets
+float Model::rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat, 
+    gk_csr_t *partTrainMat) {
+  float rmse = 0, r_ui_est, r_ui, diff;
+  int nnz = 0, item, u;
+  for (auto&& uSet: uSets) {
+    u = uSet.user;
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      item = mat->rowind[ii];
+      if (uSet.items.find(item) == uSet.items.end()) {
+        //item not present in set
+        bool isItemInPartTrain = false;
+        
+        //check if item in partTrainMat
+        for (int ii2 = partTrainMat->rowptr[u]; 
+            ii2 < partTrainMat->rowptr[u+1]; ii2++) {
+          if (partTrainMat->rowind[ii2] == item) {
+            isItemInPartTrain = true;
+            break;
+          }
+        }
+        
+        if (isItemInPartTrain) {
+          continue;
+        }
+
+
+        r_ui_est = estItemRating(u, item);
+        r_ui = mat->rowval[ii];
+        diff = r_ui - r_ui_est;
+        rmse += diff*diff;
+        nnz++;
+      }
+    }
+  }
+  rmse = sqrt(rmse/nnz);
+  return rmse;
+}
+
+
 //compute RMSE for items in the sets
 float Model::rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
   float rmse = 0, r_ui_est, r_ui, diff;

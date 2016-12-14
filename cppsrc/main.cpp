@@ -97,6 +97,20 @@ int main(int argc, char *argv[]) {
   ModelWtAverageAllRange modelAvg(params);
   ModelWtAverageAllRange bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
+  /*
+  if (argc > 23) {
+    std::cout << "UFac norm: " << bestModel.U.norm() << " iFac norm: " << bestModel.V.norm() << std::endl;
+    std::cout << "Reading... uFac: " << argv[23] << std::endl;
+    readEigenMat(argv[23], bestModel.U, bestModel.nUsers, bestModel.facDim);
+    std::cout << "Reading... iFac: " << argv[24] << std::endl;
+    readEigenMat(argv[24], bestModel.V, bestModel.nItems, bestModel.facDim);
+    //std::cout << "Reading... UWts: " << argv[25] << std::endl;
+    //readEigenMat(argv[25], bestModel.UWts, bestModel.nUsers, bestModel.nWts);
+    std::cout << "Reading.. uDivWts: " << argv[25] << std::endl;
+    readEigenVec(argv[25], bestModel.uDivWt, bestModel.nUsers);
+    std::cout << "UFac norm: " << bestModel.U.norm() << " iFac norm: " << bestModel.V.norm() << std::endl;
+  }
+  */
   //bestModel.save(params.prefix);
   //bestModel.load(params.prefix);
 
@@ -110,7 +124,9 @@ int main(int argc, char *argv[]) {
   float trainRatingsRMSE   = bestModel.rmse(data.partTrainMat);
   float testRatingsRMSE    = bestModel.rmse(data.partTestMat);
   float valRatingsRMSE     = bestModel.rmse(data.partValMat);
-  float notSetRMSE         = bestModel.rmseNotSets(data.allSets, data.ratMat);
+  //float notSetRMSE         = bestModel.rmseNotSets(data.allSets, data.ratMat);
+  float notSetRMSE         = bestModel.rmseNotSets(data.allSets, data.ratMat, 
+                                                   data.partTrainMat);
 
   std::cout << "Train RMSE: " << trainRatingsRMSE << std::endl;
   std::cout << "Test RMSE: " << testRatingsRMSE << std::endl;
