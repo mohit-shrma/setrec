@@ -43,7 +43,7 @@ def getUItemCount(ipRatFName, setItems, uMapFName):
   
   print 'no. of users in uItemCount', len(uItemCount)
 
-  return uItemCount
+  return (uItemCount, exclUsers)
 
 
 def writeTopUItemCount(uItemCount, fName):
@@ -79,7 +79,7 @@ def getTopUsersRatings(uItemCountTups, nTopUsers, iMap, setItems,
 
 
 def getTopUsersRatingsCSR(uItemCountTups, nTopUsers, iMap, setItems, 
-    ipRatFName, opRatFName):
+    ipRatFName, exclUsers, opRatFName):
   topUsers = set([])
   for (itemCount, user) in uItemCountTups[:nTopUsers]:
     topUsers.add(user)
@@ -87,6 +87,8 @@ def getTopUsersRatingsCSR(uItemCountTups, nTopUsers, iMap, setItems,
   with open(ipRatFName, 'r') as f, open(opRatFName, 'w') as g:
     f.readline()
     prevUser = ''
+    for u in exclUsers:
+        g.write('\n')
     for line in f:
       cols = line.strip().split(',')
       user = int(cols[0])
@@ -110,15 +112,16 @@ def main():
   iMapFName  = sys.argv[2]
   uMapFName  = sys.argv[3]
   nTopUsers  = int(sys.argv[4])
+  topUIRatFName = sys.argv[5]
 
   (setItems, iMap) = getItemInSets(iMapFName)
   print 'no. of set items: ', len(setItems)
 
-  uItemCount = getUItemCount(ipRatFName, setItems, uMapFName)
+  (uItemCount, exclUsers) = getUItemCount(ipRatFName, setItems, uMapFName)
 
   uItemCountTups = writeTopUItemCount(uItemCount, 'topUItemsCount.txt') 
   getTopUsersRatingsCSR(uItemCountTups, nTopUsers, iMap, setItems, 
-      ipRatFName, 'topUItemRat.csr')  
+      ipRatFName, exclUsers, topUIRatFName)  
 
   
 if __name__ == '__main__':
