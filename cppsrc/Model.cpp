@@ -257,8 +257,10 @@ float Model::rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
   int nnz = 0, item, u;
   for (auto&& uSet: uSets) {
     u = uSet.user;
+    if (trainUsers.count(u) == 0 || invalidUsers.count(u) > 0) { continue; }
     for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
       item = mat->rowind[ii];
+      if (trainItems.count(item) == 0) { continue; }
       if (uSet.items.find(item) == uSet.items.end()) {
         //item not present in set
         r_ui_est = estItemRating(u, item);
@@ -281,8 +283,10 @@ float Model::rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat,
   int nnz = 0, item, u;
   for (auto&& uSet: uSets) {
     u = uSet.user;
+    if (trainUsers.count(u) == 0 || invalidUsers.count(u) > 0) { continue; }
     for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
       item = mat->rowind[ii];
+      if (trainItems.count(item) == 0) { continue; }
       if (uSet.items.find(item) == uSet.items.end()) {
         //item not present in set
         bool isItemInPartTrain = false;

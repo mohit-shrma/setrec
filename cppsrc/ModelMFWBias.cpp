@@ -50,7 +50,8 @@ float ModelMFWBias::isTerminateModelIRMSE(Model& bestModel, const Data& data,
 
 float ModelMFWBias::estItemRating(int user, int item) {
   bool uFound = false, iFound = false;
-  float rating = gBias;
+  //float rating = gBias;
+  float rating = 0;
   if (trainUsers.find(user) != trainUsers.end()) {
     uFound = true;
     //rating += uBias(user);
@@ -80,15 +81,15 @@ void ModelMFWBias::train(const Data& data, const Params& params,
   //initialize global bias
   gBias = meanRating(data.partTrainMat);
 
-  std::cout << "Train RMSE: " << rmse(data.partTrainMat) << std::endl;
 
   auto uiRatings = getUIRatingsTup(data.partTrainMat);
   auto usersNItems  = getUserItems(data.partTrainMat);
   trainUsers = usersNItems.first;
   trainItems = usersNItems.second;
-  std::cout << "Train users: " << trainUsers.size() 
+  std::cout << "\nTrain users: " << trainUsers.size() 
     << " items: " << trainItems.size() << std::endl;
   //initialize random engine
+  std::cout << "Train RMSE: " << rmse(data.partTrainMat) << std::endl;
   std::mt19937 mt(params.seed);
 
   for (int iter = 0; iter < params.maxIter; iter++) {
