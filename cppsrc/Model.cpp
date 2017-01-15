@@ -213,8 +213,10 @@ float Model::rmse(gk_csr_t *mat) {
   float r_ui, r_ui_est, diff;
   int nnz = 0;
   for (int u = 0; u < mat->nrows; u++) {
+    if (trainUsers.count(u) == 0 || invalidUsers.count(u) > 0) { continue; }
     for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
       int item = mat->rowind[ii];
+      if (trainItems.count(item) == 0) { continue; }
       r_ui = mat->rowval[ii];
       r_ui_est = estItemRating(u, item);
       diff = r_ui - r_ui_est;
@@ -232,8 +234,10 @@ float Model::rmse(gk_csr_t *mat, std::unordered_set<int>& valItems) {
   float r_ui, r_ui_est, diff;
   int nnz = 0;
   for (int u = 0; u < mat->nrows; u++) {
+    if (trainUsers.count(u) == 0 || invalidUsers.count(u) > 0) { continue; }
     for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
       int item = mat->rowind[ii];
+      if (trainItems.count(item) == 0) { continue; }
       if (valItems.find(item) == valItems.end()) {
         //not valid item
         continue;
