@@ -19,6 +19,9 @@ Model::Model(const Params &params) {
   std::mt19937 mt(params.seed);
   std::uniform_real_distribution<> dis(0, 1);
 
+  globalItemRatings = std::vector<float>(nItems, 0);
+
+
   //initialize User factors and biases
   U = Eigen::MatrixXf(nUsers, facDim);
   uBias = Eigen::VectorXf(nUsers);
@@ -249,7 +252,7 @@ float Model::rmse(gk_csr_t *mat, std::unordered_set<int>& valItems) {
       nnz++;
     }
   }
-  std::cout << "nnz: " << nnz << " rmse: " << rmse << std::endl;
+  //std::cout << "nnz: " << nnz << " rmse: " << rmse << std::endl;
   rmse = sqrt(rmse/nnz);
   return rmse;
 }
@@ -275,6 +278,7 @@ float Model::rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
       }
     }
   }
+  //std::cout << "rmse: " << rmse << " nnz: " << nnz << std::endl;
   rmse = sqrt(rmse/nnz);
   return rmse;
 }
@@ -308,7 +312,6 @@ float Model::rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat,
           continue;
         }
 
-
         r_ui_est = estItemRating(u, item);
         r_ui = mat->rowval[ii];
         diff = r_ui - r_ui_est;
@@ -317,6 +320,7 @@ float Model::rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat,
       }
     }
   }
+  //std::cout << "rmse: " << rmse << " nnz: " << nnz << std::endl;
   rmse = sqrt(rmse/nnz);
   return rmse;
 }
@@ -2272,6 +2276,25 @@ float Model::computeEntropy(int user, ItemsSet& itemsSet) {
   }
   
   return entropy;
+}
+
+
+void Model::updateFacBiasUsingRatMat(std::vector<std::tuple<int, int, float>>& ratings) {
+  for (auto&& uiRating: ratings) {
+    int user       = std::get<0>(uiRating);
+    int item       = std::get<1>(uiRating);
+    float r_ui     = std::get<2>(uiRating);
+    float r_ui_est = estItemRating(user, item);
+    float diff     = r_ui_est - r_ui;
+    //update user bias
+    uBias(user) -= learnRate*(2.0*diff + 2.0*uBiasReg*uBias(user));
+    //update item bias
+    iBias(item) -= learnRate*(2.0*diff  + 2.0*iBiasReg*iBias(item));
+    //update user latent factor
+    U.row(user) -= learnRate*(2.0*diff*V.row(item) + 2.0*uReg*U.row(user));
+    //update item latent factor
+    V.row(item) -= learnRate*(2.0*diff*U.row(user) + 2.0*iReg*V.row(item));
+  }
 }
 
 

@@ -54,5 +54,8 @@ void removeSetsWInvalUsers(std::vector<UserSets>& uSets,
 int getNNZ(gk_csr_t *mat) ;
 std::pair<int, int> samplePosNegItem(gk_csr_t *mat, int u, std::mt19937& mt,
     float thresh) ;
+std::vector<float> itemAvgRating(gk_csr_t* mat);
+std::vector<float> userAvgRating(gk_csr_t* mat);
+std::vector<float> meanSubtractedItemRating(gk_csr_t *mat, float globalMean);
 #endif
 

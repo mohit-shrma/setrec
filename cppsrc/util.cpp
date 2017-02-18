@@ -173,12 +173,13 @@ std::vector<std::map<int, float>> getUIRatings(gk_csr_t *mat) {
 
 std::vector<std::vector<std::pair<int, float>>> getUIRatings(gk_csr_t* testMat, 
     gk_csr_t* valMat, int nUsers) {
+  nUsers = testMat->nrows;
   std::vector<std::vector<std::pair<int, float>>> uiRatings(nUsers);
   
   if (testMat->nrows != valMat->nrows || testMat->nrows != nUsers 
       || valMat->nrows != nUsers) {
     std::cerr << "Users mismatch" << std::endl;
-    exit(0);
+    //exit(0);
   }
 
   for (int u = 0; u < nUsers; u++) {
@@ -701,5 +702,54 @@ int getNNZ(gk_csr_t *mat) {
   }
   return nnz;
 }
+
+
+std::vector<float> itemAvgRating(gk_csr_t* mat) {
+  std::vector<float> itemAvg(mat->ncols, 0);
+  for (int item = 0; item < mat->ncols; item++) {
+    for (int uu = mat->colptr[item]; uu < mat->colptr[item+1]; uu++) {
+      itemAvg[item] += mat->colval[uu];
+    }
+    if (mat->colptr[item+1] - mat->colptr[item] > 0) {
+      itemAvg[item] = itemAvg[item]/(mat->colptr[item+1] - mat->colptr[item]);  
+    }
+  }
+  return itemAvg;   
+}
+
+
+std::vector<float> userAvgRating(gk_csr_t* mat) {
+  std::vector<float> userAvg(mat->nrows, 0);
+  for (int u = 0; u < mat->nrows; u++) {
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      userAvg[u] += mat->rowval[ii];
+    }
+    if (mat->rowptr[u+1] - mat->rowptr[u] > 0) {
+      userAvg[u] = userAvg[u]/(mat->rowptr[u+1] - mat->rowptr[u]);
+    }
+  }
+  return userAvg;
+}
+
+
+std::vector<float> meanSubtractedItemRating(gk_csr_t *mat, float globalMean) {
+  std::vector<float> itemRatings(mat->ncols, 0);
+  auto itemAvgs   = itemAvgRating(mat);
+  //auto globalMean = meanRating(mat);
+  auto userAvgs   = userAvgRating(mat);
+  for (int item = 0; item < mat->ncols; item++) {
+    for (int uu = mat->colptr[item]; uu < mat->colptr[item+1]; uu++) {
+      int user = mat->colind[uu];
+      itemRatings[item] += mat->colval[uu] - userAvgs[user];
+    }
+    if (mat->colptr[item+1] - mat->colptr[item] > 0) {
+      itemRatings[item] = itemRatings[item]/(mat->colptr[item+1] - mat->colptr[item]);
+    }
+    itemRatings[item] += globalMean;
+  }
+  return itemRatings;
+} 
+
+
 
 

@@ -8,14 +8,33 @@ float ModelBaseline::estItemRating(int user, int item) {
 
 void ModelBaseline::train(const Data& data, const Params& params, 
     Model& bestModel) {
+  trainUsers = data.trainUsers;
+  
+ 
+  for (int item = 0; item < nItems; item++) {
+    if (data.partTrainMat->colptr[item+1] - data.partTrainMat->colptr[item] > 0) {
+      trainItems.insert(item);
+    }
+  }
+  //trainItems = data.trainItems;
+  
+  std::cout << "no trainItems: " << trainItems.size() << std::endl;
+
   //map containing no. of sets the item appears
   std::map<int, int> itemSetCount;
   std::cout << "size of globalItemRatings: " << globalItemRatings.size() << std::endl; 
+ 
+  float meanItemRating = meanRating(data.partTrainMat);
+  float meanSet = 0, setCount = 0;
+  
   //go over train sets and add to item the rating given to the set
   for (auto&& uSet: data.trainSets) {
     for (auto&& itemSet: uSet.itemSets) {
       auto items = itemSet.first;
       auto rating = itemSet.second;
+      meanSet += rating;
+      setCount++;
+      /*
       for (auto&& item: items) {
         //update rating map for the item
         if (globalItemRatings.find(item) == globalItemRatings.end()) {
@@ -29,20 +48,23 @@ void ModelBaseline::train(const Data& data, const Params& params,
         }
         itemSetCount[item]++;
       }
+      */
     } 
   }
+  meanSet = meanSet/setCount;
   
+  std::cout << "meanSet: " << meanSet << " meanItem: " << meanItemRating << std::endl;
+  auto meanItemRatings = itemAvgRating(data.partTrainMat);  
+  auto meanSubRatings = meanSubtractedItemRating(data.partTrainMat, meanSet);
   //update global item ratings w average
-  for (auto&& kv: globalItemRatings) {
-    int item = kv.first;
-    globalItemRatings[item] = globalItemRatings[item]/itemSetCount[item];
+  for (int item = 0; item < globalItemRatings.size(); item++) {
+    globalItemRatings[item] = meanItemRatings[item];//meanSubRatings[item];
+    //globalItemRatings[item] = meanSubRatings[item];
+    //globalItemRatings[item] = globalItemRatings[item]/itemSetCount[item];
   }
   
   std::cout << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
     << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
-    << " recall@10: " << recallTopN(data.ratMat, data.trainSets, 10)
-    << " spearman@10: " << spearmanRankN(data.ratMat, data.trainSets, 10)
-    << " inversion count@10: " << inversionCount(data.ratMat, data.trainSets, 10)
     << std::endl;
   bestModel = *this;
 }

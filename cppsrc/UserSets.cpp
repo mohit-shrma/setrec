@@ -67,6 +67,60 @@ float UserSets::getAvgRating(std::vector<int>& items, gk_csr_t *mat) {
 }
 
 
+float UserSets::getVarPickiness(gk_csr_t *mat) const {
+  
+  float p_u = 0, count = 0;
+  //std::cout << user << " " << itemSets.size() << std::endl;
+  for (const auto& itemSet: itemSets) {
+
+    float sum = 0;
+    auto score = itemSet.second;
+    auto items = itemSet.first;
+    size_t found = 0;
+
+    std::vector<float> itemRatings;
+    for (const auto& item: items) {
+      for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+        if (item == mat->rowind[ii]) {
+          sum += mat->rowval[ii];
+          itemRatings.push_back(mat->rowval[ii]);
+          found += 1;
+          break;
+        }
+      }
+    }
+
+    if (found != items.size()) {
+      std::cerr << "items in set not found in user-item ratings" << std::endl;
+    }
+     
+    float mean = sum/items.size();
+    float var = 0;
+    for (const auto& rating: itemRatings) {
+      var += (rating - mean)*(rating - mean);
+    }
+
+    var = var/(items.size());
+    float stdDev = std::sqrt(var);
+    if (stdDev > 0.5) {
+      p_u += (score - mean)/stdDev;
+      count += 1;
+    }
+
+  }
+ 
+  //std::cout << count << std::endl;
+
+  if (count > 20) {
+    p_u = p_u / count;
+  } else {
+    p_u = -99; //TODO: remove this hard coded val
+  }
+  
+  return p_u;
+}
+
+
 //remove sets which deviate from average rating by +- 0.5
 void UserSets::removeOverUnderRatedSets(gk_csr_t *mat) {
   auto it = std::begin(itemSets);

@@ -75,7 +75,8 @@ class UserSets {
     void removeHighEntropy(float pc);
     void removeLowEntropy(float pc);
     void removeRandom(float pc, int seed);
-    
+
+    float getVarPickiness(gk_csr_t *mat) const;
 };
 
 #endif

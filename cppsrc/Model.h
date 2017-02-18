@@ -45,13 +45,14 @@ class Model {
     int facDim;
     
     //regularization
-    float uReg, iReg, uSetBiasReg;
+    float uReg, iReg;
+    float uSetBiasReg; //needed for variance based model
     float uBiasReg, iBiasReg, gBiasReg;
-    float gamma;
+    float gamma; //nneded for varaince based model
 
     float learnRate;
 
-    std::map<int, float> globalItemRatings;
+    std::vector<float> globalItemRatings;
     std::unordered_set<int> trainUsers, trainItems;
     std::unordered_set<int> invalidUsers;
     
@@ -150,6 +151,7 @@ class Model {
   float corrOrderedItems(gk_csr_t *mat, float lb);
   float computeEntropy(int user, ItemsSet& item);
   void updateFacUsingRatMat(std::vector<std::tuple<int, int, float>>& ratings); 
+  void updateFacBiasUsingRatMat(std::vector<std::tuple<int, int, float>>& ratings);
 
 };
 

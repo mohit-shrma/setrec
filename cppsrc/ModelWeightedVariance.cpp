@@ -132,7 +132,7 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
         }
           
         //estimate rating on the set
-        float r_us_est = 0; //TODO:estSetRating(user, items);
+        float r_us_est = 0;
         float ratSum = 0;
         float ratSqrSum = 0;
         float rating = 0;
@@ -225,15 +225,19 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
 
   }
   
-  /*
+  
   std::ofstream opFile("User_var_weights.txt");
-  for (int u = 0; u < nUsers; u++) {
-    if (trainUsers.find(u) != trainUsers.end()) {
-      opFile << u << " " << uDivWt(u) << std::endl;
+  
+  std::cout << "No trainUsers: " << trainUsers.size() 
+    << " no trainSets: " << data.trainSets.size() << std::endl;
+  for (const auto& userSets : data.trainSets) {
+    float p_u = userSets.getVarPickiness(data.ratMat);
+    if (p_u != -99.0) {
+      opFile << userSets.user << " " << uDivWt(userSets.user) << " " << p_u  << std::endl;
     }
   }
   opFile.close();
-  */
+  
 }
 
 

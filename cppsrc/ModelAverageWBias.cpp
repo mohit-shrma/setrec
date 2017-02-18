@@ -60,6 +60,7 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
   //initialize global bias
   int nTrainSets = 0;
   float meanSetRating = 0;
+  /*
   for (auto&& uInd: uInds) {
     const auto& uSet = data.trainSets[uInd];
     for (auto&& itemSet: uSet.itemSets) {
@@ -67,13 +68,16 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
       nTrainSets++;
     } 
   }
-  meanSetRating = meanSetRating/nTrainSets;
-  gBias = meanSetRating;
+  */
+  //meanSetRating = meanSetRating/nTrainSets;
+  //gBias = meanSetRating;
 
   trainUsers = data.trainUsers;
   trainItems = data.trainItems;
   std::cout << "train Users: " << trainUsers.size() 
     << " trainItems: " << trainItems.size() << std::endl;
+  
+  auto partUIRatingsTup = getUIRatingsTup(data.partTrainMat);
 
   //initialize random engine
   std::mt19937 mt(params.seed);
@@ -130,7 +134,13 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
         }
 
       }
-    }    
+    }   
+
+    if (params.isMixRat) {
+      std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
+      updateFacBiasUsingRatMat(partUIRatingsTup);
+    }
+
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       if (isTerminateModel(bestModel, data, iter, bestIter, bestObj, prevObj,
@@ -140,7 +150,7 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
         break;
       }
       
-      if (iter%10 == 0 || iter == params.maxIter - 1) {
+      if (iter%100 == 0 || iter == params.maxIter - 1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 
           << " train RMSE:" << rmse(data.trainSets) 

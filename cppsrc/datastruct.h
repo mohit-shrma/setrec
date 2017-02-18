@@ -19,13 +19,13 @@ class Params {
     
     float uReg;
     float iReg;
-    float u_mReg;
-    float uBiasReg;
+    float u_mReg; //uSetBiasReg variance based model
+    float uBiasReg; 
     float iBiasReg;
     float g_kReg;
     float learnRate;
     int isMixRat;
-    float rhoRMS;
+    float rhoRMS; //gamma variance based model
     float constWt;
 
     char *trainSetFile;

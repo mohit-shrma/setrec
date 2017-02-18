@@ -71,9 +71,11 @@ void loadModelNRMSEs(Data& data, const Params& params) {
 
 
 void subSampleMats(gk_csr_t *mat, std::string prefix, int seed) {
-  std::vector<double> pcs {0.01, 0.25, 0.5, 0.75};
+  //std::vector<double> pcs {0.01, 0.05, 0.1, 0.15, 0.25, 0.5, 0.75};
+  std::vector<double> pcs { 0.02, 0.03, 0.04, 0.07};
   for (auto&& pc: pcs) {
     std::string fName = prefix + "_" + std::to_string(pc) + ".csr";
+    std::cout << "Writing... " << fName << std::endl;
     writeSubSampledMat(mat, fName.c_str(), pc, seed);
   }
 }
@@ -92,10 +94,12 @@ int main(int argc, char *argv[]) {
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
 
+  //used below to generate 
   //subSampleMats(data.partTrainMat, params.prefix, params.seed);
+  //return 0;
 
-  ModelWtAverageAllRange modelAvg(params);
-  ModelWtAverageAllRange bestModel(modelAvg);
+  ModelAverageWBias modelAvg(params);
+  ModelAverageWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /*
   if (argc > 23) {
@@ -124,7 +128,7 @@ int main(int argc, char *argv[]) {
   float trainRatingsRMSE   = bestModel.rmse(data.partTrainMat);
   float testRatingsRMSE    = bestModel.rmse(data.partTestMat);
   float valRatingsRMSE     = bestModel.rmse(data.partValMat);
-  //float notSetRMSE         = bestModel.rmseNotSets(data.allSets, data.ratMat);
+  //float notSetRMSE       = bestModel.rmseNotSets(data.allSets, data.ratMat);
   float notSetRMSE         = bestModel.rmseNotSets(data.allSets, data.ratMat, 
                                                    data.partTrainMat);
 
