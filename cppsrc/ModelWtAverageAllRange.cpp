@@ -372,6 +372,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
       }
     }
 
+    //if (iter % 5 == 0) {
     if (false) {
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
 #pragma omp parallel for
@@ -427,7 +428,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         break;
       }
       
-      if (iter%50 == 0 || iter == params.maxIter - 1) {
+      if (iter%100 == 0 || iter == params.maxIter - 1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE: " << bestValRMSE 
           << " train RMSE: " << rmse(data.trainSets) 
@@ -441,21 +442,28 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
 
   }
 
-  /* 
-  std::ofstream opFile("user_weights_qp_outer1.txt");
-  for (int u = 0; u < nUsers; u++) {
-  //for (auto&& u: trainUsers) {
-    //opFile << u << " ";
-    for (int i = 0; i < nWts; i++) {
-      opFile << UWts(u, i) << " "; 
-      if (i == 3 || i == 4) {
-        //opFile << "|";
+  float hits = 0, count = 0; 
+  std::ofstream opFile("user_weights_esqp.txt");
+  for (const auto& userSets: data.trainSets) {
+    int user = userSets.user;
+    auto topKExSets = userSets.getTopExtremalSubsets(data.ratMat, 3);
+    if (topKExSets.size()) {
+      std::vector<size_t> idx(2*SET_SZ-1);
+      std::iota(idx.begin(), idx.end(), 0);
+      //sort indices based on values in extream diffs in decreasing order
+      std::sort(idx.begin(), idx.end(), 
+          [=] (size_t i1, size_t i2) { return UWts(user, i1) > UWts(user, i2); });
+      int isHit = 0;
+      if (topKExSets.count(idx[0]) > 0) {
+         hits += 1;
+         isHit = 1;
       }
+      count += 1;
+      opFile << user << " " << isHit << std::endl;
     }
-    opFile << std::endl;
   }
   opFile.close();
-  */ 
+  std::cout << "avg. user hits: " << hits/count << std::endl;
 }
 
 

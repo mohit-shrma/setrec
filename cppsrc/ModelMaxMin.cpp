@@ -214,7 +214,18 @@ void ModelMaxMin::train(const Data& data, const Params& params, Model& bestModel
     }
 
   }
-
+  
+  std::ofstream opFile("User_maxmin_weights.txt");
+  std::cout << "No trainUsers: " << trainUsers.size() 
+    << " no trainSets: " << data.trainSets.size() << std::endl;
+  for (const auto& userSets : data.trainSets) {
+    auto p_u = userSets.getMaxMinPickiness(data.ratMat);
+    if (p_u != -99.0) {
+      opFile << userSets.user << " " << uDivWt(userSets.user) << " " << p_u << std::endl;
+    }
+  }
+  opFile.close();
+ 
 }
 
 

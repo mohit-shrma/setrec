@@ -23,7 +23,7 @@
 #include "ModelAverageBPRWBiasTop.h"
 #include "ModelAverageGBiasWPart.h"
 #include "ModelAverageBPRWPart.h"
-
+#include "ModelWeightedVarianceWBias.h"
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 23) {
@@ -72,7 +72,7 @@ void loadModelNRMSEs(Data& data, const Params& params) {
 
 void subSampleMats(gk_csr_t *mat, std::string prefix, int seed) {
   //std::vector<double> pcs {0.01, 0.05, 0.1, 0.15, 0.25, 0.5, 0.75};
-  std::vector<double> pcs { 0.02, 0.03, 0.04, 0.07};
+  std::vector<double> pcs { 0.5};
   for (auto&& pc: pcs) {
     std::string fName = prefix + "_" + std::to_string(pc) + ".csr";
     std::cout << "Writing... " << fName << std::endl;
@@ -81,7 +81,73 @@ void subSampleMats(gk_csr_t *mat, std::string prefix, int seed) {
 }
 
 
+void writeTrainTestValMat(gk_csr_t *mat,  const char* trainFileName, 
+    const char* testFileName, const char *valFileName, float testPc, 
+    float valPc, int seed) {
+  int k, i;
+  int nnz = getNNZ(mat);
+  int nTest = testPc * nnz;
+  int nVal = valPc * nnz;
+  int* color = (int*) malloc(sizeof(int)*nnz);
+  memset(color, 0, sizeof(int)*nnz);
+ 
+  //initialize uniform random engine
+  std::mt19937 mt(seed);
+  //nnz dist
+  std::uniform_int_distribution<int> nnzDist(0, nnz-1);
+
+  for (i = 0; i < nTest; i++) {
+    k = nnzDist(mt);
+    color[k] = 1;
+  }
+  
+  i = 0;
+  while (i < nVal) {
+    k = nnzDist(mt);
+    if (!color[k]) {
+      color[k] = 2;
+      i++;
+    }
+  }
+
+
+  //split the matrix based on color
+  gk_csr_t** mats = gk_csr_Split(mat, color);
+  
+  //save first matrix as train
+  gk_csr_Write(mats[0], (char*) trainFileName, GK_CSR_FMT_CSR, 1, 0);
+
+  //save second matrix as test
+  gk_csr_Write(mats[1], (char*) testFileName, GK_CSR_FMT_CSR, 1, 0);
+
+  //save third matrix as val
+  gk_csr_Write(mats[2], (char*) valFileName, GK_CSR_FMT_CSR, 1, 0);
+  
+  free(color);
+  gk_csr_Free(&mats[0]);
+  gk_csr_Free(&mats[1]);
+  gk_csr_Free(&mats[2]);
+  //TODO: free mats
+  //gk_csr_Free(&mats);
+}
+
+
 int main(int argc, char *argv[]) {
+  
+  //used below to generate 
+  
+  //gk_csr_t *mat = gk_csr_Read(argv[1], GK_CSR_FMT_CSR, 1, 0);
+  //subSampleMats(mat, argv[2], atoi(argv[3]));
+  //return 0;
+  
+
+  //partition the given matrix into train test val
+  /*
+  gk_csr_t *mat = gk_csr_Read(argv[1], GK_CSR_FMT_CSR, 1, 0);
+  writeTrainTestValMat(mat, argv[2], argv[3], argv[4], 0.1, 0.1, atoi(argv[5]));  
+  return 0;
+  */ 
+  
   Params params = parse_cmd_line(argc, argv);
   params.display();
   Data data(params);
@@ -94,12 +160,9 @@ int main(int argc, char *argv[]) {
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
 
-  //used below to generate 
-  //subSampleMats(data.partTrainMat, params.prefix, params.seed);
-  //return 0;
 
-  ModelAverageWBias modelAvg(params);
-  ModelAverageWBias bestModel(modelAvg);
+  ModelWeightedVarianceWBias modelAvg(params);
+  ModelWeightedVarianceWBias bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /*
   if (argc > 23) {

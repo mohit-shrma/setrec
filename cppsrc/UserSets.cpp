@@ -67,9 +67,142 @@ float UserSets::getAvgRating(std::vector<int>& items, gk_csr_t *mat) {
 }
 
 
-float UserSets::getVarPickiness(gk_csr_t *mat) const {
+std::unordered_set<int> UserSets::getTopExtremalSubsets(gk_csr_t *mat, int k) const {
+  std::unordered_set<int> topExSubset;
+  std::vector<float> extremalDiffs(2*SET_SZ-1, 0);
+  
+  for (const auto& itemSet: itemSets) {
+    auto score = itemSet.second;
+    auto items = itemSet.first;
+    
+    std::vector<float> itemRatings;
+    for (const auto& item: items) {
+      for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+        if (item == mat->rowind[ii]) {
+          itemRatings.push_back(mat->rowval[ii]);
+          break;
+        }
+      }
+    }
+
+    if (itemRatings.size() != items.size()) {
+      std::cerr << "items in set not found in user-item ratings" << std::endl;
+    }
+    
+    std::sort(itemRatings.begin(), itemRatings.end());
+    
+    std::vector<float> extremalSubsets(2*items.size()-1, 0);
+
+    //accmulate sums from beginning
+    for (int i = 0; i < items.size(); i++) {
+      if (0 == i) {
+        extremalSubsets[i] = itemRatings[i];
+        extremalDiffs[i] += fabs(extremalSubsets[i] - score)*fabs(extremalSubsets[i] - score);
+      } else {
+        extremalSubsets[i] = itemRatings[i] + extremalSubsets[i-1];
+        extremalDiffs[i] += fabs(extremalSubsets[i] - score)*fabs(extremalSubsets[i] - score);
+      }
+    }
+
+    //accumulate sums from end
+    for (int i = 0; i < items.size()-1; i++) {
+      extremalSubsets[items.size() + i] = extremalSubsets[items.size() + i - 1] - itemRatings[i];
+      extremalDiffs[items.size() + i] += fabs(extremalSubsets[items.size() + i] - score)*fabs(extremalSubsets[items.size() + i] - score);
+    }
+
+  }
+
+  for (int i = 0; i < extremalDiffs.size(); i++) {
+    extremalDiffs[i] = std::sqrt(extremalDiffs[i]/itemSets.size());
+  }
+
+  std::vector<size_t> idx(2*SET_SZ-1);
+  std::iota(idx.begin(), idx.end(), 0);
+  //sort indices based on values in extream diffs in decreasing order
+  std::sort(idx.begin(), idx.end(), 
+        [&extremalDiffs] (size_t i1, size_t i2) { return extremalDiffs[i1] > extremalDiffs[i2]; });
+ 
+  if (itemSets.size() > 10) {
+    topExSubset.insert(idx[0]);
+    for (int i = 1; i < k; i++) {
+      if (fabs(extremalDiffs[idx[i]] - extremalDiffs[idx[0]]) > 0.001) {
+        break;
+      }
+      topExSubset.insert(idx[i]);
+    }
+  }
+   
+  return topExSubset;
+}
+
+
+float UserSets::getMaxMinPickiness(gk_csr_t *mat) const {
   
   float p_u = 0, count = 0;
+  //std::cout << user << " " << itemSets.size() << std::endl;
+  for (const auto& itemSet: itemSets) {
+
+    float sum = 0;
+    auto score = itemSet.second;
+    auto items = itemSet.first;
+    size_t found = 0;
+
+    bool isFirstFound = false;
+    float maxRat = -1, minRat = 100;
+
+    std::vector<float> itemRatings;
+    for (const auto& item: items) {
+      for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+        if (item == mat->rowind[ii]) {
+          sum += mat->rowval[ii];
+          if (!isFirstFound) {
+            isFirstFound = true;
+            maxRat = mat->rowval[ii];
+            minRat = mat->rowval[ii];
+          }
+          
+          if (maxRat < mat->rowval[ii]) {
+            maxRat = mat->rowval[ii];
+          }
+
+          if (minRat > mat->rowval[ii]) {
+            minRat = mat->rowval[ii];
+          }
+
+          found += 1;
+          break;
+        }
+      }
+    }
+
+    if (found != items.size()) {
+      std::cerr << "items in set not found in user-item ratings" << std::endl;
+    }
+     
+    float mean = sum/items.size();
+
+    if (maxRat - minRat > 0) {
+      p_u += (score - mean)/(maxRat - minRat);
+      count += 1;
+    }
+
+  }
+ 
+  if (count > 20) {
+    p_u = p_u / count;
+  } else {
+    p_u = -99; //TODO: remove this hard coded val
+  }
+  
+  return p_u;
+}
+
+
+std::vector<float> UserSets::getVarPickiness(gk_csr_t *mat) const {
+  
+  float p_u = 0, count = 0;
+  float avgStdDev = 0, avgMean = 0;
+  std::vector<float> stdMeanPicky;
   //std::cout << user << " " << itemSets.size() << std::endl;
   for (const auto& itemSet: itemSets) {
 
@@ -102,14 +235,20 @@ float UserSets::getVarPickiness(gk_csr_t *mat) const {
 
     var = var/(items.size());
     float stdDev = std::sqrt(var);
+
     if (stdDev > 0.5) {
       p_u += (score - mean)/stdDev;
       count += 1;
     }
 
+    avgMean += mean;
+    avgStdDev += stdDev;
   }
  
   //std::cout << count << std::endl;
+  
+  avgStdDev = avgStdDev/itemSets.size();
+  avgMean = avgMean/itemSets.size();
 
   if (count > 20) {
     p_u = p_u / count;
@@ -117,7 +256,11 @@ float UserSets::getVarPickiness(gk_csr_t *mat) const {
     p_u = -99; //TODO: remove this hard coded val
   }
   
-  return p_u;
+  stdMeanPicky.push_back(avgStdDev);
+  stdMeanPicky.push_back(avgMean);
+  stdMeanPicky.push_back(p_u);
+
+  return stdMeanPicky;
 }
 
 

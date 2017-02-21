@@ -12,6 +12,7 @@
 #include <unordered_set>
 #include <map>
 #include "GKlib.h"
+#include "const.h"
 
 using ItemsSet = std::vector<int>;
 using ItemsSetNRating = std::pair<ItemsSet, float>;
@@ -76,7 +77,9 @@ class UserSets {
     void removeLowEntropy(float pc);
     void removeRandom(float pc, int seed);
 
-    float getVarPickiness(gk_csr_t *mat) const;
+    std::vector<float> getVarPickiness(gk_csr_t *mat) const;
+    std::unordered_set<int> getTopExtremalSubsets(gk_csr_t *mat, int k) const;
+    float getMaxMinPickiness(gk_csr_t *mat) const;
 };
 
 #endif

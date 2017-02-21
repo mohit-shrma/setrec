@@ -1,16 +1,17 @@
-#include "ModelWeightedVariance.h"
+#include "ModelWeightedVarianceWBias.h"
 
-
-float ModelWeightedVariance::estItemRating(int user, int item) {
+float ModelWeightedVarianceWBias::estItemRating(int user, int item) {
   bool uFound = false, iFound = true;
   float rating = 0;
   if (trainUsers.find(user) != trainUsers.end() && 
       invalidUsers.find(user) == invalidUsers.end()) {
     //found in train and not in invalid
     uFound = true;
+    rating += uBias(user);
   }
   if (trainItems.find(item) != trainItems.end()) {
     iFound = true;
+    rating += iBias(item);
   }
   if (uFound && iFound) {
     rating += U.row(user).dot(V.row(item));
@@ -19,57 +20,9 @@ float ModelWeightedVariance::estItemRating(int user, int item) {
 }
 
 
-float ModelWeightedVariance::estSetRating(int user, std::vector<int>& items) {
- 
-  float r_us = 0; 
-
-  int setSz = items.size();
-
-  std::vector<float> preds(setSz, 0);
-  //get predictions
-  float ratSum = 0;
-  float ratSqrSum = 0;
-  float rating;
-  for (int i = 0; i < setSz; i++) {
-    int item = items[i];
-    rating = estItemRating(user, item);
-    ratSum += rating;
-    ratSqrSum += rating*rating;
-  }
-
-  float mean = ratSum/setSz;
-  float var = (ratSqrSum/setSz) - (mean*mean);
-  float std = EPS;
-  if (var > EPS) {
-    std = std::sqrt(var);
-  }
-  r_us = mean + uDivWt(user)*(std + gamma); 
-
-  return r_us;
-}
-
-
-float ModelWeightedVariance::objective(const std::vector<UserSets>& uSets, 
-    gk_csr_t *mat) {
-  float norm = uDivWt.norm();
-  float obj = Model::objective(uSets, mat);
-  obj += norm*norm*uSetBiasReg;
-  //std::cout << " uDovWt norm: " << norm << std::endl;
-  return obj;
-}
-
-
-float ModelWeightedVariance::objective(const std::vector<UserSets>& uSets) {
-  float obj =  Model::objective(uSets);
-  float norm = uDivWt.norm();
-  obj += norm*norm*uSetBiasReg;
-  return obj;
-}
-
-
-void ModelWeightedVariance::train(const Data& data, const Params& params, 
+void ModelWeightedVarianceWBias::train(const Data& data, const Params& params, 
     Model& bestModel) {
-  std::cout << "ModelWeightedVariance::train" << std::endl; 
+  std::cout << "ModelWeightedVarianceWBias::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
   
   Eigen::VectorXf sumItemFactors(facDim);
@@ -138,7 +91,7 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
         sumItemFactors.fill(0);   
         ratWtSumItemFactors.fill(0);
         for (auto item: items) {
-          rating = U.row(user).dot(V.row(item));
+          rating = U.row(user).dot(V.row(item)) + uBias(user) + iBias(item);
           ratSum += rating;
           ratSqrSum += rating*rating;
           sumItemFactors += V.row(item);
@@ -149,10 +102,10 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
         r_us_est = mean;
 
         if (var > EPS) {
-          stdDev = std::sqrt(var);
+          stdDev = std::sqrt(var); //TODO: investigate sqrt(var +  gamma)
           varCoeff = 0.5/stdDev;
         }
-        r_us_est += uDivWt(user)*(gamma + stdDev);
+        r_us_est += uDivWt(user)*(gamma + stdDev); //TODO: investigate sqrt(gamma + var)
 
         //user gradient
         grad = (sumItemFactors/setSz) 
@@ -180,12 +133,24 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
         //update user weight
         uDivWt(user) -= learnRate*(2.0*(r_us_est - r_us)*(gamma + stdDev) 
           + 2.0*uSetBiasReg*uDivWt(user));
+
+        //update user bias
+        uBias(user) -= learnRate*(2.0*(r_us_est - r_us) + 2.0*uBiasReg*uBias(user));
+
+        //update item bias
+        for (auto&& item: items) {
+          temp = 2*uDivWt(user)*varCoeff/setSz;
+          temp = temp*((uBias(user) + iBias(item) + U.row(user).dot(V.row(item))) - mean);
+          temp += 1.0/setSz;
+          iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*temp + 2.0*uBiasReg*uBias(user));
+        }
+
       }
     }    
   
     if (params.isMixRat) {
       std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-      updateFacUsingRatMat(partUIRatingsTup);
+      updateFacBiasUsingRatMat(partUIRatingsTup);
     }
     
     //objective check
@@ -239,5 +204,6 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
   opFile.close();
   */   
 }
+
 
 

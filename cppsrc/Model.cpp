@@ -145,6 +145,12 @@ float Model::objective(gk_csr_t *mat) {
 
   obj += uRegErr + iRegErr;
 
+  norm = uBias.norm();
+  obj += uBiasReg*norm*norm;
+
+  norm = iBias.norm();
+  obj += iBiasReg*norm*norm;
+
   return obj;
 }
 
