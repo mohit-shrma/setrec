@@ -217,6 +217,30 @@ float Model::rmse(const std::vector<UserSets>& uSets) {
 }
 
 
+float Model::rmse(const std::vector<UserSets>& uSets, 
+    std::unordered_set<int>& valUsers) {
+  float rmse = 0;
+  int nSets = 0;
+
+  for (auto&& uSet: uSets) {
+    int user = uSet.user;
+    if (valUsers.count(user) == 0) {
+      continue;
+    }
+    for (size_t i = 0; i < uSet.itemSets.size(); i++) {
+      auto items = uSet.itemSets[i].first;
+      float predSetScore = estSetRating(user, items);
+      float diff = predSetScore - uSet.itemSets[i].second;
+      rmse += diff*diff;
+      nSets++;
+    }
+  }
+  
+  rmse = sqrt(rmse/nSets);
+  return rmse;
+}
+
+
 float Model::rmse(gk_csr_t *mat) {
   float rmse = 0;
   float r_ui, r_ui_est, diff;
@@ -331,6 +355,46 @@ float Model::rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat,
   return rmse;
 }
 
+float Model::rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat, 
+    gk_csr_t *partTrainMat, std::unordered_set<int>& validUsers) {
+  float rmse = 0, r_ui_est, r_ui, diff;
+  int nnz = 0, item, u;
+  for (auto&& uSet: uSets) {
+    u = uSet.user;
+    if (validUsers.count(u) ==0 ) { continue; }
+    if (trainUsers.count(u) == 0 || invalidUsers.count(u) > 0) { continue; }
+    for (int ii = mat->rowptr[u]; ii < mat->rowptr[u+1]; ii++) {
+      item = mat->rowind[ii];
+      if (trainItems.count(item) == 0) { continue; }
+      if (uSet.items.find(item) == uSet.items.end()) {
+        //item not present in set
+        bool isItemInPartTrain = false;
+        
+        //check if item in partTrainMat
+        for (int ii2 = partTrainMat->rowptr[u]; 
+            ii2 < partTrainMat->rowptr[u+1]; ii2++) {
+          if (partTrainMat->rowind[ii2] == item) {
+            isItemInPartTrain = true;
+            break;
+          }
+        }
+        
+        if (isItemInPartTrain) {
+          continue;
+        }
+
+        r_ui_est = estItemRating(u, item);
+        r_ui = mat->rowval[ii];
+        diff = r_ui - r_ui_est;
+        rmse += diff*diff;
+        nnz++;
+      }
+    }
+  }
+  //std::cout << "rmse: " << rmse << " nnz: " << nnz << std::endl;
+  rmse = sqrt(rmse/nnz);
+  return rmse;
+}
 
 //compute RMSE for items in the sets
 float Model::rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat) {

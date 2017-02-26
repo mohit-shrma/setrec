@@ -79,6 +79,7 @@ class UserSets {
 
     std::vector<float> getVarPickiness(gk_csr_t *mat) const;
     std::unordered_set<int> getTopExtremalSubsets(gk_csr_t *mat, int k) const;
+    std::pair<int, float> getTopExtremalSubsetWRMSE(gk_csr_t *mat) const;
     float getMaxMinPickiness(gk_csr_t *mat) const;
 };
 

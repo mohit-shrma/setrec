@@ -92,22 +92,26 @@ std::unordered_set<int> UserSets::getTopExtremalSubsets(gk_csr_t *mat, int k) co
     std::sort(itemRatings.begin(), itemRatings.end());
     
     std::vector<float> extremalSubsets(2*items.size()-1, 0);
+    float extremalRat;
 
     //accmulate sums from beginning
     for (int i = 0; i < items.size(); i++) {
       if (0 == i) {
         extremalSubsets[i] = itemRatings[i];
-        extremalDiffs[i] += fabs(extremalSubsets[i] - score)*fabs(extremalSubsets[i] - score);
+        extremalRat = extremalSubsets[i]/(i+1);
+        extremalDiffs[i] += fabs(extremalRat - score)*fabs(extremalRat - score);
       } else {
         extremalSubsets[i] = itemRatings[i] + extremalSubsets[i-1];
-        extremalDiffs[i] += fabs(extremalSubsets[i] - score)*fabs(extremalSubsets[i] - score);
+        extremalRat = extremalSubsets[i]/(i+1);
+        extremalDiffs[i] += fabs(extremalRat - score)*fabs(extremalRat - score);
       }
     }
 
     //accumulate sums from end
     for (int i = 0; i < items.size()-1; i++) {
       extremalSubsets[items.size() + i] = extremalSubsets[items.size() + i - 1] - itemRatings[i];
-      extremalDiffs[items.size() + i] += fabs(extremalSubsets[items.size() + i] - score)*fabs(extremalSubsets[items.size() + i] - score);
+      extremalRat = extremalSubsets[items.size() + i] / (items.size() - (i+1));
+      extremalDiffs[items.size() + i] += fabs(extremalRat - score)*fabs(extremalRat - score);
     }
 
   }
@@ -133,6 +137,67 @@ std::unordered_set<int> UserSets::getTopExtremalSubsets(gk_csr_t *mat, int k) co
   }
    
   return topExSubset;
+}
+
+
+std::pair<int, float> UserSets::getTopExtremalSubsetWRMSE(gk_csr_t *mat) const {
+  int topExSubset;
+  std::vector<float> extremalDiffs(2*SET_SZ-1, 0);
+  
+  for (const auto& itemSet: itemSets) {
+    auto score = itemSet.second;
+    auto items = itemSet.first;
+    
+    std::vector<float> itemRatings;
+    for (const auto& item: items) {
+      for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+        if (item == mat->rowind[ii]) {
+          itemRatings.push_back(mat->rowval[ii]);
+          break;
+        }
+      }
+    }
+
+    if (itemRatings.size() != items.size()) {
+      std::cerr << "items in set not found in user-item ratings" << std::endl;
+    }
+    
+    std::sort(itemRatings.begin(), itemRatings.end());
+    
+    std::vector<float> extremalSubsets(2*items.size()-1, 0);
+    float extremalRat;
+    //accmulate sums from beginning
+    for (int i = 0; i < items.size(); i++) {
+      if (0 == i) {
+        extremalSubsets[i] = itemRatings[i];
+        extremalRat = extremalSubsets[i]/(i+1);
+        extremalDiffs[i] += fabs(extremalRat - score)*fabs(extremalRat - score);
+      } else {
+        extremalSubsets[i] = itemRatings[i] + extremalSubsets[i-1];
+        extremalRat = extremalSubsets[i]/(i+1);
+        extremalDiffs[i] += fabs(extremalRat - score)*fabs(extremalRat - score);
+      }
+    }
+
+    //accumulate sums from end
+    for (int i = 0; i < items.size()-1; i++) {
+      extremalSubsets[items.size() + i] = extremalSubsets[items.size() + i - 1] - itemRatings[i];
+      extremalRat = extremalSubsets[items.size() + i] / (items.size() - (i+1));
+      extremalDiffs[items.size() + i] += fabs(extremalRat - score)*fabs(extremalRat - score);
+    }
+
+  }
+
+  topExSubset = 0;
+  extremalDiffs[0] = std::sqrt(extremalDiffs[0]/itemSets.size());
+  for (int i = 1; i < extremalDiffs.size(); i++) {
+    extremalDiffs[i] = std::sqrt(extremalDiffs[i]/itemSets.size());
+    if (extremalDiffs[topExSubset] > extremalDiffs[i]) {
+      topExSubset = i;
+    }
+  }
+
+  return std::make_pair(topExSubset, extremalDiffs[topExSubset]);
 }
 
 

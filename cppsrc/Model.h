@@ -90,6 +90,7 @@ class Model {
     bool isTerminateRankSetModel(Model& bestModel, const Data& data, int iter, 
       int& bestIter, float& prevRecall, float& bestValRecall) ;
     float rmse(const std::vector<UserSets>& uSets);
+    float rmse(const std::vector<UserSets>& uSets, std::unordered_set<int>& valUsers);
     float rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat);
     std::map<int, float> itemRMSE(const std::vector<UserSets>& uSets,
       gk_csr_t *mat);
@@ -140,6 +141,8 @@ class Model {
   float rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat);
   float rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat, 
       gk_csr_t *partTrainMat);
+  float rmseNotSets(const std::vector<UserSets>& uSets, gk_csr_t *mat, 
+      gk_csr_t *partTrainMat, std::unordered_set<int>& validUsers);
   std::pair<float, float> fracCorrOrderedRatingsUser(int user, 
     std::vector<std::pair<int, float>> itemRatings);
   float matCorrOrderedRatingsWOSets(const std::vector<UserSets>& uSets, 
