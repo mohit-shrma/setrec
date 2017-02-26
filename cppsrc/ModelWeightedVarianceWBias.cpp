@@ -189,7 +189,30 @@ void ModelWeightedVarianceWBias::train(const Data& data, const Params& params,
     }
 
   }
+   
+  float pickyRMSE = 0, nonPickyRMSE = 0;
+  int pickyUCount = 0, nonPickyUCount = 0;
+  std::unordered_set<int> pickyU, nonPickyU;
+  for (const auto& userSets : data.trainSets) {
+    auto p_u = userSets.getVarPickiness(data.ratMat);
+    if (p_u[2] != -99) {
+      if (fabs(p_u[2]) > 0.5) {
+        pickyU.insert(userSets.user);
+      } else {
+        nonPickyU.insert(userSets.user);
+      }
+    }
+  }
   
+  std::cout << "picky users: " << pickyU.size() << " nonPicky users: " 
+    << nonPickyU.size() << std::endl;
+  std::cout << "pickyU Set RMSE: " << rmse(data.testSets, pickyU) << std::endl;
+  std::cout << "Non-pickyU Set RMSE: " << rmse(data.testSets, nonPickyU) << std::endl;
+  std::cout << "pickyU item RMSE: " << rmseNotSets(data.allSets, data.ratMat, 
+      data.partTrainMat, pickyU) << std::endl;
+  std::cout << "Non-pickyU item RMSE: " << rmseNotSets(data.allSets, data.ratMat, 
+      data.partTrainMat, nonPickyU) << std::endl;
+
   
   /*
   std::ofstream opFile("User_var_weights.txt");

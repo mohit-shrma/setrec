@@ -1,18 +1,18 @@
-#include "ModelWtAverageAllRange.h"
+#include "ModelWtAverageAllRangeWBias.h"
 
 
-float ModelWtAverageAllRange::estItemRating(int user, int item) {
+float ModelWtAverageAllRangeWBias::estItemRating(int user, int item) {
   bool uFound = false, iFound = true;
   float rating = 0;
   if (trainUsers.find(user) != trainUsers.end() && 
       invalidUsers.find(user) == invalidUsers.end()) {
     //found in train and not in invalid
     uFound = true;
-    //rating += uBias(user);
+    rating += uBias(user);
   }
   if (trainItems.find(item) != trainItems.end()) {
     iFound = true;
-    //rating += iBias(item);
+    rating += iBias(item);
   }
   if (uFound && iFound) {
     rating += U.row(user).dot(V.row(item));
@@ -21,130 +21,9 @@ float ModelWtAverageAllRange::estItemRating(int user, int item) {
 }
 
 
-float ModelWtAverageAllRange::estSetRating(int user, std::vector<int>& items) {
- 
-  float r_us = 0; 
-
-  int setSz = items.size();
-
-  std::vector<float> preds(setSz, 0);
-  //get predictions
-  for (int i = 0; i < setSz; i++) {
-    int item = items[i];
-    preds[i] = estItemRating(user, item);
-  }
-  //sort predictions
-  std::sort(preds.begin(), preds.end());
-
-  float cumSum = 0;
-  for (int i = 0; i < setSz; i++) {
-    cumSum += preds[i];
-    r_us += UWts(user, i)*cumSum/(i+1);
-  }
-
-  //accumulate sums from end
-  for (int i = 0; i < setSz-1; i++) {
-    cumSum -= preds[i];
-    r_us += UWts(user, setSz + i)*cumSum/(setSz-(i+1));
-  }
-
-  return r_us;
-}
-
-
-void ModelWtAverageAllRange::estSetRatings(int user, const std::vector<int>& items,
-    std::vector<float>& setRatings) {
- 
-  int setSz = items.size();
-
-  std::vector<float> preds(setSz, 0);
-  //get predictions
-  for (int i = 0; i < setSz; i++) {
-    int item = items[i];
-    preds[i] = estItemRating(user, item);
-  }
-  //sort predictions
-  std::sort(preds.begin(), preds.end());
-
-  float cumSum = 0;
-  int wtInd = 0;
-  for (int i = 0; i < setSz; i++) {
-    cumSum += preds[i];
-    setRatings[wtInd++] = cumSum/(i+1);
-  }
-
-  //accumulate sums from end
-  for (int i = 0; i < setSz-1; i++) {
-    cumSum -= preds[i];
-    setRatings[wtInd++] = cumSum/(setSz-(i+1));
-  }
-
-}
-
-
-float ModelWtAverageAllRange::estSetRating(int user, const std::vector<int>& items, int exSetInd) {
- 
-  int setSz = items.size();
-  bool isExSetComputed = false;
-  float exSetRating;
-  std::vector<float> preds(setSz, 0);
-
-  //get predictions
-  for (int i = 0; i < setSz; i++) {
-    int item = items[i];
-    preds[i] = estItemRating(user, item);
-  }
-  //sort predictions
-  std::sort(preds.begin(), preds.end());
-
-  float cumSum = 0;
-  int wtInd = 0;
-  for (int i = 0; i < setSz; i++) {
-    cumSum += preds[i];
-    if (exSetInd == wtInd) {
-      exSetRating = cumSum/(i+1);
-      isExSetComputed = true;
-      break;
-    }
-    wtInd++;
-    //setRatings[wtInd++] = cumSum/(i+1);
-  }
-
-  //accumulate sums from end
-  for (int i = 0; i < setSz-1 && !isExSetComputed; i++) {
-    cumSum -= preds[i];
-    if (exSetInd == wtInd) {
-      exSetRating = cumSum/(setSz-(i+1));
-      isExSetComputed = true;
-      break;
-    }
-    wtInd++;
-    //setRatings[wtInd++] = cumSum/(setSz-(i+1));
-  }
-  
-  if (!isExSetComputed) {
-    std::cerr << "Extremal set: "<< exSetInd << " not found" << std::endl;
-  }
-
-  return exSetRating;
-}
-
-
-float ModelWtAverageAllRange::estUExSetRMSE(const UserSets& uSet, int exSetInd) {
-  float diff = 0;
-  for (const auto& itemSet: uSet.itemSets) {
-    const auto& items = itemSet.first;
-    const float r_us = itemSet.second;
-    float r_us_est = estSetRating(uSet.user, items, exSetInd);
-    diff += (r_us_est - r_us)*(r_us_est - r_us);
-  }
-  return std::sqrt(diff/uSet.itemSets.size());
-}
-
-
-void ModelWtAverageAllRange::train(const Data& data, const Params& params, 
+void ModelWtAverageAllRangeWBias::train(const Data& data, const Params& params, 
     Model& bestModel) {
-  std::cout << "ModelWtAverageAllRange::train" << std::endl; 
+  std::cout << "ModelWtAverageAllRangeWBias::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
 
   std::vector<std::pair<int, float>> setItemRatings(SET_SZ);
@@ -267,7 +146,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         U.row(user) -= learnRate*(grad.transpose());
         
         //update user bias
-        //uBias(user) -= learnRate*((2.0*(r_us_est - r_us)*sumWt) + 2.0*uBiasReg*uBias(user));
+        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)*sumWt) + 2.0*uBiasReg*uBias(user));
 
         //update items
         float iBiasGrad;
@@ -293,8 +172,8 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
           //update item factor
           V.row(item) -= learnRate*(tempGrad.transpose());
           //update item bias
-          //iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*iBiasGrad
-          //                          + 2.0*iBiasReg*iBias(item));
+          iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*iBiasGrad
+                                    + 2.0*iBiasReg*iBias(item));
         }
         
       }
@@ -501,7 +380,8 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
     }
 
   }
-
+  
+  /*
   float hits = 0, count = 0, diff = 0, avgExSetRMSE = 0, avgEstExSetRMSE = 0; 
   std::ofstream opFile("user_weights_esqp.txt");
   for (const auto& userSets: data.trainSets) {
@@ -539,6 +419,6 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
   std::cout << "Avg diff b/w orig & est exSet: " << diff/count << std::endl;
   std::cout << "avgExSetRMSE: " << avgExSetRMSE/count 
     << " avgEstExSetRMSE: " << avgEstExSetRMSE/count << std::endl;
+  */
 }
-
 

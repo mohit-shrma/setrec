@@ -1951,6 +1951,7 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
 
   if (iter > 0) {
     if (currValRMSE < bestValRMSE) {
+    //if (currObj < bestObj) {
       bestModel   = *this;
       bestValRMSE = currValRMSE;
       bestIter    = iter;
@@ -2009,10 +2010,12 @@ bool Model::isTerminateModelWPartIRMSE(Model& bestModel,
   float currObj = objective(data.trainSets, data.partTrainMat);
   float currValRMSE = -1;
   
-  currValRMSE = rmse(data.partValMat); 
+  //currValRMSE = rmse(data.partValMat); 
+  currValRMSE = rmse(data.valSets); 
 
   if (iter > 0) {
     if (currValRMSE < bestValRMSE) {
+    //if (currObj < bestObj) {
       bestModel = *this;
       bestValRMSE = currValRMSE;
       bestIter = iter;
@@ -2061,6 +2064,7 @@ bool Model::isTerminateModelWPartIRMSE(Model& bestModel,
     bestObj = currObj;
     bestValRMSE = currValRMSE;
     bestIter = iter;
+    bestModel = *this;
   }
   
   prevObj = currObj;

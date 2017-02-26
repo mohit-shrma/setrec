@@ -148,9 +148,13 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
         var = ratSqrSum/setSz - mean*mean;
         r_us_est = mean;
 
+        //stdDev = std::sqrt(var + gamma);
+        //varCoeff = 0.5/stdDev;
+
         if (var > EPS) {
           stdDev = std::sqrt(var);
           varCoeff = 0.5/stdDev;
+          //varCoeff = 0.5/(stdDev + gamma);
         }
         r_us_est += uDivWt(user)*(gamma + stdDev);
 
@@ -178,6 +182,7 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
         }
         
         //update user weight
+        //uDivWt(user) -= learnRate*(2.0*(r_us_est - r_us)*(stdDev) 
         uDivWt(user) -= learnRate*(2.0*(r_us_est - r_us)*(gamma + stdDev) 
           + 2.0*uSetBiasReg*uDivWt(user));
       }
@@ -225,7 +230,27 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
 
   }
   
+  float pickyRMSE = 0, nonPickyRMSE = 0;
+  int pickyUCount = 0, nonPickyUCount = 0;
+  std::unordered_set<int> pickyU, nonPickyU;
+  for (const auto& userSets : data.trainSets) {
+    auto p_u = userSets.getVarPickiness(data.ratMat);
+    if (p_u[2] != -99) {
+      if (fabs(p_u[2]) > 0.5) {
+        pickyU.insert(userSets.user);
+      } else {
+        nonPickyU.insert(userSets.user);
+      }
+    }
+  }
   
+  std::cout << "pickyU Set RMSE: " << rmse(data.testSets, pickyU) << std::endl;
+  std::cout << "Non-pickyU Set RMSE: " << rmse(data.testSets, nonPickyU) << std::endl;
+  std::cout << "pickyU item RMSE: " << rmseNotSets(data.allSets, data.ratMat, 
+      data.partTrainMat, pickyU) << std::endl;
+  std::cout << "Non-pickyU itme RMSE: " << rmseNotSets(data.allSets, data.ratMat, 
+      data.partTrainMat, nonPickyU) << std::endl;
+
   /*
   std::ofstream opFile("User_var_weights.txt");
   std::cout << "No trainUsers: " << trainUsers.size() 

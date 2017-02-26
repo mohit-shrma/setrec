@@ -24,6 +24,8 @@
 #include "ModelAverageGBiasWPart.h"
 #include "ModelAverageBPRWPart.h"
 #include "ModelWeightedVarianceWBias.h"
+#include "ModelWtAverageAllRangeWBias.h"
+
 
 Params parse_cmd_line(int argc, char* argv[]) {
   if (argc < 23) {
@@ -161,8 +163,8 @@ int main(int argc, char *argv[]) {
     << data.trainItems.size() << std::endl;
 
 
-  ModelWeightedVarianceWBias modelAvg(params);
-  ModelWeightedVarianceWBias bestModel(modelAvg);
+  ModelWtAverageAllRange modelAvg(params);
+  ModelWtAverageAllRange bestModel(modelAvg);
   modelAvg.train(data, params, bestModel);
   /*
   if (argc > 23) {
