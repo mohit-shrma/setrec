@@ -184,7 +184,7 @@ void ModelWtAverageAllRangeWBias::train(const Data& data, const Params& params,
       updateFacUsingRatMat(partUIRatingsTup);
     }
 
-    if (true) {
+    if (false) {
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
 #pragma omp parallel for
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
@@ -312,7 +312,7 @@ void ModelWtAverageAllRangeWBias::train(const Data& data, const Params& params,
     }
 
     //if (iter % 5 == 0) {
-    if (false) {
+    if (true) {
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
 #pragma omp parallel for
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
@@ -337,7 +337,7 @@ void ModelWtAverageAllRangeWBias::train(const Data& data, const Params& params,
         int minInd = 0;
         for (int i = 0; i < nWts; i++) {
           wtRMSE[i] = std::sqrt(wtRMSE[i]/nSets);
-          if (wtRMSE[minInd] < wtRMSE[i]) {
+          if (wtRMSE[minInd] > wtRMSE[i]) {
             minInd = i;
           } 
         }
