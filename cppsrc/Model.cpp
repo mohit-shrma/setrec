@@ -197,6 +197,24 @@ float Model::objective(const std::vector<UserSets>& uSets, gk_csr_t *mat) {
 }
 
 
+float Model::rmse(const UserSets& uSet) {
+  float rmse = 0;
+  int nSets = 0;
+
+  int user = uSet.user;
+  for (size_t i = 0; i < uSet.itemSets.size(); i++) {
+    auto items = uSet.itemSets[i].first;
+    float predSetScore = estSetRating(user, items);
+    float diff = predSetScore - uSet.itemSets[i].second;
+    rmse += diff*diff;
+    nSets++;
+  }
+  
+  rmse = sqrt(rmse/nSets);
+  return rmse;
+}
+
+
 float Model::rmse(const std::vector<UserSets>& uSets) {
   float rmse = 0;
   int nSets = 0;

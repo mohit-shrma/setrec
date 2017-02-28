@@ -215,7 +215,7 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
       }
       
 
-      if (iter % 100 == 0 || iter == params.maxIter - 1) {
+      if (iter % 200 == 0 || iter == params.maxIter - 1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 
           << " train RMSE:" << rmse(data.trainSets) 
@@ -230,6 +230,7 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
 
   }
   
+  /*
   float pickyRMSE = 0, nonPickyRMSE = 0;
   int pickyUCount = 0, nonPickyUCount = 0;
   std::unordered_set<int> pickyU, nonPickyU;
@@ -250,19 +251,32 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
       data.partTrainMat, pickyU) << std::endl;
   std::cout << "Non-pickyU itme RMSE: " << rmseNotSets(data.allSets, data.ratMat, 
       data.partTrainMat, nonPickyU) << std::endl;
-
+  */
+  
   /*
   std::ofstream opFile("User_var_weights.txt");
+  std::cout << std::endl;
   std::cout << "No trainUsers: " << trainUsers.size() 
     << " no trainSets: " << data.trainSets.size() << std::endl;
+  float avgDiff = 0, avgEstSetRMSE = 0, avgFitRMSE = 0, count  = 0;
   for (const auto& userSets : data.trainSets) {
     auto p_u = userSets.getVarPickiness(data.ratMat);
+    float estSetsRMSE = rmse(userSets);
     if (p_u[2] != -99.0) {
-      opFile << userSets.user << " " << uDivWt(userSets.user) << " " << p_u[0] << " " << p_u[1] << " " << p_u[2] << std::endl;
+      float fitRMSE = p_u[3];
+      float diff = fabs(estSetsRMSE - fitRMSE);
+      avgDiff += diff;
+      avgEstSetRMSE += estSetsRMSE;
+      avgFitRMSE += fitRMSE;
+      count += 1;
+      opFile << userSets.user << " " << uDivWt(userSets.user) << " " << p_u[0] << " " << p_u[1] << " " << p_u[2] << " " << diff << std::endl;
     }
   }
   opFile.close();
-  */   
+  std::cout << "avg Diff: " << avgDiff/count << " avgFitRMSE: " 
+    << avgFitRMSE/count << " avgEstSetRMSE: " << avgEstSetRMSE/count 
+    << " " << count << std::endl;
+  */
 }
 
 

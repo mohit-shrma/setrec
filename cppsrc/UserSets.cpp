@@ -301,7 +301,7 @@ std::vector<float> UserSets::getVarPickiness(gk_csr_t *mat) const {
     var = var/(items.size());
     float stdDev = std::sqrt(var);
 
-    if (stdDev > 0.5) {
+    if (stdDev > 0) {
       p_u += (score - mean)/stdDev;
       count += 1;
     }
@@ -321,9 +321,52 @@ std::vector<float> UserSets::getVarPickiness(gk_csr_t *mat) const {
     p_u = -99; //TODO: remove this hard coded val
   }
   
+  float rmse = 0;
+  if (p_u != -99) { 
+    for (const auto& itemSet: itemSets) {
+      float sum = 0;
+      auto score = itemSet.second;
+      auto items = itemSet.first;
+      size_t found = 0;
+    
+      std::vector<float> itemRatings;
+      for (const auto& item: items) {
+        for (int ii = mat->rowptr[user]; ii < mat->rowptr[user+1]; ii++) {
+          if (item == mat->rowind[ii]) {
+            sum += mat->rowval[ii];
+            itemRatings.push_back(mat->rowval[ii]);
+            found += 1;
+            break;
+          }
+        }
+      }
+      
+      if (found != items.size()) {
+        std::cerr << "items in set not found in user-item ratings" << std::endl;
+      }
+       
+      float mean = sum/items.size();
+      float var = 0;
+      for (const auto& rating: itemRatings) {
+        var += (rating - mean)*(rating - mean);
+      }
+
+      var = var/(items.size());
+      float stdDev = std::sqrt(var);
+      
+      //TODO: conditional eval
+      float estRating = mean + p_u*stdDev;
+
+      rmse = (estRating - score)*(estRating - score);
+    }
+
+    rmse = std::sqrt(rmse/itemSets.size());
+  }
+
   stdMeanPicky.push_back(avgStdDev);
   stdMeanPicky.push_back(avgMean);
   stdMeanPicky.push_back(p_u);
+  stdMeanPicky.push_back(rmse);
 
   return stdMeanPicky;
 }

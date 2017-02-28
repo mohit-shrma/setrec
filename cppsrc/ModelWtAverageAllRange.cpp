@@ -305,7 +305,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
       updateFacUsingRatMat(partUIRatingsTup);
     }
 
-    if (true) {
+    if (false) {
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
 #pragma omp parallel for
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
@@ -432,8 +432,8 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
       }
     }
 
-    //if (iter % 5 == 0) {
-    if (false) {
+    if (iter % 1 == 0) {
+    //if (false) {
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
 #pragma omp parallel for
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
@@ -458,7 +458,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         int minInd = 0;
         for (int i = 0; i < nWts; i++) {
           wtRMSE[i] = std::sqrt(wtRMSE[i]/nSets);
-          if (wtRMSE[minInd] < wtRMSE[i]) {
+          if (wtRMSE[minInd] > wtRMSE[i]) {
             minInd = i;
           } 
         }
@@ -501,9 +501,12 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
     }
 
   }
-
+  
+  /*
   float hits = 0, count = 0, diff = 0, avgExSetRMSE = 0, avgEstExSetRMSE = 0; 
+  float avgUNNZ = 0;
   std::ofstream opFile("user_weights_esqp.txt");
+  
   for (const auto& userSets: data.trainSets) {
     
     int user = userSets.user;
@@ -512,15 +515,25 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
     float exSetRMSE = exSetNRMSE.second;
     avgExSetRMSE += exSetRMSE;
 
+    std::vector<size_t> idx(2*SET_SZ-1);
+    std::iota(idx.begin(), idx.end(), 0);
+    std::sort(idx.begin(), idx.end(), 
+        [=] (size_t i1, size_t i2) { return UWts(user, i1) > UWts(user, i2); });
+
     int maxWtInd = 0;
+    int nnz = 0;
+    if (UWts(user, 0) != 0) { nnz++; }
     for (int i = 1; i < 2*SET_SZ-1; i++) {
       if (UWts(user, i) > UWts(user, maxWtInd)) {
         maxWtInd = i;
       }
+      if (UWts(user, i) != 0 ) { nnz++; }
     }
+    avgUNNZ += nnz;
 
     int isHit = 0;
-    if (maxWtInd == exSetInd) {
+    //if (maxWtInd == exSetInd) {
+    if (idx[0] == exSetInd || idx[1] == exSetInd || idx[2] == exSetInd) {
        hits += 1;
        isHit = 1;
     }
@@ -532,13 +545,15 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
     diff += fabs(exSetRMSE - estExSetRMSE);
     opFile << user << " " << exSetInd << " " << maxWtInd << " " 
       << exSetRMSE << " " << estExSetRMSE << " " << userSets.itemSets.size()
-      << std::endl;
+      << " " << nnz  << std::endl;
   }
   opFile.close();
   std::cout << "Fraction of user hits: " << hits/count << std::endl;
   std::cout << "Avg diff b/w orig & est exSet: " << diff/count << std::endl;
   std::cout << "avgExSetRMSE: " << avgExSetRMSE/count 
     << " avgEstExSetRMSE: " << avgEstExSetRMSE/count << std::endl;
+  std::cout << "avgNNZCoeff: " << avgUNNZ/count << std::endl;
+  */
 }
 
 

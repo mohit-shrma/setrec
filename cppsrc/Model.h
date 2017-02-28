@@ -90,6 +90,7 @@ class Model {
     bool isTerminateRankSetModel(Model& bestModel, const Data& data, int iter, 
       int& bestIter, float& prevRecall, float& bestValRecall) ;
     float rmse(const std::vector<UserSets>& uSets);
+    float rmse(const UserSets& uSet);
     float rmse(const std::vector<UserSets>& uSets, std::unordered_set<int>& valUsers);
     float rmse(const std::vector<UserSets>& uSets, gk_csr_t *mat);
     std::map<int, float> itemRMSE(const std::vector<UserSets>& uSets,
