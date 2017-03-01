@@ -432,8 +432,8 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
       }
     }
 
-    if (iter % 1 == 0) {
-    //if (false) {
+    //if (iter % 1 == 0) {
+    if (true) {
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
 #pragma omp parallel for
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
@@ -488,7 +488,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         break;
       }
       */
-      if (iter%100 == 0 || iter == params.maxIter - 1) {
+      if (iter%250 == 0 || iter == params.maxIter - 1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE: " << bestValRMSE 
           << " train RMSE: " << rmse(data.trainSets) 
@@ -533,7 +533,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
 
     int isHit = 0;
     //if (maxWtInd == exSetInd) {
-    if (idx[0] == exSetInd || idx[1] == exSetInd || idx[2] == exSetInd) {
+    if (idx[0] == exSetInd) { // || idx[1] == exSetInd || idx[2] == exSetInd) {
        hits += 1;
        isHit = 1;
     }
@@ -553,7 +553,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
   std::cout << "avgExSetRMSE: " << avgExSetRMSE/count 
     << " avgEstExSetRMSE: " << avgEstExSetRMSE/count << std::endl;
   std::cout << "avgNNZCoeff: " << avgUNNZ/count << std::endl;
-  */
+  */ 
 }
 
 

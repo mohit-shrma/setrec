@@ -1979,9 +1979,10 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
     if (iter - bestIter >= CHANCE_ITER/2) {
       //decrease learn rate
       if (learnRate > 5e-4) {
-        std::cout << "Changing learn rate from: " << learnRate;
+        std::cout << "\nChanging learn rate from: " << learnRate;
         learnRate = learnRate/2;
         std::cout << " to: " << learnRate << std::endl; 
+        bestIter = iter;
       }
     } 
   
@@ -1999,6 +2000,13 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
       std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
         << " prevObj: " << prevObj << " bestValRMSE:" << bestValRMSE;
       ret = true;
+      if (learnRate > 5e-4) {
+        std::cout << "Changing learn rate from: " << learnRate;
+        learnRate = learnRate/2;
+        std::cout << " to: " << learnRate << std::endl; 
+        bestIter = iter;
+      }
+      ret = false;
     }
    
     if (std::isnan(currObj)) {
