@@ -203,10 +203,25 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
   std::cout << "Max num sets: " << maxNumSets << std::endl;
   std::uniform_int_distribution<int> dist(0, maxNumSets);
 
+  //UWts init with GT
+  //readEigenMat("userPickiness_syn_1.txt", UWts, nUsers, 9);
+
+  //UWts init with avg  
+  /*
+  UWts.fill(0);
+  for (int u = 0; u < nUsers; u++) {
+    UWts(u, 4)  = 1;  
+  }
+  */ 
+
+  int nUserCh = 0;
+
   for (int iter = 0; iter < params.maxIter; iter++) {
 
     std::shuffle(uInds.begin(), uInds.end(), mt);
-    
+   
+    nUserCh = 0;
+
     for (int subIter = 0; subIter < data.nTrainSets/nTrUsers; subIter++) {
       for (auto&& uInd: uInds) {
         const UserSets& uSet = data.trainSets[uInd];
@@ -307,7 +322,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
 
     if (false) {
       //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
-#pragma omp parallel for
+#pragma omp parallel for reduction(+:nUserCh)
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
         const UserSets& uSet = data.trainSets[uInd];
         int user = uSet.user;
@@ -406,6 +421,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         minqpresults(state, x, rep);
         
         bool isFail = int(rep.terminationtype) < 0;
+        bool isCh = false;
         if (!isFail) {
           /*
           int maxInd = 0;
@@ -419,6 +435,9 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
           */
 
           for (int i = 0; i < nWts; i++) {
+            if ( fabs(UWts(user, i) - x[i]) > EPS) {
+              isCh = true;
+            }
             UWts(user, i) = x[i];
             //UWts(user, i) = 0;
           }
@@ -428,14 +447,19 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
           std::cout << "Failed for user: " << user << int(rep.terminationtype) 
             << std::endl;
         }
+
+        if (isCh) {
+          nUserCh++;
+        }
         
       }
     }
 
+
     //if (iter % 1 == 0) {
     if (true) {
-      //std::cout << "B4 QP Objective: " << objective(data.trainSets) << std::endl;
-#pragma omp parallel for
+      //std::cout << "B4 greedy Objective: " << objective(data.trainSets) << std::endl;
+#pragma omp parallel for reduction(+: nUserCh)
       for (int uInd = 0; uInd < data.trainSets.size(); uInd++) {
         const UserSets& uSet = data.trainSets[uInd];
         int user = uSet.user;
@@ -456,14 +480,23 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
         }
         
         int minInd = 0;
+        int oldInd = 0;
         for (int i = 0; i < nWts; i++) {
           wtRMSE[i] = std::sqrt(wtRMSE[i]/nSets);
           if (wtRMSE[minInd] > wtRMSE[i]) {
             minInd = i;
           } 
+          if (UWts(user, i) > 0) {
+            oldInd = i;
+          }
         }
+
         UWts.row(user).fill(0);
         UWts(user, minInd) = 1;
+
+        if (oldInd != minInd) {
+          nUserCh++;
+        }
       }
     }
 
@@ -489,11 +522,12 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
       }
       */
       if (iter%250 == 0 || iter == params.maxIter - 1) {
-        std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
-          << prevValRMSE << " best val RMSE: " << bestValRMSE 
-          << " train RMSE: " << rmse(data.trainSets) 
-          << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
-          << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
+        std::cout << "Iter:" << iter << " obj:" << prevObj << " val: " 
+          << prevValRMSE << " best val: " << bestValRMSE 
+          << " train: " << rmse(data.trainSets) 
+          << " train ratings: " << rmse(data.trainSets, data.ratMat) 
+          << " test ratings: " << rmse(data.testSets, data.ratMat)
+          << " nUserCh: " << nUserCh
           << " bIter: " << bestIter
           << std::endl;
       }
