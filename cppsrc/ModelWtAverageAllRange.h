@@ -13,8 +13,12 @@ class ModelWtAverageAllRange: public Model {
     void estSetRatings(int user, const std::vector<int>& items,
         std::vector<float>& setRatings);
     virtual void train(const Data& data, const Params& params, Model& bestModel);
+    void trainQP(const Data& data, const Params& params, Model& bestModel);
+    void trainQPSmooth(const Data& data, const Params& params, Model& bestModel);
+    void trainGreedy(const Data& data, const Params& params, Model& bestModel);
     float estSetRating(int user, const std::vector<int>& items, int exSetInd);
     float estUExSetRMSE(const UserSets& uSet, int exSetInd);
+    float estUSetsRMSE(const UserSets& uSet, alglib::real_1d_array& wts);
 };
 
 

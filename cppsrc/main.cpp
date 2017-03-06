@@ -162,10 +162,9 @@ int main(int argc, char *argv[]) {
   std::cout << "Train users: " << data.trainUsers.size() << " Train items: " 
     << data.trainItems.size() << std::endl;
 
-
   ModelWtAverageAllRange modelAvg(params);
   ModelWtAverageAllRange bestModel(modelAvg);
-  modelAvg.train(data, params, bestModel);
+  modelAvg.trainQPSmooth(data, params, bestModel);
   /*
   if (argc > 23) {
     std::cout << "UFac norm: " << bestModel.U.norm() << " iFac norm: " << bestModel.V.norm() << std::endl;
