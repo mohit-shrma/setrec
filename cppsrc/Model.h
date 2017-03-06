@@ -156,6 +156,12 @@ class Model {
   float computeEntropy(int user, ItemsSet& item);
   void updateFacUsingRatMat(std::vector<std::tuple<int, int, float>>& ratings); 
   void updateFacBiasUsingRatMat(std::vector<std::tuple<int, int, float>>& ratings);
+  void ADAMUpdate(Eigen::MatrixXf& mat, int user, Eigen::MatrixXf& UGradAvg, 
+      Eigen::MatrixXf& UGradSqAvg, Eigen::VectorXf& grad, float beta1, float beta2, 
+      float learnRate, int t);
+  void RMSPropUpdate(Eigen::MatrixXf& mat, int user,  
+      Eigen::MatrixXf& UGradSqAvg, Eigen::VectorXf& grad,  
+      float learnRate, float beta2);
 
 };
 

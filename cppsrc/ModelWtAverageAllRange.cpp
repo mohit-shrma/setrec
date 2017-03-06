@@ -1029,6 +1029,18 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
   Eigen::VectorXf cumFac(facDim);
   Eigen::VectorXf grad(facDim);
   Eigen::VectorXf tempGrad(facDim);
+  
+  std::vector<int> uUpdCount(nUsers, 0);
+  std::vector<int> itemUpdCount(nItems, 0);
+
+  Eigen::MatrixXf UGradAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradAvg(nItems, facDim);
+  Eigen::MatrixXf UGradSqAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradSqAvg(nItems, facDim);
+
+  UGradAvg.fill(0); VGradAvg.fill(0);
+  UGradSqAvg.fill(0); VGradSqAvg.fill(0);
+  
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
   int bestIter;
 
@@ -1151,8 +1163,11 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
         grad += 2.0*uReg*U.row(user).transpose();
 
         //update user
-        U.row(user) -= learnRate*(grad.transpose());
-        
+        //U.row(user) -= learnRate*(grad.transpose());
+        //ADAMUpdate(U, user, UGradAvg, UGradSqAvg, grad, 0.9, 0.999, learnRate, uUpdCount[user]);
+        //uUpdCount[user]++;
+        RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
+
         //update user bias
         //uBias(user) -= learnRate*((2.0*(r_us_est - r_us)*sumWt) + 2.0*uBiasReg*uBias(user));
 
@@ -1178,7 +1193,10 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
           iBiasGrad = sumWt;
 
           //update item factor
-          V.row(item) -= learnRate*(tempGrad.transpose());
+          //V.row(item) -= learnRate*(tempGrad.transpose());
+          //ADAMUpdate(V, item, VGradAvg, VGradSqAvg, tempGrad, 0.9, 0.999, learnRate, itemUpdCount[item]);
+          //itemUpdCount[item]++;
+          RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
           //update item bias
           //iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*iBiasGrad
           //                          + 2.0*iBiasReg*iBias(item));
@@ -1407,7 +1425,7 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
 
   }
   
-  /*
+  /* 
   float hits = 0, count = 0, diff = 0, avgExSetRMSE = 0, avgEstExSetRMSE = 0; 
   float avgUNNZ = 0;
   std::ofstream opFile("user_weights_esqp_smooth.txt");

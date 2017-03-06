@@ -2413,3 +2413,25 @@ void Model::updateFacUsingRatMat(std::vector<std::tuple<int, int, float>>& ratin
 }
 
 
+void Model::ADAMUpdate(Eigen::MatrixXf& mat, int user, Eigen::MatrixXf& UGradAvg, 
+    Eigen::MatrixXf& UGradSqAvg, Eigen::VectorXf& grad, float beta1, float beta2, 
+    float learnRate, int t) {
+  for (int k = 0; k < facDim; k++) {
+    UGradAvg(user, k) = beta1*UGradAvg(user, k) + (1.0 - beta1)*grad(k);
+    UGradSqAvg(user, k) = beta2*UGradSqAvg(user, k) + (1.0 - beta2)*grad(k)*grad(k);
+    mat(user, k) -= (learnRate/(std::sqrt(UGradSqAvg(user, k)/(1.0 - std::pow(beta2, t))) + 1e-8))*UGradAvg(user, k)/(1.0 - std::pow(beta1, t));
+  }
+
+}
+
+
+void Model::RMSPropUpdate(Eigen::MatrixXf& mat, int user,  
+    Eigen::MatrixXf& UGradSqAvg, Eigen::VectorXf& grad,  
+    float learnRate, float beta2) {
+  for (int k = 0; k < facDim; k++) {
+    UGradSqAvg(user, k) = beta2*UGradSqAvg(user, k) + (1.0 - beta2)*grad(k)*grad(k);
+    mat(user, k) -= (learnRate/std::sqrt(UGradSqAvg(user, k) + 1e-8))*grad(k);
+  }
+
+}
+
