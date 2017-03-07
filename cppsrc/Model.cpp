@@ -2005,8 +2005,79 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
         learnRate = learnRate/2;
         std::cout << " to: " << learnRate << std::endl; 
         bestIter = iter;
+        ret = false;
       }
-      ret = false;
+    }
+   
+    if (std::isnan(currObj)) {
+      std::cout << "Found NaN obj: " << currObj << std::endl;
+      ret = true;
+    }
+
+  } else if (0  == iter) {
+    bestObj     = currObj;
+    bestValRMSE = currValRMSE;
+    bestIter    = iter;
+    bestModel   = *this;
+  }
+  
+  prevObj = currObj;
+  prevValRMSE = currValRMSE;
+
+  return ret;
+}
+
+
+bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
+    int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
+    float& prevValRMSE, bool isDecLearnRate) {
+
+  bool ret = false;  
+  float currObj = objective(data.trainSets);
+  float currValRMSE = -1;
+  
+  currValRMSE = rmse(data.valSets); 
+
+  if (iter > 0) {
+    //if (currValRMSE < bestValRMSE) {
+    if (currObj < bestObj) {
+      bestModel   = *this;
+      bestValRMSE = currValRMSE;
+      bestIter    = iter;
+      bestObj     = currObj;
+    } 
+    
+    if (isDecLearnRate && iter - bestIter >= CHANCE_ITER/2) {
+      //decrease learn rate
+      if (learnRate > 5e-4) {
+        std::cout << "\nChanging learn rate from: " << learnRate;
+        learnRate = learnRate/2;
+        std::cout << " to: " << learnRate << std::endl; 
+        bestIter = iter;
+      }
+    } 
+  
+    if (iter - bestIter >= CHANCE_ITER) {
+      //cant improve validation RMSE
+      std::cout << "NOT CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
+        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
+        << iter << " currObj: " << currObj << " currValRMSE:" 
+        << currValRMSE << std::endl;
+      ret = true;
+    }
+    
+    if (fabs(prevObj - currObj) < EPS) {
+      //objective converged
+      std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
+        << " prevObj: " << prevObj << " bestValRMSE:" << bestValRMSE;
+      ret = true;
+      if (isDecLearnRate && learnRate > 5e-4) {
+        std::cout << "Changing learn rate from: " << learnRate;
+        learnRate = learnRate/2;
+        std::cout << " to: " << learnRate << std::endl; 
+        bestIter = iter;
+        ret = false;
+      }
     }
    
     if (std::isnan(currObj)) {

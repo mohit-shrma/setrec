@@ -74,6 +74,9 @@ class Model {
     bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
         int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
         float& prevValRMSE); 
+    bool isTerminateModel(Model& bestModel, const Data& data, int iter, 
+        int& bestIter, float& bestObj, float& prevObj, float& bestValRMSE,
+        float& prevValRMSE, bool isDecLearnRate); 
     bool isTerminateModelWPartIRMSE(Model& bestModel, 
         const Data& data, int iter, int& bestIter, float& bestObj, float& prevObj, 
         float& bestValRMSE, float& prevValRMSE);
