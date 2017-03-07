@@ -13,16 +13,8 @@
 #include "ModelWeightedVariance.h"
 #include "ModelWtAverageAllRange.h"
 #include "ModelWtAverage.h"
-#include "ModelAverageSigmoidWBias.h"
-#include "ModelFMUWt.h"
-#include "ModelFMUWtBPR.h"
 #include "ModelMFWBias.h"
-#include "ModelAverageBPRWBias.h"
-#include "ModelBPR.h"
-#include "ModelBPRTop.h"
-#include "ModelAverageBPRWBiasTop.h"
 #include "ModelAverageGBiasWPart.h"
-#include "ModelAverageBPRWPart.h"
 #include "ModelWeightedVarianceWBias.h"
 #include "ModelWtAverageAllRangeWBias.h"
 
@@ -164,7 +156,8 @@ int main(int argc, char *argv[]) {
 
   ModelWtAverageAllRange modelAvg(params);
   ModelWtAverageAllRange bestModel(modelAvg);
-  modelAvg.trainQPSmooth(data, params, bestModel);
+  modelAvg.train(data, params, bestModel);
+
   /*
   if (argc > 23) {
     std::cout << "UFac norm: " << bestModel.U.norm() << " iFac norm: " << bestModel.V.norm() << std::endl;

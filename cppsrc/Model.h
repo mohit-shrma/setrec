@@ -165,6 +165,8 @@ class Model {
   void RMSPropUpdate(Eigen::MatrixXf& mat, int user,  
       Eigen::MatrixXf& UGradSqAvg, Eigen::VectorXf& grad,  
       float learnRate, float beta2);
+  void updateFacUsingRatMatRMSProp(std::vector<std::tuple<int, int, float>>& ratings,
+    Eigen::MatrixXf& UGradSqAvg, Eigen::MatrixXf& VGradSqAvg);
 
 };
 

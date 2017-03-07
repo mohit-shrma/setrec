@@ -2039,8 +2039,8 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
   currValRMSE = rmse(data.valSets); 
 
   if (iter > 0) {
-    //if (currValRMSE < bestValRMSE) {
-    if (currObj < bestObj) {
+    if (currValRMSE < bestValRMSE) {
+    //if (currObj < bestObj) {
       bestModel   = *this;
       bestValRMSE = currValRMSE;
       bestIter    = iter;
@@ -2484,6 +2484,27 @@ void Model::updateFacUsingRatMat(std::vector<std::tuple<int, int, float>>& ratin
 }
 
 
+void Model::updateFacUsingRatMatRMSProp(std::vector<std::tuple<int, int, float>>& ratings,
+    Eigen::MatrixXf& UGradSqAvg, Eigen::MatrixXf& VGradSqAvg) {
+  Eigen::VectorXf grad(facDim);
+  for (auto&& uiRating: ratings) {
+    int user       = std::get<0>(uiRating);
+    int item       = std::get<1>(uiRating);
+    float r_ui     = std::get<2>(uiRating);
+    float r_ui_est = estItemRating(user, item);
+    float diff     = r_ui_est - r_ui;
+    //update user latent factor
+    grad = 2.0*diff*V.row(item) + 2.0*uReg*U.row(user); 
+    RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
+    //U.row(user) -= learnRate*(2.0*diff*V.row(item) + 2.0*uReg*U.row(user));
+    //update item latent factor
+    grad = (2.0*diff*U.row(user) + 2.0*iReg*V.row(item)); 
+    RMSPropUpdate(V, item, VGradSqAvg, grad, learnRate, 0.9);
+    //V.row(item) -= learnRate*(2.0*diff*U.row(user) + 2.0*iReg*V.row(item));
+  }
+}
+
+
 void Model::ADAMUpdate(Eigen::MatrixXf& mat, int user, Eigen::MatrixXf& UGradAvg, 
     Eigen::MatrixXf& UGradSqAvg, Eigen::VectorXf& grad, float beta1, float beta2, 
     float learnRate, int t) {
@@ -2503,6 +2524,7 @@ void Model::RMSPropUpdate(Eigen::MatrixXf& mat, int user,
     UGradSqAvg(user, k) = beta2*UGradSqAvg(user, k) + (1.0 - beta2)*grad(k)*grad(k);
     mat(user, k) -= (learnRate/std::sqrt(UGradSqAvg(user, k) + 1e-8))*grad(k);
   }
-
 }
+
+
 

@@ -178,6 +178,14 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
   int bestIter;
 
+  Eigen::MatrixXf UGradAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradAvg(nItems, facDim);
+  Eigen::MatrixXf UGradSqAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradSqAvg(nItems, facDim);
+
+  UGradAvg.fill(0); VGradAvg.fill(0);
+  UGradSqAvg.fill(0); VGradSqAvg.fill(0);
+ 
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
@@ -335,7 +343,7 @@ void ModelWtAverageAllRange::train(const Data& data, const Params& params,
 
     if (params.isMixRat) {
       std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-      updateFacUsingRatMat(partUIRatingsTup);
+      updateFacUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg);
     }
 
     if (false) {
@@ -631,6 +639,14 @@ void ModelWtAverageAllRange::trainQP(const Data& data, const Params& params,
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
 
+  Eigen::MatrixXf UGradAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradAvg(nItems, facDim);
+  Eigen::MatrixXf UGradSqAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradSqAvg(nItems, facDim);
+
+  UGradAvg.fill(0); VGradAvg.fill(0);
+  UGradSqAvg.fill(0); VGradSqAvg.fill(0);
+ 
   //initialize global bias
   int nTrainSets = 0;
   float meanSetRating = 0;
@@ -784,7 +800,7 @@ void ModelWtAverageAllRange::trainQP(const Data& data, const Params& params,
 
     if (params.isMixRat) {
       std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-      updateFacUsingRatMat(partUIRatingsTup);
+      updateFacUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg);
     }
 
     if (true) {
@@ -1207,7 +1223,7 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
 
     if (params.isMixRat) {
       std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-      updateFacUsingRatMat(partUIRatingsTup);
+      updateFacUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg);
     }
 
     if (true) {
@@ -1278,8 +1294,6 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
         for (int i = 0; i < nWts; i++) {
           x0[i] = UWts(user, i);
         }
-        
-
       
         //scaling parameter indicating that model variables are in same scale
         alglib::real_1d_array s = "[1,1,1, 1,1,1, 1,1,1]";
@@ -1294,15 +1308,17 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
           //constraint: x0 + x1 + x2 + ... + x8 = 1;
           alglib::real_2d_array constr; //= "[[1,1,1, 1,1,1, 1,1,1, 1]]";
           constr.setlength(1 + 8, 10); //1 equality and 8 inequality constraints
+          //constr.setlength(1 + 9, 10); //1 equality and 9 inequality constraints
           for (int j = 0; j < 9; j++) {
+          //for (int j = 0; j < 10; j++) {
             for (int k = 0; k < 10; k++) {
               constr[j][k] = 0;
             }
           }
-
-
+          
           alglib::integer_1d_array ct;// = "[0]"; // = constraint 
           ct.setlength(9);
+          //ct.setlength(10);
 
           //assign equality constraint
           ct[0] = 0;
@@ -1326,7 +1342,13 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
             ct[j] = -1;
             j++;
           }
-         
+        
+          //following is for explicit inequality constraint
+          //constr[j][i] = -1;
+          //constr[j][9] = -0.5;
+          //ct[j++] = -1;
+          
+
           alglib::minqpstate state;
           alglib::minqpreport rep;
           //solution
@@ -1392,7 +1414,7 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       
       if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
-            bestObj, prevObj, bestValRMSE, prevValRMSE))) {
+            bestObj, prevObj, bestValRMSE, prevValRMSE, false))) {
         break;
         //save best model
         //bestModel.save(params.prefix);
@@ -1425,7 +1447,7 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
 
   }
   
-  /* 
+  /*
   float hits = 0, count = 0, diff = 0, avgExSetRMSE = 0, avgEstExSetRMSE = 0; 
   float avgUNNZ = 0;
   std::ofstream opFile("user_weights_esqp_smooth.txt");
@@ -1483,7 +1505,7 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
   std::cout << "avgExSetRMSE: " << avgExSetRMSE/count 
     << " avgEstExSetRMSE: " << avgEstExSetRMSE/count << std::endl;
   std::cout << "avgNNZCoeff: " << avgUNNZ/count << std::endl;
-  */ 
+  */
 }
 
 
@@ -1505,6 +1527,14 @@ void ModelWtAverageAllRange::trainGreedy(const Data& data, const Params& params,
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
   int bestIter;
 
+  Eigen::MatrixXf UGradAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradAvg(nItems, facDim);
+  Eigen::MatrixXf UGradSqAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradSqAvg(nItems, facDim);
+  
+  UGradAvg.fill(0); VGradAvg.fill(0);
+  UGradSqAvg.fill(0); VGradSqAvg.fill(0);
+  
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
@@ -1624,7 +1654,8 @@ void ModelWtAverageAllRange::trainGreedy(const Data& data, const Params& params,
         grad += 2.0*uReg*U.row(user).transpose();
 
         //update user
-        U.row(user) -= learnRate*(grad.transpose());
+        //U.row(user) -= learnRate*(grad.transpose());
+        RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
         
         //update user bias
         //uBias(user) -= learnRate*((2.0*(r_us_est - r_us)*sumWt) + 2.0*uBiasReg*uBias(user));
@@ -1651,7 +1682,8 @@ void ModelWtAverageAllRange::trainGreedy(const Data& data, const Params& params,
           iBiasGrad = sumWt;
 
           //update item factor
-          V.row(item) -= learnRate*(tempGrad.transpose());
+          //V.row(item) -= learnRate*(tempGrad.transpose());
+          RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
           //update item bias
           //iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*iBiasGrad
           //                          + 2.0*iBiasReg*iBias(item));
@@ -1662,7 +1694,7 @@ void ModelWtAverageAllRange::trainGreedy(const Data& data, const Params& params,
 
     if (params.isMixRat) {
       std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-      updateFacUsingRatMat(partUIRatingsTup);
+      updateFacUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg);
     }
 
     if (true) {
@@ -1712,7 +1744,7 @@ void ModelWtAverageAllRange::trainGreedy(const Data& data, const Params& params,
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       
       if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
-            bestObj, prevObj, bestValRMSE, prevValRMSE))) {
+            bestObj, prevObj, bestValRMSE, prevValRMSE, false))) {
         break;
         //save best model
         //bestModel.save(params.prefix);
@@ -1744,7 +1776,6 @@ void ModelWtAverageAllRange::trainGreedy(const Data& data, const Params& params,
 
   }
   
-  /*
   float hits = 0, count = 0, diff = 0, avgExSetRMSE = 0, avgEstExSetRMSE = 0; 
   float avgUNNZ = 0;
   std::ofstream opFile("user_weights_esqp.txt");
@@ -1795,5 +1826,4 @@ void ModelWtAverageAllRange::trainGreedy(const Data& data, const Params& params,
   std::cout << "avgExSetRMSE: " << avgExSetRMSE/count 
     << " avgEstExSetRMSE: " << avgEstExSetRMSE/count << std::endl;
   std::cout << "avgNNZCoeff: " << avgUNNZ/count << std::endl;
-  */ 
 }

@@ -29,7 +29,11 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
   iGradsAcc.fill(0);
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
   int bestIter;
-
+  
+  Eigen::MatrixXf UGradSqAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradSqAvg(nItems, facDim);
+  UGradSqAvg.fill(0); VGradSqAvg.fill(0);
+ 
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
@@ -81,27 +85,29 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
         grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
                 + 2.0*uReg*U.row(user).transpose();
         //update user
-        U.row(user) -= learnRate*(grad.transpose());
+        //U.row(user) -= learnRate*(grad.transpose());
+        RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
 
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
         for (auto&& item: items) {
           tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
-          V.row(item) -= learnRate*(tempGrad.transpose());
+          //V.row(item) -= learnRate*(tempGrad.transpose());
+          RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
         }
       }
     }
 
     if (params.isMixRat) {
       std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-      updateFacUsingRatMat(partUIRatingsTup);
+      updateFacUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg);
     }
 
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      /*
+      
       if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
-            bestObj, prevObj, bestValRMSE, prevValRMSE))) {
+            bestObj, prevObj, bestValRMSE, prevValRMSE, false))) {
         break;
         //save best model
         //bestModel.save(params.prefix);
@@ -111,11 +117,13 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
         //bestModel.save(params.prefix);
         break;
       }
-      */
+      
+      /*
       if (isTerminateModel(bestModel, data, iter, bestIter,
             bestObj, prevObj, bestValRMSE, prevValRMSE)) {
         break;
       }
+      */
       if (iter % 100 == 0  || iter == params.maxIter-1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 

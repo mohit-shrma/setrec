@@ -83,6 +83,11 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
   int nTrUsers = (int)uInds.size(); 
+ 
+  Eigen::VectorXf uDivWtSqAvg(nUsers);
+  Eigen::MatrixXf UGradSqAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradSqAvg(nItems, facDim);
+  UGradSqAvg.fill(0); VGradSqAvg.fill(0); uDivWtSqAvg.fill(0);
 
   int nTrainSets = 0;
   float meanSetRating = 0;
@@ -168,7 +173,8 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
         tempFac = U.row(user);
 
         //update user
-        U.row(user) -= learnRate*(grad.transpose());
+        //U.row(user) -= learnRate*(grad.transpose());
+        RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
         
         //update items
         grad = (2.0*(r_us_est - r_us)/setSz)*U.row(user);
@@ -178,26 +184,30 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
           temp += uDivWt(user)*varCoeff * 2 * tempFac.dot(V.row(item));
           temp -= ((uDivWt(user)*varCoeff)/setSz) * 2 * ratSum;
           tempGrad = temp*grad + 2.0*iReg*V.row(item).transpose(); 
-          V.row(item) -= learnRate*(tempGrad.transpose());
+          //V.row(item) -= learnRate*(tempGrad.transpose());
+          RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
         }
         
         //update user weight
         //uDivWt(user) -= learnRate*(2.0*(r_us_est - r_us)*(stdDev) 
-        uDivWt(user) -= learnRate*(2.0*(r_us_est - r_us)*(gamma + stdDev) 
-          + 2.0*uSetBiasReg*uDivWt(user));
+        float uDivWtGrad = 2.0*(r_us_est - r_us)*(gamma + stdDev) 
+          + 2.0*uSetBiasReg*uDivWt(user);
+        //uDivWt(user) -= learnRate*(uDivWtGrad);
+        uDivWtSqAvg(user) = 0.9*uDivWtSqAvg(user) + 0.1*uDivWtGrad*uDivWtGrad;
+        uDivWt(user) -= (learnRate/(std::sqrt(uDivWtSqAvg(user) + 1e-8)))*uDivWtGrad;
       }
     }    
   
     if (params.isMixRat) {
       std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-      updateFacUsingRatMat(partUIRatingsTup);
+      updateFacUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg);
     }
     
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      /*
+      
       if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
-            bestObj, prevObj, bestValRMSE, prevValRMSE))) {
+            bestObj, prevObj, bestValRMSE, prevValRMSE, false))) {
         break;
         //save best model
         //bestModel.save(params.prefix);
@@ -207,12 +217,12 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
         //bestModel.save(params.prefix);
         break;
       }
-      */ 
+       
       
-      if (isTerminateModel(bestModel, data, iter, bestIter,
-            bestObj, prevObj, bestValRMSE, prevValRMSE)) {
-        break;
-      }
+      //if (isTerminateModel(bestModel, data, iter, bestIter,
+      //      bestObj, prevObj, bestValRMSE, prevValRMSE)) {
+      //  break;
+      //}
       
 
       if (iter % 200 == 0 || iter == params.maxIter - 1) {
@@ -223,6 +233,7 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
           << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
           << " U norm: " << U.norm() << " V norm: " << V.norm() 
           << " uDivWt norm: " << uDivWt.norm()
+          << " bestIter: " << bestIter
           << std::endl;
       }
 
@@ -252,7 +263,6 @@ void ModelWeightedVariance::train(const Data& data, const Params& params,
   std::cout << "Non-pickyU itme RMSE: " << rmseNotSets(data.allSets, data.ratMat, 
       data.partTrainMat, nonPickyU) << std::endl;
   */
-  
   /*
   std::ofstream opFile("User_var_weights.txt");
   std::cout << std::endl;
