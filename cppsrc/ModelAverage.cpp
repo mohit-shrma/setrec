@@ -124,7 +124,7 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
         break;
       }
       */
-      if (iter % 100 == 0  || iter == params.maxIter-1) {
+      if (iter % 250 == 0  || iter == params.maxIter-1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
           << prevValRMSE << " best val RMSE:" << bestValRMSE 
           << " train RMSE:" << rmse(data.trainSets) 

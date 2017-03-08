@@ -100,6 +100,22 @@ float ModelWtAverageAllRange::estUSetsRMSE(const UserSets& uSet, alglib::real_1d
 } 
 
 
+float ModelWtAverageAllRange::estUSetsRMSE(Eigen::MatrixXf& Q, Eigen::VectorXf& c, 
+    alglib::real_1d_array& wts) {
+  std::vector<float> setRatings(nWts, 0);
+  int nSets = Q.rows();
+  float diff = 0, r_us_est = 0;
+  for (int i = 0; i < nSets; i++) {
+    r_us_est = 0;
+    for (int j = 0; j < nWts; j++) {
+      r_us_est += wts[j]*Q(i, j);
+    }
+    diff += (r_us_est - c(i))*(r_us_est - c(i));
+  }
+  return std::sqrt(diff/nSets);
+} 
+
+
 float ModelWtAverageAllRange::estSetRating(int user, const std::vector<int>& items, int exSetInd) {
  
   int setSz = items.size();
@@ -1372,7 +1388,7 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
           bool isFail = int(rep.terminationtype) < 0;
           if (!isFail) {
             //save best solution
-            float rmse = estUSetsRMSE(uSet, x);
+            float rmse = estUSetsRMSE(Q, c, x);
             if (0 == i || bestRMSE > rmse) {
               bestRMSE = rmse;
               xBest = x;

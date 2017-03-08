@@ -19,6 +19,8 @@ class ModelWtAverageAllRange: public Model {
     float estSetRating(int user, const std::vector<int>& items, int exSetInd);
     float estUExSetRMSE(const UserSets& uSet, int exSetInd);
     float estUSetsRMSE(const UserSets& uSet, alglib::real_1d_array& wts);
+    float estUSetsRMSE(Eigen::MatrixXf& Q, Eigen::VectorXf& c, 
+        alglib::real_1d_array& wts);
 };
 
 
