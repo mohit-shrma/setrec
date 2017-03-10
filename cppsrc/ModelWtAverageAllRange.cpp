@@ -1132,6 +1132,11 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
 
   int nUserCh = 0;
 
+  if (params.isMixRat) {
+    std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
+    updateFacUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg);
+  }
+
   for (int iter = 0; iter < params.maxIter; iter++) {
 
     std::shuffle(uInds.begin(), uInds.end(), mt);
@@ -1361,7 +1366,7 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
         
           //following is for explicit inequality constraint
           //constr[j][i] = -1;
-          //constr[j][9] = -0.5;
+          //constr[j][9] = -gamma;//-0.9;
           //ct[j++] = -1;
           
 
@@ -1463,11 +1468,11 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
 
   }
   
-  /*
+  
   float hits = 0, count = 0, diff = 0, avgExSetRMSE = 0, avgEstExSetRMSE = 0; 
   float avgUNNZ = 0;
-  std::ofstream opFile("user_weights_esqp_smooth.txt");
-  std::ofstream opFile2("user_weights_qp_smooth.txt");
+  //std::ofstream opFile("user_weights_esqp_smooth.txt");
+  //std::ofstream opFile2("user_weights_qp_smooth.txt");
   
   for (const auto& userSets: data.trainSets) {
     
@@ -1505,6 +1510,7 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
     avgEstExSetRMSE += estExSetRMSE;
     
     diff += fabs(exSetRMSE - estExSetRMSE);
+    /*
     opFile << user << " " << exSetInd << " " << maxWtInd << " " 
       << exSetRMSE << " " << estExSetRMSE << " " << userSets.itemSets.size()
       << " " << nnz  << std::endl;
@@ -1513,15 +1519,16 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
       opFile2 << UWts(user, i) << " ";
     }
     opFile2 << std::endl;
+    */
   }
-  opFile.close();
-  opFile2.close();
+  //opFile.close();
+  //opFile2.close();
   std::cout << "Fraction of user hits: " << hits/count << std::endl;
   std::cout << "Avg diff b/w orig & est exSet: " << diff/count << std::endl;
   std::cout << "avgExSetRMSE: " << avgExSetRMSE/count 
     << " avgEstExSetRMSE: " << avgEstExSetRMSE/count << std::endl;
   std::cout << "avgNNZCoeff: " << avgUNNZ/count << std::endl;
-  */
+  
 }
 
 
@@ -1794,7 +1801,7 @@ void ModelWtAverageAllRange::trainGreedy(const Data& data, const Params& params,
   
   float hits = 0, count = 0, diff = 0, avgExSetRMSE = 0, avgEstExSetRMSE = 0; 
   float avgUNNZ = 0;
-  std::ofstream opFile("user_weights_esqp.txt");
+  //std::ofstream opFile("user_weights_esqp.txt");
   
   for (const auto& userSets: data.trainSets) {
     
@@ -1832,11 +1839,11 @@ void ModelWtAverageAllRange::trainGreedy(const Data& data, const Params& params,
     avgEstExSetRMSE += estExSetRMSE;
     
     diff += fabs(exSetRMSE - estExSetRMSE);
-    opFile << user << " " << exSetInd << " " << maxWtInd << " " 
-      << exSetRMSE << " " << estExSetRMSE << " " << userSets.itemSets.size()
-      << " " << nnz  << std::endl;
+    //opFile << user << " " << exSetInd << " " << maxWtInd << " " 
+    //  << exSetRMSE << " " << estExSetRMSE << " " << userSets.itemSets.size()
+    //  << " " << nnz  << std::endl;
   }
-  opFile.close();
+  //opFile.close();
   std::cout << "Fraction of user hits: " << hits/count << std::endl;
   std::cout << "Avg diff b/w orig & est exSet: " << diff/count << std::endl;
   std::cout << "avgExSetRMSE: " << avgExSetRMSE/count 
