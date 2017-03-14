@@ -2,14 +2,22 @@
 
 
 float ModelBaseline::estItemRating(int user, int item) {
-  return globalItemRatings[item];
+  //return globalItemRatings[item];
+  return uSetBias(user);
+}
+
+
+float ModelBaseline::estSetRating(int user, std::vector<int>& items) {
+  return uSetBias(user);
 }
 
 
 void ModelBaseline::train(const Data& data, const Params& params, 
     Model& bestModel) {
-  trainUsers = data.trainUsers;
   
+  uSetBias.fill(0);
+
+  trainUsers = data.trainUsers;
  
   for (int item = 0; item < nItems; item++) {
     if (data.partTrainMat->colptr[item+1] - data.partTrainMat->colptr[item] > 0) {
@@ -26,13 +34,16 @@ void ModelBaseline::train(const Data& data, const Params& params,
  
   float meanItemRating = meanRating(data.partTrainMat);
   float meanSet = 0, setCount = 0;
-  
+  float uMean = 0;
   //go over train sets and add to item the rating given to the set
   for (auto&& uSet: data.trainSets) {
+    int user = uSet.user;
+    uMean = 0;
     for (auto&& itemSet: uSet.itemSets) {
       auto items = itemSet.first;
       auto rating = itemSet.second;
       meanSet += rating;
+      uMean += rating;
       setCount++;
       /*
       for (auto&& item: items) {
@@ -49,7 +60,9 @@ void ModelBaseline::train(const Data& data, const Params& params,
         itemSetCount[item]++;
       }
       */
-    } 
+    }
+    uMean = uMean/uSet.itemSets.size();
+    uSetBias(user) = uMean;
   }
   meanSet = meanSet/setCount;
   
