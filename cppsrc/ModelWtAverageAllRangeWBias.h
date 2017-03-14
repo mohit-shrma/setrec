@@ -8,6 +8,7 @@ class ModelWtAverageAllRangeWBias: public ModelWtAverageAllRange {
     ModelWtAverageAllRangeWBias(const Params& params):ModelWtAverageAllRange(params) {}
     virtual float estItemRating(int user, int item);
     virtual void train(const Data& data, const Params& params, Model& bestModel);
+    void trainQPSmooth(const Data& data, const Params& params, Model& bestModel);
 };
 
 #endif

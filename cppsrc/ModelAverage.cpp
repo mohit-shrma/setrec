@@ -83,7 +83,7 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
 
         //user gradient
         grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
-                + 2.0*uReg*U.row(user).transpose();
+                + (2.0*uReg)*U.row(user).transpose();
         //update user
         //U.row(user) -= learnRate*(grad.transpose());
         RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
@@ -91,7 +91,7 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
         //update items
         grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
         for (auto&& item: items) {
-          tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
+          tempGrad = grad + (2.0*iReg)*V.row(item).transpose(); 
           //V.row(item) -= learnRate*(tempGrad.transpose());
           RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
         }

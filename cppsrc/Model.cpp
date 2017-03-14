@@ -2469,6 +2469,36 @@ void Model::updateFacBiasUsingRatMat(std::vector<std::tuple<int, int, float>>& r
 }
 
 
+void Model::updateFacBiasUsingRatMatRMSProp(std::vector<std::tuple<int, int, float>>& ratings, 
+    Eigen::MatrixXf& UGradSqAvg, Eigen::MatrixXf& VGradSqAvg, Eigen::VectorXf& uBiasGradSqAvg,
+    Eigen::VectorXf& iBiasGradSqAvg) {
+  Eigen::VectorXf grad(facDim);
+  float biasGrad, r_ui, r_ui_est, diff;
+  int user, item;
+  for (auto&& uiRating: ratings) {
+    user     = std::get<0>(uiRating);
+    item     = std::get<1>(uiRating);
+    r_ui     = std::get<2>(uiRating);
+    r_ui_est = estItemRating(user, item);
+    diff     = r_ui_est - r_ui;
+    //update user bias
+    biasGrad = 2.0*diff + 2.0*uBiasReg*uBias(user); 
+    uBiasGradSqAvg(user) = 0.9*uBiasGradSqAvg(user) + 0.1*biasGrad*biasGrad;
+    uBias(user) -= (learnRate/std::sqrt(uBiasGradSqAvg(user) + 1e-8))*biasGrad;
+    //update item bias
+    biasGrad = 2.0*diff  + 2.0*iBiasReg*iBias(item); 
+    iBiasGradSqAvg(item) = 0.9*iBiasGradSqAvg(item) + 0.1*biasGrad*biasGrad;
+    iBias(item) -= (learnRate/std::sqrt(iBiasGradSqAvg(item) + 1e-8))*biasGrad; 
+    //update user latent factor
+    grad = 2.0*diff*V.row(item) + 2.0*uReg*U.row(user); 
+    RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
+    //update item latent factor
+    grad = (2.0*diff*U.row(user) + 2.0*iReg*V.row(item)); 
+    RMSPropUpdate(V, item, VGradSqAvg, grad, learnRate, 0.9);
+  }
+}
+
+
 void Model::updateFacUsingRatMat(std::vector<std::tuple<int, int, float>>& ratings) {
   for (auto&& uiRating: ratings) {
     int user       = std::get<0>(uiRating);

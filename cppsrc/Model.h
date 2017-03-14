@@ -167,6 +167,9 @@ class Model {
       float learnRate, float beta2);
   void updateFacUsingRatMatRMSProp(std::vector<std::tuple<int, int, float>>& ratings,
     Eigen::MatrixXf& UGradSqAvg, Eigen::MatrixXf& VGradSqAvg);
+  void updateFacBiasUsingRatMatRMSProp(std::vector<std::tuple<int, int, float>>& ratings, 
+      Eigen::MatrixXf& UGradSqAvg, Eigen::MatrixXf& VGradSqAvg, Eigen::VectorXf& uBiasGradSqAvg,
+      Eigen::VectorXf& iBiasGradSqAvg);
 
 };
 
