@@ -58,94 +58,100 @@ void ModelWeightedVarianceWBias::train(const Data& data, const Params& params,
   //initialize random engine
   std::mt19937 mt(params.seed);
   std::uniform_int_distribution<int> dist(0, 1000);
+    
+  auto uSetInds = getUserSetInds(data.trainSets);
+  
+  if (params.isMixRat) {
+    std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
+    updateFacBiasUsingRatMat(partUIRatingsTup);
+  }
 
   for (int iter = 0; iter < params.maxIter; iter++) {
-    std::shuffle(uInds.begin(), uInds.end(), mt);
-    for (int i = 0; i < data.nTrainSets/nTrUsers; i++) {
-      for (auto&& uInd: uInds) {
-        const UserSets& uSet = data.trainSets[uInd];
-        int user = uSet.user;
-              
-        if (uSet.itemSets.size() == 0) {
-          std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
-          continue;
-        }
-        //select a set at random
-        int setInd = dist(mt) % uSet.itemSets.size();
-        auto items = uSet.itemSets[setInd].first;
-        const float r_us = uSet.itemSets[setInd].second;
-        const int setSz = items.size();
-
-        if (setSz == 0) {
-          std::cerr << "!! zero size itemset found !!" << std::endl; 
-          continue;
-        }
-          
-        //estimate rating on the set
-        float r_us_est = 0;
-        float ratSum = 0;
-        float ratSqrSum = 0;
-        float rating = 0;
-        float mean, var, stdDev = EPS, varCoeff = 0;
-        //compute sum of item latent factors
-        sumItemFactors.fill(0);   
-        ratWtSumItemFactors.fill(0);
-        for (auto item: items) {
-          rating = U.row(user).dot(V.row(item)) + uBias(user) + iBias(item);
-          ratSum += rating;
-          ratSqrSum += rating*rating;
-          sumItemFactors += V.row(item);
-          ratWtSumItemFactors += rating*V.row(item);
-        }
-        mean = ratSum/setSz;
-        var = ratSqrSum/setSz - mean*mean;
-        r_us_est = mean;
-
-        if (var > EPS) {
-          stdDev = std::sqrt(var); //TODO: investigate sqrt(var +  gamma)
-          varCoeff = 0.5/stdDev;
-        }
-        r_us_est += uDivWt(user)*(gamma + stdDev); //TODO: investigate sqrt(gamma + var)
-
-        //user gradient
-        grad = (sumItemFactors/setSz) 
-          + ((uDivWt(user)*varCoeff/setSz) * 2.0 * ratWtSumItemFactors) 
-          - ((uDivWt(user)*varCoeff/(setSz*setSz)) * 2.0 * ratSum * sumItemFactors); 
-        grad *= 2.0*(r_us_est - r_us); 
-        grad += 2.0*uReg*U.row(user).transpose();
-        
-        tempFac = U.row(user);
-
-        //update user
-        U.row(user) -= learnRate*(grad.transpose());
-        
-        //update items
-        grad = (2.0*(r_us_est - r_us)/setSz)*U.row(user);
-        float temp;
-        for (auto&& item: items) {
-          temp = 1;
-          temp += uDivWt(user)*varCoeff * 2 * tempFac.dot(V.row(item));
-          temp -= ((uDivWt(user)*varCoeff)/setSz) * 2 * ratSum;
-          tempGrad = temp*grad + 2.0*iReg*V.row(item).transpose(); 
-          V.row(item) -= learnRate*(tempGrad.transpose());
-        }
-        
-        //update user weight
-        uDivWt(user) -= learnRate*(2.0*(r_us_est - r_us)*(gamma + stdDev) 
-          + 2.0*uSetBiasReg*uDivWt(user));
-
-        //update user bias
-        uBias(user) -= learnRate*(2.0*(r_us_est - r_us) + 2.0*uBiasReg*uBias(user));
-
-        //update item bias
-        for (auto&& item: items) {
-          temp = 2*uDivWt(user)*varCoeff/setSz;
-          temp = temp*((uBias(user) + iBias(item) + U.row(user).dot(V.row(item))) - mean);
-          temp += 1.0/setSz;
-          iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*temp + 2.0*uBiasReg*uBias(user));
-        }
-
+    std::shuffle(uSetInds.begin(), uSetInds.end(), mt);
+    for (const auto& uSetInd: uSetInds) {
+      int uInd = uSetInd.first;
+      int setInd = uSetInd.second;
+      const UserSets& uSet = data.trainSets[uInd];
+      int user = uSet.user;
+            
+      if (uSet.itemSets.size() == 0) {
+        std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
+        continue;
       }
+
+      auto items = uSet.itemSets[setInd].first;
+      const float r_us = uSet.itemSets[setInd].second;
+      const int setSz = items.size();
+
+      if (setSz == 0) {
+        std::cerr << "!! zero size itemset found !!" << std::endl; 
+        continue;
+      }
+        
+      //estimate rating on the set
+      float r_us_est = 0;
+      float ratSum = 0;
+      float ratSqrSum = 0;
+      float rating = 0;
+      float mean, var, stdDev = EPS, varCoeff = 0;
+      //compute sum of item latent factors
+      sumItemFactors.fill(0);   
+      ratWtSumItemFactors.fill(0);
+      for (auto item: items) {
+        rating = U.row(user).dot(V.row(item)) + uBias(user) + iBias(item);
+        ratSum += rating;
+        ratSqrSum += rating*rating;
+        sumItemFactors += V.row(item);
+        ratWtSumItemFactors += rating*V.row(item);
+      }
+      mean = ratSum/setSz;
+      var = ratSqrSum/setSz - mean*mean;
+      r_us_est = mean;
+
+      if (var > EPS) {
+        stdDev = std::sqrt(var); //TODO: investigate sqrt(var +  gamma)
+        varCoeff = 0.5/stdDev;
+      }
+      r_us_est += uDivWt(user)*(gamma + stdDev); //TODO: investigate sqrt(gamma + var)
+
+      //user gradient
+      grad = (sumItemFactors/setSz) 
+        + ((uDivWt(user)*varCoeff/setSz) * 2.0 * ratWtSumItemFactors) 
+        - ((uDivWt(user)*varCoeff/(setSz*setSz)) * 2.0 * ratSum * sumItemFactors); 
+      grad *= 2.0*(r_us_est - r_us); 
+      grad += 2.0*uReg*U.row(user).transpose();
+      
+      tempFac = U.row(user);
+
+      //update user
+      U.row(user) -= learnRate*(grad.transpose());
+      
+      //update items
+      grad = (2.0*(r_us_est - r_us)/setSz)*U.row(user);
+      float temp;
+      for (auto&& item: items) {
+        temp = 1;
+        temp += uDivWt(user)*varCoeff * 2 * tempFac.dot(V.row(item));
+        temp -= ((uDivWt(user)*varCoeff)/setSz) * 2 * ratSum;
+        tempGrad = temp*grad + 2.0*iReg*V.row(item).transpose(); 
+        V.row(item) -= learnRate*(tempGrad.transpose());
+      }
+      
+      //update user weight
+      uDivWt(user) -= learnRate*(2.0*(r_us_est - r_us)*(gamma + stdDev) 
+        + 2.0*uSetBiasReg*uDivWt(user));
+
+      //update user bias
+      uBias(user) -= learnRate*(2.0*(r_us_est - r_us) + 2.0*uBiasReg*uBias(user));
+
+      //update item bias
+      for (auto&& item: items) {
+        temp = 2*uDivWt(user)*varCoeff/setSz;
+        temp = temp*((uBias(user) + iBias(item) + U.row(user).dot(V.row(item))) - mean);
+        temp += 1.0/setSz;
+        iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*temp + 2.0*uBiasReg*uBias(user));
+      }
+
     }    
   
     if (params.isMixRat) {

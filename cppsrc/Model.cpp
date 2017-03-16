@@ -2123,7 +2123,8 @@ bool Model::isTerminateModelWPartIRMSE(Model& bestModel,
       if (learnRate > 5e-4) {
         std::cout << "Changing learn rate from: " << learnRate;
         learnRate = learnRate/2;
-        std::cout << " to: " << learnRate << std::endl; 
+        std::cout << " to: " << learnRate << std::endl;
+        bestIter = iter;
       }
     } 
 
@@ -2143,18 +2144,7 @@ bool Model::isTerminateModelWPartIRMSE(Model& bestModel,
         << " bestValRMSE:" << bestValRMSE;
       ret = true;
     }
-    
      
-    /*
-    if (fabs(prevValRMSE - currValRMSE) < EPS) {
-      //Validation rmse converged
-      std::cout << "CONVERGED VAL: bestIter:" << bestIter << " bestObj:" 
-        << bestObj << " bestValRMSE: " << bestValRMSE << " currIter:"
-        << iter << " currObj: " << currObj << " currValRMSE:" 
-        << currValRMSE << std::endl;
-      ret = true;
-    }
-    */
   }
   
   if (0 == iter) {

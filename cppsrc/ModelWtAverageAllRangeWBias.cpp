@@ -493,6 +493,8 @@ void ModelWtAverageAllRangeWBias::trainQPSmooth(const Data& data, const Params& 
   std::cout << "Max num sets: " << maxNumSets << std::endl;
   std::uniform_int_distribution<int> dist(0, maxNumSets);
 
+  auto uSetInds = getUserSetInds(data.trainSets);
+
   if (params.isMixRat) {
     std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
     updateFacBiasUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg, 
@@ -503,105 +505,100 @@ void ModelWtAverageAllRangeWBias::trainQPSmooth(const Data& data, const Params& 
 
   for (int iter = 0; iter < params.maxIter; iter++) {
 
-    std::shuffle(uInds.begin(), uInds.end(), mt);
     nUserCh = 0;
+    std::shuffle(uSetInds.begin(), uSetInds.end(), mt);
     
-    for (int subIter = 0; subIter < data.nTrainSets/nTrUsers; subIter++) {
-      for (auto&& uInd: uInds) {
-        const UserSets& uSet = data.trainSets[uInd];
-        int user = uSet.user;
-              
-        if (uSet.itemSets.size() == 0) {
-          std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
-          continue;
-        }
-        //select a set at random
-        int setInd = dist(mt) % uSet.itemSets.size();
-        const auto& items = uSet.itemSets[setInd].first;
-        const float r_us = uSet.itemSets[setInd].second;
+    for (const auto& uSetInd: uSetInds) {
+      int uInd = uSetInd.first;
+      int setInd = uSetInd.second;
+    
+      const UserSets& uSet = data.trainSets[uInd];
+      int user = uSet.user;
+            
+      const auto& items = uSet.itemSets[setInd].first;
+      const float r_us = uSet.itemSets[setInd].second;
 
-        if (items.size() == 0) {
-          std::cerr << "!! zero size itemset found !!" << std::endl; 
-          continue;
-        }
-        
-        int setSz = items.size();
-        
-        //get predictions
-        for (int i = 0; i < setSz; i++) {
-          int item = items[i];
-          setItemRatings[i] = std::make_pair(item, estItemRating(user, item));
-        }
-        //sort predictions
-        std::sort(setItemRatings.begin(), setItemRatings.end(), ascComp);
-        
-        float r_us_est = 0;
-        float cumSum = 0;
-        float sumWt = 0;
-        cumFac.fill(0);
-        grad.fill(0);
-        //accumulate sums from beginning
-        for (int i = 0; i < setSz; i++) {
-          cumSum += setItemRatings[i].second;
-          cumFac += V.row(setItemRatings[i].first);
-          r_us_est += UWts(user, i)*cumSum/(i+1);
-          grad     += UWts(user, i)*cumFac/(i+1);
-          sumWt    += UWts(user, i);
-        }
-
-        //accumulate sums from end
-        for (int i = 0; i < setSz-1; i++) {
-          cumSum -= setItemRatings[i].second;
-          cumFac -= V.row(setItemRatings[i].first);
-          r_us_est += UWts(user, setSz + i)*cumSum/(setSz-(i+1));
-          grad     += UWts(user, setSz + i)*cumFac/(setSz-(i+1));
-          sumWt    += UWts(user, setSz + i);
-        }
-
-        
-        grad *= 2.0*(r_us_est - r_us);
-        grad += 2.0*uReg*U.row(user).transpose();
-
-        //update user
-        //U.row(user) -= learnRate*(grad.transpose());
-        RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
-        
-        //update user bias
-        biasGrad = (2.0*(r_us_est - r_us)*sumWt) + 2.0*uBiasReg*uBias(user);
-        uBiasGradSqAvg(user) = 0.9*uBiasGradSqAvg(user) + 0.1*biasGrad*biasGrad;
-        uBias(user) -= (learnRate/std::sqrt(uBiasGradSqAvg(user) + 1e-8))*biasGrad;
-
-        //update items
-        float iBiasGrad;
-        grad = 2.0*(r_us_est - r_us)*U.row(user);
-        for (int i = 0; i < setSz; i++) {
-          int item = setItemRatings[i].first;
-          tempGrad = 2.0*iReg*V.row(item).transpose();
-          sumWt = 0;
-          int buckSz = 0;
-          for (int j = i; j < i+5; j++) {
-            if (j < 5) {
-              buckSz = j + 1;
-              sumWt += UWts(user, j)/buckSz;
-            } else {
-              buckSz--;
-              sumWt += UWts(user, j)/buckSz;
-            }
-          }
-          
-          tempGrad += grad*sumWt;
-          iBiasGrad = sumWt;
-
-          //update item factor
-          //V.row(item) -= learnRate*(tempGrad.transpose());
-          RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
-          //update item bias
-          biasGrad = 2.0*(r_us_est - r_us)*iBiasGrad + 2.0*iBiasReg*iBias(item);
-          iBiasGradSqAvg(item) = 0.9*iBiasGradSqAvg(item) + 0.1*biasGrad*biasGrad;
-          iBias(item) -= (learnRate/std::sqrt(iBiasGradSqAvg(item) + 1e-8))*biasGrad; 
-        }
-        
+      if (items.size() == 0) {
+        std::cerr << "!! zero size itemset found !!" << std::endl; 
+        continue;
       }
+      
+      int setSz = items.size();
+      
+      //get predictions
+      for (int i = 0; i < setSz; i++) {
+        int item = items[i];
+        setItemRatings[i] = std::make_pair(item, estItemRating(user, item));
+      }
+      //sort predictions
+      std::sort(setItemRatings.begin(), setItemRatings.end(), ascComp);
+      
+      float r_us_est = 0;
+      float cumSum = 0;
+      float sumWt = 0;
+      cumFac.fill(0);
+      grad.fill(0);
+      //accumulate sums from beginning
+      for (int i = 0; i < setSz; i++) {
+        cumSum += setItemRatings[i].second;
+        cumFac += V.row(setItemRatings[i].first);
+        r_us_est += UWts(user, i)*cumSum/(i+1);
+        grad     += UWts(user, i)*cumFac/(i+1);
+        sumWt    += UWts(user, i);
+      }
+
+      //accumulate sums from end
+      for (int i = 0; i < setSz-1; i++) {
+        cumSum -= setItemRatings[i].second;
+        cumFac -= V.row(setItemRatings[i].first);
+        r_us_est += UWts(user, setSz + i)*cumSum/(setSz-(i+1));
+        grad     += UWts(user, setSz + i)*cumFac/(setSz-(i+1));
+        sumWt    += UWts(user, setSz + i);
+      }
+
+      
+      grad *= 2.0*(r_us_est - r_us);
+      grad += 2.0*uReg*U.row(user).transpose();
+
+      //update user
+      //U.row(user) -= learnRate*(grad.transpose());
+      RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
+      
+      //update user bias
+      biasGrad = (2.0*(r_us_est - r_us)*sumWt) + 2.0*uBiasReg*uBias(user);
+      uBiasGradSqAvg(user) = 0.9*uBiasGradSqAvg(user) + 0.1*biasGrad*biasGrad;
+      uBias(user) -= (learnRate/std::sqrt(uBiasGradSqAvg(user) + 1e-8))*biasGrad;
+
+      //update items
+      float iBiasGrad;
+      grad = 2.0*(r_us_est - r_us)*U.row(user);
+      for (int i = 0; i < setSz; i++) {
+        int item = setItemRatings[i].first;
+        tempGrad = 2.0*iReg*V.row(item).transpose();
+        sumWt = 0;
+        int buckSz = 0;
+        for (int j = i; j < i+5; j++) {
+          if (j < 5) {
+            buckSz = j + 1;
+            sumWt += UWts(user, j)/buckSz;
+          } else {
+            buckSz--;
+            sumWt += UWts(user, j)/buckSz;
+          }
+        }
+        
+        tempGrad += grad*sumWt;
+        iBiasGrad = sumWt;
+
+        //update item factor
+        //V.row(item) -= learnRate*(tempGrad.transpose());
+        RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
+        //update item bias
+        biasGrad = 2.0*(r_us_est - r_us)*iBiasGrad + 2.0*iBiasReg*iBias(item);
+        iBiasGradSqAvg(item) = 0.9*iBiasGradSqAvg(item) + 0.1*biasGrad*biasGrad;
+        iBias(item) -= (learnRate/std::sqrt(iBiasGradSqAvg(item) + 1e-8))*biasGrad; 
+      }
+        
     }
 
     if (params.isMixRat) {
@@ -815,7 +812,7 @@ void ModelWtAverageAllRangeWBias::trainQPSmooth(const Data& data, const Params& 
         break;
       }
       */
-      if (iter%100 == 0 || iter == params.maxIter - 1) {
+      if (iter % 250 == 0 || iter == params.maxIter - 1) {
         std::cout << "Iter:" << iter << " obj:" << prevObj  
           << " best Obj: " << bestObj << " val: " << prevValRMSE 
           << " best val: " << bestValRMSE 
@@ -831,9 +828,9 @@ void ModelWtAverageAllRangeWBias::trainQPSmooth(const Data& data, const Params& 
 
   }
   
-  /*
+  
   float hits = 0, count = 0, diff = 0, avgExSetRMSE = 0, avgEstExSetRMSE = 0; 
-  std::ofstream opFile("user_weights_esqp.txt");
+  //std::ofstream opFile("user_weights_esqp.txt");
   for (const auto& userSets: data.trainSets) {
     
     int user = userSets.user;
@@ -848,28 +845,29 @@ void ModelWtAverageAllRangeWBias::trainQPSmooth(const Data& data, const Params& 
         maxWtInd = i;
       }
     }
+    
+    float estExSetRMSE = estUExSetRMSE(userSets, maxWtInd);
+    avgEstExSetRMSE += estExSetRMSE;
 
     int isHit = 0;
-    if (maxWtInd == exSetInd) {
+    if (maxWtInd == exSetInd || fabs(estExSetRMSE - avgEstExSetRMSE) <= 0.001) {
        hits += 1;
        isHit = 1;
     }
     count += 1;
 
-    float estExSetRMSE = estUExSetRMSE(userSets, maxWtInd);
-    avgEstExSetRMSE += estExSetRMSE;
     
     diff += fabs(exSetRMSE - estExSetRMSE);
-    opFile << user << " " << exSetInd << " " << maxWtInd << " " 
-      << exSetRMSE << " " << estExSetRMSE << " " << userSets.itemSets.size()
-      << std::endl;
+    //opFile << user << " " << exSetInd << " " << maxWtInd << " " 
+    //  << exSetRMSE << " " << estExSetRMSE << " " << userSets.itemSets.size()
+    //  << std::endl;
   }
-  opFile.close();
+  //opFile.close();
   std::cout << "Fraction of user hits: " << hits/count << std::endl;
   std::cout << "Avg diff b/w orig & est exSet: " << diff/count << std::endl;
   std::cout << "avgExSetRMSE: " << avgExSetRMSE/count 
     << " avgEstExSetRMSE: " << avgEstExSetRMSE/count << std::endl;
-  */
+  
 }
 
 

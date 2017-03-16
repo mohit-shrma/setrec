@@ -751,5 +751,15 @@ std::vector<float> meanSubtractedItemRating(gk_csr_t *mat, float globalMean) {
 } 
 
 
+std::vector<std::pair<int, int>> getUserSetInds(const std::vector<UserSets>& uSets) {
+  std::vector<std::pair<int, int>> uSetInds;
+  for (int uInd = 0; uInd < uSets.size(); uInd++) {
+    int nSets = uSets[uInd].itemSets.size();
+    for (int j = 0; j < nSets; j++) {
+      uSetInds.push_back(std::make_pair(uInd, j));
+    }
+  }
+  return uSetInds;
+}
 
 

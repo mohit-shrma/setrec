@@ -1065,12 +1065,9 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
   std::vector<int> uUpdCount(nUsers, 0);
   std::vector<int> itemUpdCount(nItems, 0);
 
-  Eigen::MatrixXf UGradAvg(nUsers, facDim);
-  Eigen::MatrixXf VGradAvg(nItems, facDim);
   Eigen::MatrixXf UGradSqAvg(nUsers, facDim);
   Eigen::MatrixXf VGradSqAvg(nItems, facDim);
 
-  UGradAvg.fill(0); VGradAvg.fill(0);
   UGradSqAvg.fill(0); VGradSqAvg.fill(0);
   
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
@@ -1130,6 +1127,7 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
   }
   */ 
 
+  auto uSetInds = getUserSetInds(data.trainSets);
   int nUserCh = 0;
 
   if (params.isMixRat) {
@@ -1139,107 +1137,104 @@ void ModelWtAverageAllRange::trainQPSmooth(const Data& data, const Params& param
 
   for (int iter = 0; iter < params.maxIter; iter++) {
 
-    std::shuffle(uInds.begin(), uInds.end(), mt);
-   
     nUserCh = 0;
+    std::shuffle(uSetInds.begin(), uSetInds.end(), mt);
+    for (const auto& uSetInd: uSetInds) {
+      int uInd = uSetInd.first;
+      int setInd = uSetInd.second;
 
-    for (int subIter = 0; subIter < data.nTrainSets/nTrUsers; subIter++) {
-      for (auto&& uInd: uInds) {
-        const UserSets& uSet = data.trainSets[uInd];
-        int user = uSet.user;
-              
-        if (uSet.itemSets.size() == 0) {
-          std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
-          continue;
-        }
-        //select a set at random
-        int setInd = dist(mt) % uSet.itemSets.size();
-        const auto& items = uSet.itemSets[setInd].first;
-        const float r_us = uSet.itemSets[setInd].second;
-
-        if (items.size() == 0) {
-          std::cerr << "!! zero size itemset found !!" << std::endl; 
-          continue;
-        }
-        
-        int setSz = items.size();
-        
-        //get predictions
-        for (int i = 0; i < setSz; i++) {
-          int item = items[i];
-          setItemRatings[i] = std::make_pair(item, estItemRating(user, item));
-        }
-        //sort predictions
-        std::sort(setItemRatings.begin(), setItemRatings.end(), ascComp);
-        
-        float r_us_est = 0;
-        float cumSum = 0;
-        float sumWt = 0;
-        cumFac.fill(0);
-        grad.fill(0);
-        //accumulate sums from beginning
-        for (int i = 0; i < setSz; i++) {
-          cumSum += setItemRatings[i].second;
-          cumFac += V.row(setItemRatings[i].first);
-          r_us_est += UWts(user, i)*cumSum/(i+1);
-          grad     += UWts(user, i)*cumFac/(i+1);
-          sumWt    += UWts(user, i);
-        }
-
-        //accumulate sums from end
-        for (int i = 0; i < setSz-1; i++) {
-          cumSum -= setItemRatings[i].second;
-          cumFac -= V.row(setItemRatings[i].first);
-          r_us_est += UWts(user, setSz + i)*cumSum/(setSz-(i+1));
-          grad     += UWts(user, setSz + i)*cumFac/(setSz-(i+1));
-          sumWt    += UWts(user, setSz + i);
-        }
-
-        
-        grad *= 2.0*(r_us_est - r_us);
-        grad += 2.0*uReg*U.row(user).transpose();
-
-        //update user
-        //U.row(user) -= learnRate*(grad.transpose());
-        //ADAMUpdate(U, user, UGradAvg, UGradSqAvg, grad, 0.9, 0.999, learnRate, uUpdCount[user]);
-        //uUpdCount[user]++;
-        RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
-
-        //update user bias
-        //uBias(user) -= learnRate*((2.0*(r_us_est - r_us)*sumWt) + 2.0*uBiasReg*uBias(user));
-
-        //update items
-        float iBiasGrad;
-        grad = 2.0*(r_us_est - r_us)*U.row(user);
-        for (int i = 0; i < setSz; i++) {
-          int item = setItemRatings[i].first;
-          tempGrad = 2.0*iReg*V.row(item).transpose();
-          sumWt = 0;
-          int buckSz = 0;
-          for (int j = i; j < i+5; j++) {
-            if (j < 5) {
-              buckSz = j + 1;
-              sumWt += UWts(user, j)/buckSz;
-            } else {
-              buckSz--;
-              sumWt += UWts(user, j)/buckSz;
-            }
-          }
-          
-          tempGrad += grad*sumWt;
-          iBiasGrad = sumWt;
-
-          //update item factor
-          //V.row(item) -= learnRate*(tempGrad.transpose());
-          //ADAMUpdate(V, item, VGradAvg, VGradSqAvg, tempGrad, 0.9, 0.999, learnRate, itemUpdCount[item]);
-          //itemUpdCount[item]++;
-          RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
-          //update item bias
-          //iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*iBiasGrad
-          //                          + 2.0*iBiasReg*iBias(item));
-        }
-        
+      const UserSets& uSet = data.trainSets[uInd];
+      int user = uSet.user;
+            
+      if (uSet.itemSets.size() == 0) {
+        std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
+        continue;
       }
+      const auto& items = uSet.itemSets[setInd].first;
+      const float r_us = uSet.itemSets[setInd].second;
+
+      if (items.size() == 0) {
+        std::cerr << "!! zero size itemset found !!" << std::endl; 
+        continue;
+      }
+      
+      int setSz = items.size();
+      
+      //get predictions
+      for (int i = 0; i < setSz; i++) {
+        int item = items[i];
+        setItemRatings[i] = std::make_pair(item, estItemRating(user, item));
+      }
+      //sort predictions
+      std::sort(setItemRatings.begin(), setItemRatings.end(), ascComp);
+      
+      float r_us_est = 0;
+      float cumSum = 0;
+      float sumWt = 0;
+      cumFac.fill(0);
+      grad.fill(0);
+      //accumulate sums from beginning
+      for (int i = 0; i < setSz; i++) {
+        cumSum += setItemRatings[i].second;
+        cumFac += V.row(setItemRatings[i].first);
+        r_us_est += UWts(user, i)*cumSum/(i+1);
+        grad     += UWts(user, i)*cumFac/(i+1);
+        sumWt    += UWts(user, i);
+      }
+
+      //accumulate sums from end
+      for (int i = 0; i < setSz-1; i++) {
+        cumSum -= setItemRatings[i].second;
+        cumFac -= V.row(setItemRatings[i].first);
+        r_us_est += UWts(user, setSz + i)*cumSum/(setSz-(i+1));
+        grad     += UWts(user, setSz + i)*cumFac/(setSz-(i+1));
+        sumWt    += UWts(user, setSz + i);
+      }
+
+      
+      grad *= 2.0*(r_us_est - r_us);
+      grad += 2.0*uReg*U.row(user).transpose();
+
+      //update user
+      //U.row(user) -= learnRate*(grad.transpose());
+      //ADAMUpdate(U, user, UGradAvg, UGradSqAvg, grad, 0.9, 0.999, learnRate, uUpdCount[user]);
+      //uUpdCount[user]++;
+      RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
+
+      //update user bias
+      //uBias(user) -= learnRate*((2.0*(r_us_est - r_us)*sumWt) + 2.0*uBiasReg*uBias(user));
+
+      //update items
+      float iBiasGrad;
+      grad = 2.0*(r_us_est - r_us)*U.row(user);
+      for (int i = 0; i < setSz; i++) {
+        int item = setItemRatings[i].first;
+        tempGrad = 2.0*iReg*V.row(item).transpose();
+        sumWt = 0;
+        int buckSz = 0;
+        for (int j = i; j < i+5; j++) {
+          if (j < 5) {
+            buckSz = j + 1;
+            sumWt += UWts(user, j)/buckSz;
+          } else {
+            buckSz--;
+            sumWt += UWts(user, j)/buckSz;
+          }
+        }
+        
+        tempGrad += grad*sumWt;
+        iBiasGrad = sumWt;
+
+        //update item factor
+        //V.row(item) -= learnRate*(tempGrad.transpose());
+        //ADAMUpdate(V, item, VGradAvg, VGradSqAvg, tempGrad, 0.9, 0.999, learnRate, itemUpdCount[item]);
+        //itemUpdCount[item]++;
+        RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
+        //update item bias
+        //iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*iBiasGrad
+        //                          + 2.0*iBiasReg*iBias(item));
+      }
+      
     }
 
     if (params.isMixRat) {
