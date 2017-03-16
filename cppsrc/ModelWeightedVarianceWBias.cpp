@@ -32,6 +32,14 @@ void ModelWeightedVarianceWBias::train(const Data& data, const Params& params,
   Eigen::VectorXf tempFac(facDim);
   float bestObj, prevObj, bestValRMSE, prevValRMSE;
   int bestIter;
+  
+  Eigen::VectorXf uDivWtSqAvg(nUsers);
+  Eigen::MatrixXf UGradSqAvg(nUsers, facDim);
+  Eigen::MatrixXf VGradSqAvg(nItems, facDim);
+  Eigen::VectorXf uBiasGradSqAvg(nUsers);
+  Eigen::VectorXf iBiasGradSqAvg(nItems);
+  UGradSqAvg.fill(0); VGradSqAvg.fill(0);
+  uBiasGradSqAvg.fill(0); iBiasGradSqAvg.fill(0); uDivWtSqAvg.fill(0); 
 
   std::vector<int> uInds(data.trainSets.size());
   std::iota(uInds.begin(), uInds.end(), 0);
@@ -63,7 +71,8 @@ void ModelWeightedVarianceWBias::train(const Data& data, const Params& params,
   
   if (params.isMixRat) {
     std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-    updateFacBiasUsingRatMat(partUIRatingsTup);
+    updateFacBiasUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg, 
+        uBiasGradSqAvg, iBiasGradSqAvg);
   }
 
   for (int iter = 0; iter < params.maxIter; iter++) {
@@ -124,8 +133,22 @@ void ModelWeightedVarianceWBias::train(const Data& data, const Params& params,
       tempFac = U.row(user);
 
       //update user
-      U.row(user) -= learnRate*(grad.transpose());
+      //U.row(user) -= learnRate*(grad.transpose());
+      RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
       
+      //update user bias
+      float biasGrad = 2.0*(r_us_est - r_us) + 2.0*uBiasReg*uBias(user); 
+      uBiasGradSqAvg(user) = 0.9*uBiasGradSqAvg(user) + 0.1*biasGrad*biasGrad;
+      uBias(user) -= (learnRate/std::sqrt(uBiasGradSqAvg(user) + 1e-8))*biasGrad;
+ 
+      //update user weight
+      float uDivWtGrad = 2.0*(r_us_est - r_us)*(gamma + stdDev) 
+        + 2.0*uSetBiasReg*uDivWt(user);
+      //uDivWt(user) -= learnRate*(uDivWtGrad);
+      uDivWtSqAvg(user) = 0.9*uDivWtSqAvg(user) + 0.1*uDivWtGrad*uDivWtGrad;
+      uDivWt(user) -= (learnRate/(std::sqrt(uDivWtSqAvg(user) + 1e-8)))*uDivWtGrad;
+
+     
       //update items
       grad = (2.0*(r_us_est - r_us)/setSz)*U.row(user);
       float temp;
@@ -134,34 +157,31 @@ void ModelWeightedVarianceWBias::train(const Data& data, const Params& params,
         temp += uDivWt(user)*varCoeff * 2 * tempFac.dot(V.row(item));
         temp -= ((uDivWt(user)*varCoeff)/setSz) * 2 * ratSum;
         tempGrad = temp*grad + 2.0*iReg*V.row(item).transpose(); 
-        V.row(item) -= learnRate*(tempGrad.transpose());
+        //V.row(item) -= learnRate*(tempGrad.transpose());
+         RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
       }
       
-      //update user weight
-      uDivWt(user) -= learnRate*(2.0*(r_us_est - r_us)*(gamma + stdDev) 
-        + 2.0*uSetBiasReg*uDivWt(user));
-
-      //update user bias
-      uBias(user) -= learnRate*(2.0*(r_us_est - r_us) + 2.0*uBiasReg*uBias(user));
-
       //update item bias
       for (auto&& item: items) {
         temp = 2*uDivWt(user)*varCoeff/setSz;
         temp = temp*((uBias(user) + iBias(item) + U.row(user).dot(V.row(item))) - mean);
         temp += 1.0/setSz;
-        iBias(item) -= learnRate*(2.0*(r_us_est - r_us)*temp + 2.0*uBiasReg*uBias(user));
+        biasGrad = 2.0*(r_us_est - r_us)*temp + 2.0*iBiasReg*iBias(item);
+        iBiasGradSqAvg(item) = 0.9*iBiasGradSqAvg(item) + 0.1*biasGrad*biasGrad;
+        iBias(item) -= (learnRate/std::sqrt(iBiasGradSqAvg(item) + 1e-8))*biasGrad; 
       }
 
     }    
   
     if (params.isMixRat) {
       std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
-      updateFacBiasUsingRatMat(partUIRatingsTup);
+      updateFacBiasUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg, 
+          uBiasGradSqAvg, iBiasGradSqAvg);
     }
     
     //objective check
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
-      /*
+      
       if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
             bestObj, prevObj, bestValRMSE, prevValRMSE))) {
         break;
@@ -173,22 +193,24 @@ void ModelWeightedVarianceWBias::train(const Data& data, const Params& params,
         //bestModel.save(params.prefix);
         break;
       }
-      */ 
+       
       
+      /*
       if (isTerminateModel(bestModel, data, iter, bestIter,
             bestObj, prevObj, bestValRMSE, prevValRMSE)) {
         break;
       }
-      
+      */
 
-      if (iter % 100 == 0 || iter == params.maxIter - 1) {
-        std::cout << "Iter:" << iter << " obj:" << prevObj << " val RMSE: " 
-          << prevValRMSE << " best val RMSE:" << bestValRMSE 
-          << " train RMSE:" << rmse(data.trainSets) 
-          << " train ratings RMSE: " << rmse(data.trainSets, data.ratMat) 
-          << " test ratings RMSE: " << rmse(data.testSets, data.ratMat)
+      if (iter % 250 == 0 || iter == params.maxIter - 1) {
+        std::cout << "Iter:" << iter << " obj:" << prevObj << " val: " 
+          << prevValRMSE << " best val:" << bestValRMSE 
+          << " train:" << rmse(data.trainSets) 
+          << " train ratings: " << rmse(data.trainSets, data.ratMat) 
+          << " test ratings: " << rmse(data.testSets, data.ratMat)
           << " U norm: " << U.norm() << " V norm: " << V.norm() 
           << " uDivWt norm: " << uDivWt.norm()
+          << " bestIter: " << bestIter
           << std::endl;
       }
 

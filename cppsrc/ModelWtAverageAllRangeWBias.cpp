@@ -494,6 +494,7 @@ void ModelWtAverageAllRangeWBias::trainQPSmooth(const Data& data, const Params& 
   std::uniform_int_distribution<int> dist(0, maxNumSets);
 
   auto uSetInds = getUserSetInds(data.trainSets);
+  std::cout << "Users sets ind pairs: " << uSetInds.size() << std::endl;
 
   if (params.isMixRat) {
     std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);

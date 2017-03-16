@@ -2066,6 +2066,7 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
       ret = true;
     }
     
+    /* 
     if (fabs(prevObj - currObj) < EPS) {
       //objective converged
       std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
@@ -2079,6 +2080,7 @@ bool Model::isTerminateModel(Model& bestModel, const Data& data, int iter,
         ret = false;
       }
     }
+    */
    
     if (std::isnan(currObj)) {
       std::cout << "Found NaN obj: " << currObj << std::endl;
@@ -2137,14 +2139,21 @@ bool Model::isTerminateModelWPartIRMSE(Model& bestModel,
       ret = true;
     }
     
-    
+    /*
     if (fabs(prevObj - currObj) < EPS) {
       //objective converged
-      std::cout << "CONVERGED OBJ:" << iter << " currObj:" << currObj 
-        << " bestValRMSE:" << bestValRMSE;
+      std::cout << "CONVERGED OBJ: " << iter << " currObj:" << currObj 
+        << " bestValRMSE:" << bestValRMSE << std::endl;
       ret = true;
+      if (learnRate > 5e-4) {
+        std::cout << "Changing learn rate from: " << learnRate;
+        learnRate = learnRate/2;
+        std::cout << " to: " << learnRate << std::endl;
+        bestIter = iter;
+        ret = false;
+      }
     }
-     
+    */ 
   }
   
   if (0 == iter) {
