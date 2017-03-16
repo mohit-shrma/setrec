@@ -183,7 +183,7 @@ void ModelWeightedVarianceWBias::train(const Data& data, const Params& params,
     if (iter % OBJ_ITER == 0 || iter == params.maxIter-1) {
       
       if ((!params.isMixRat && isTerminateModel(bestModel, data, iter, bestIter,
-            bestObj, prevObj, bestValRMSE, prevValRMSE))) {
+            bestObj, prevObj, bestValRMSE, prevValRMSE, false))) {
         break;
         //save best model
         //bestModel.save(params.prefix);
