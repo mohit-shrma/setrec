@@ -49,52 +49,56 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
   std::mt19937 mt(params.seed);
   std::uniform_int_distribution<int> dist(0, 1000);
 
-  for (int iter = 0; iter < params.maxIter; iter++) {
-    std::shuffle(uInds.begin(), uInds.end(), mt);
-    for (int i = 0; i < data.nTrainSets/nTrUsers; i++) {
-      for (auto&& uInd: uInds) {
-        UserSets uSet = data.trainSets[uInd];
-        int user = uSet.user;
-              
-        if (uSet.itemSets.size() == 0) {
-          std::cerr << "!! zero size user itemset foundi !! " << user << std::endl; 
-          continue;
-        }
-        //select a set at random
-        int setInd = dist(mt) % uSet.itemSets.size();
-        auto items = uSet.itemSets[setInd].first;
-        float r_us = uSet.itemSets[setInd].second;
-        int setSz = items.size();
-
-        if (setSz == 0) {
-          std::cerr << "!! zero size itemset foundi !!" << std::endl; 
-          continue;
-        }
+  auto uSetInds = getUserSetInds(data.trainSets);
+  if (params.isMixRat) {
+    std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
+    updateFacUsingRatMatRMSProp(partUIRatingsTup, UGradSqAvg, VGradSqAvg);
+  }
   
-        //estimate rating on the set
-        float r_us_est = 0;
+  for (int iter = 0; iter < params.maxIter; iter++) {
+    std::shuffle(uSetInds.begin(), uSetInds.end(), mt);
+    for (const auto& uSetInd: uSetInds) {
+      int uInd = uSetInd.first;
+      int setInd = uSetInd.second;
+      UserSets uSet = data.trainSets[uInd];
+      int user = uSet.user;
+            
+      if (uSet.itemSets.size() == 0) {
+        std::cerr << "!! zero size user itemset foundi !! " << user << std::endl; 
+        continue;
+      }
+      auto items = uSet.itemSets[setInd].first;
+      float r_us = uSet.itemSets[setInd].second;
+      int setSz = items.size();
 
-        //compute sum of item latent factors
-        sumItemFactors.fill(0);    
-        for (auto item: items) {
-          sumItemFactors += V.row(item);
-        }
-        r_us_est += (U.row(user).dot(sumItemFactors)) / setSz;
+      if (setSz == 0) {
+        std::cerr << "!! zero size itemset foundi !!" << std::endl; 
+        continue;
+      }
 
-        //user gradient
-        grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
-                + (2.0*uReg)*U.row(user).transpose();
-        //update user
-        //U.row(user) -= learnRate*(grad.transpose());
-        RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
+      //estimate rating on the set
+      float r_us_est = 0;
 
-        //update items
-        grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
-        for (auto&& item: items) {
-          tempGrad = grad + (2.0*iReg)*V.row(item).transpose(); 
-          //V.row(item) -= learnRate*(tempGrad.transpose());
-          RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
-        }
+      //compute sum of item latent factors
+      sumItemFactors.fill(0);    
+      for (auto item: items) {
+        sumItemFactors += V.row(item);
+      }
+      r_us_est += (U.row(user).dot(sumItemFactors)) / setSz;
+
+      //user gradient
+      grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
+              + (2.0*uReg)*U.row(user).transpose();
+      //update user
+      //U.row(user) -= learnRate*(grad.transpose());
+      RMSPropUpdate(U, user, UGradSqAvg, grad, learnRate, 0.9);
+
+      //update items
+      grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
+      for (auto&& item: items) {
+        tempGrad = grad + (2.0*iReg)*V.row(item).transpose(); 
+        //V.row(item) -= learnRate*(tempGrad.transpose());
+        RMSPropUpdate(V, item, VGradSqAvg, tempGrad, learnRate, 0.9);
       }
     }
 

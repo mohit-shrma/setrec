@@ -83,57 +83,61 @@ void ModelAverageWBias::train(const Data& data, const Params& params,
   std::mt19937 mt(params.seed);
   std::uniform_int_distribution<int> dist(0, 1000);
 
+  auto uSetInds = getUserSetInds(data.trainSets);
+  if (params.isMixRat) {
+    std::shuffle(partUIRatingsTup.begin(), partUIRatingsTup.end(), mt);
+    updateFacBiasUsingRatMat(partUIRatingsTup);
+  }
+
   for (int iter = 0; iter < params.maxIter; iter++) {
-    std::shuffle(uInds.begin(), uInds.end(), mt);
-    for (int i = 0; i < data.nTrainSets/nTrUsers; i++) {
-      for (auto&& uInd: uInds) {
-        const UserSets& uSet = data.trainSets[uInd];
-        int user = uSet.user;
-              
-        if (uSet.itemSets.size() == 0) {
-          std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
-          continue;
-        }
-        //select a set at random
-        int setInd = dist(mt) % uSet.itemSets.size();
-        auto items = uSet.itemSets[setInd].first;
-        float r_us = uSet.itemSets[setInd].second;
-
-        if (items.size() == 0) {
-          std::cerr << "!! zero size itemset found !!" << std::endl; 
-          continue;
-        }
-
-        //estimate rating on the set
-        float r_us_est = estSetRating(user, items);
-
-        //compute sum of item latent factors
-        sumItemFactors.fill(0);    
-        for (auto item: items) {
-          sumItemFactors += V.row(item);
-        }
-
-        //user gradient
-        grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
-                + 2.0*uReg*U.row(user).transpose();
-
-        //update user
-        U.row(user) -= learnRate*(grad.transpose());
-        
-        //update user bias
-        uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
-
-        //update items
-        grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
-        for (auto&& item: items) {
-          tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
-          V.row(item) -= learnRate*(tempGrad.transpose());
-          //update item bias
-          iBias(item) -= learnRate*((2.0*(r_us_est - r_us)/items.size()) 
-              + 2.0*iBiasReg*iBias(item));
-        }
-
+    std::shuffle(uSetInds.begin(), uSetInds.end(), mt);
+    for (const auto& uSetInd: uSetInds) {
+      int uInd = uSetInd.first;
+      int setInd = uSetInd.second;
+      const UserSets& uSet = data.trainSets[uInd];
+      int user = uSet.user;
+            
+      if (uSet.itemSets.size() == 0) {
+        std::cerr << "!! zero size user itemset found !! " << user << std::endl; 
+        continue;
       }
+      auto items = uSet.itemSets[setInd].first;
+      float r_us = uSet.itemSets[setInd].second;
+
+      if (items.size() == 0) {
+        std::cerr << "!! zero size itemset found !!" << std::endl; 
+        continue;
+      }
+
+      //estimate rating on the set
+      float r_us_est = estSetRating(user, items);
+
+      //compute sum of item latent factors
+      sumItemFactors.fill(0);    
+      for (auto item: items) {
+        sumItemFactors += V.row(item);
+      }
+
+      //user gradient
+      grad = (2.0*(r_us_est - r_us)/items.size())*sumItemFactors
+              + 2.0*uReg*U.row(user).transpose();
+
+      //update user
+      U.row(user) -= learnRate*(grad.transpose());
+      
+      //update user bias
+      uBias(user) -= learnRate*((2.0*(r_us_est - r_us)) + 2.0*uBiasReg*uBias(user));
+
+      //update items
+      grad = (2.0*(r_us_est - r_us)/items.size())*U.row(user);
+      for (auto&& item: items) {
+        tempGrad = grad + 2.0*iReg*V.row(item).transpose(); 
+        V.row(item) -= learnRate*(tempGrad.transpose());
+        //update item bias
+        iBias(item) -= learnRate*((2.0*(r_us_est - r_us)/items.size()) 
+            + 2.0*iBiasReg*iBias(item));
+      }
+
     }   
 
     if (params.isMixRat) {
