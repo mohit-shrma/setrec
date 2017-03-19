@@ -2120,7 +2120,8 @@ bool Model::isTerminateModelWPartIRMSE(Model& bestModel,
       bestIter = iter;
       bestObj = currObj;
     } 
-   
+  
+    /*
     if (iter - bestIter >= CHANCE_ITER/2) {
       if (learnRate > 5e-4) {
         std::cout << "Changing learn rate from: " << learnRate;
@@ -2129,6 +2130,7 @@ bool Model::isTerminateModelWPartIRMSE(Model& bestModel,
         bestIter = iter;
       }
     } 
+    */
 
     if (iter - bestIter >= CHANCE_ITER) {
       //cant improve validation RMSE

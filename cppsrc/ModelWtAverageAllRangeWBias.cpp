@@ -23,6 +23,9 @@ float ModelWtAverageAllRangeWBias::estItemRating(int user, int item) {
 
 void ModelWtAverageAllRangeWBias::train(const Data& data, const Params& params, 
     Model& bestModel) {
+  trainQPSmooth(data, params, bestModel);
+  return;
+
   std::cout << "ModelWtAverageAllRangeWBias::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
 

@@ -178,6 +178,9 @@ float ModelWtAverageAllRange::estUExSetRMSE(const UserSets& uSet, int exSetInd) 
 
 void ModelWtAverageAllRange::train(const Data& data, const Params& params, 
     Model& bestModel) {
+  trainQPSmooth(data, params, bestModel); 
+  return ;
+
   std::cout << "ModelWtAverageAllRange::train" << std::endl; 
   std::cout << "Objective: " << objective(data.trainSets) << std::endl;
 
