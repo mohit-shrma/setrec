@@ -60,7 +60,7 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
     for (const auto& uSetInd: uSetInds) {
       int uInd = uSetInd.first;
       int setInd = uSetInd.second;
-      UserSets uSet = data.trainSets[uInd];
+      const UserSets& uSet = data.trainSets[uInd];
       int user = uSet.user;
             
       if (uSet.itemSets.size() == 0) {
@@ -68,8 +68,8 @@ void ModelAverage::train(const Data& data, const Params& params, Model& bestMode
         continue;
       }
       auto items = uSet.itemSets[setInd].first;
-      float r_us = uSet.itemSets[setInd].second;
-      int setSz = items.size();
+      const float r_us = uSet.itemSets[setInd].second;
+      const int setSz = items.size();
 
       if (setSz == 0) {
         std::cerr << "!! zero size itemset foundi !!" << std::endl; 
